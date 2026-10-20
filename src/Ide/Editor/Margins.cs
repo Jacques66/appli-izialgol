@@ -6,7 +6,7 @@ using ICSharpCode.AvalonEdit.Rendering;
 
 namespace Studio.Ide.Editor;
 
-/// <summary>Marge des points d'arret (clic = basculer) et de la fleche de ligne courante.</summary>
+/// <summary>Breakpoint margin (click = toggle) and current-line arrow.</summary>
 public sealed class BreakpointMargin : AbstractMargin
 {
     readonly EditorDocument _doc;
@@ -16,7 +16,7 @@ public sealed class BreakpointMargin : AbstractMargin
     {
         _doc = doc;
         Cursor = Cursors.Hand;
-        ToolTip = "Cliquer pour placer ou retirer un point d'arrêt (F9)";
+        ToolTip = "Click to add or remove a breakpoint (F9)";
     }
 
     protected override Size MeasureOverride(Size availableSize) => new(18, 0);
@@ -110,12 +110,12 @@ public sealed class BreakpointMargin : AbstractMargin
         new PointHitTestResult(this, hitTestParameters.HitPoint);
 }
 
-/// <summary>Fond des lignes : ligne d'execution courante, lignes avec point d'arret.</summary>
+/// <summary>Line backgrounds: current execution line, lines with a breakpoint.</summary>
 public sealed class LineBackgroundRenderer : IBackgroundRenderer
 {
     readonly EditorDocument _doc;
     public LineBackgroundRenderer(EditorDocument doc) { _doc = doc; }
-    // Calque « Selection » : au-dessus du surlignage de la ligne du curseur, sous le texte.
+    // "Selection" layer: above the caret-line highlight, below the text.
     public KnownLayer Layer => KnownLayer.Selection;
 
     public void Draw(TextView textView, DrawingContext dc)
@@ -136,7 +136,7 @@ public sealed class LineBackgroundRenderer : IBackgroundRenderer
     }
 }
 
-/// <summary>Appariement des parentheses et des blocs (begin/end, IF/FI…) autour du curseur.</summary>
+/// <summary>Matching of brackets and blocks (begin/end, IF/FI…) around the caret.</summary>
 public sealed class BracketHighlighter : IBackgroundRenderer
 {
     readonly EditorDocument _doc;
@@ -150,7 +150,7 @@ public sealed class BracketHighlighter : IBackgroundRenderer
         var old = (_a, _b);
         _a = _b = null;
         var m = _doc.Model;
-        // Jeton qui touche le curseur (a droite d'abord, puis a gauche)
+        // Token touching the caret (right side first, then left side)
         int idx = m.TokenAt(caret, allowEndTouch: false);
         if (idx < 0 || !m.PairOf.ContainsKey(idx)) idx = m.TokenAt(caret, allowEndTouch: true);
         if (idx >= 0 && m.PairOf.TryGetValue(idx, out var other))

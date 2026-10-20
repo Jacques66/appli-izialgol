@@ -1,4 +1,4 @@
-﻿// a68c : compilateur Algol 68 en ligne de commande.
+﻿// a68c: command-line Algol 68 compiler.
 using Studio.Algol68;
 using Studio.Tooling;
 

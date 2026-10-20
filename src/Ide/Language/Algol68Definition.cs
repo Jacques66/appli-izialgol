@@ -1,7 +1,7 @@
 namespace Studio.Ide.Language;
 
-/// <summary>Algol 68 : stropping UPPER (mots en majuscules = mots gras) et QUOTE ('BEGIN'),
-/// commentaires CO…CO, COMMENT…COMMENT, #…#, pragmats PR…PR.</summary>
+/// <summary>Algol 68: UPPER stropping (upper-case words = bold words) and QUOTE stropping ('BEGIN'),
+/// comments CO…CO, COMMENT…COMMENT, #…#, pragmats PR…PR.</summary>
 public sealed class Algol68Definition : LanguageDefinition
 {
     public override string Id => "algol68";
@@ -15,7 +15,7 @@ public sealed class Algol68Definition : LanguageDefinition
         "FALSE", "FI", "FOR", "FROM", "GO", "GOTO", "HEAP", "IF", "IN", "IS", "ISNT", "LOC", "MODE", "NIL",
         "OD", "OF", "OP", "OUSE", "OUT", "PAR", "PR", "PRAGMAT", "PRIO", "PROC", "SKIP", "THEN", "TO",
         "TRUE", "WHILE", "UNTIL",
-        // operateurs standard ecrits en gras
+        // standard operators written in bold
         "ABS", "AND", "OR", "NOT", "MOD", "OVER", "ENTIER", "ROUND", "SIGN", "ODD", "UPB", "LWB", "ELEM",
         "SHL", "SHR", "UP", "DOWN", "LENG", "SHORTEN", "REPR", "BIN", "ARG", "RE", "IM", "CONJ",
         "LT", "LE", "GT", "GE", "EQ", "NE", "XOR", "PLUSAB", "MINUSAB", "TIMESAB", "DIVAB", "OVERAB", "MODAB",
@@ -47,8 +47,8 @@ public sealed class Algol68Definition : LanguageDefinition
 
     public override string NewFileTemplate =>
         "BEGIN\r\n" +
-        "   # Nouveau programme Algol 68 #\r\n" +
-        "   print((\"Bonjour, monde !\", newline))\r\n" +
+        "   # New Algol 68 program #\r\n" +
+        "   print((\"Hello, world!\", newline))\r\n" +
         "END\r\n";
 
     public override List<Token> Tokenize(string s)
@@ -59,7 +59,7 @@ public sealed class Algol68Definition : LanguageDefinition
         {
             char c = s[i];
             if (char.IsWhiteSpace(c)) { i++; continue; }
-            // Mot gras en stropping UPPER
+            // Bold word in UPPER stropping
             if (c is >= 'A' and <= 'Z')
             {
                 int st = i;
@@ -69,7 +69,7 @@ public sealed class Algol68Definition : LanguageDefinition
                 tokens.Add(new Token(Classify(word), st, i - st, word));
                 continue;
             }
-            // Mot gras en stropping QUOTE : 'begin' ou 'BEGIN'
+            // Bold word in QUOTE stropping: 'begin' or 'BEGIN'
             if (c == '\'' && i + 1 < n && char.IsLetter(s[i + 1]))
             {
                 int j = i + 1;
@@ -149,7 +149,7 @@ public sealed class Algol68Definition : LanguageDefinition
     static TokenKind Classify(string word) =>
         TypeSet.Contains(word) ? TokenKind.Type : ReservedSet.Contains(word) ? TokenKind.Keyword : TokenKind.BoldWord;
 
-    /// <summary>CO / COMMENT / PR / PRAGMAT : commentaire (ou pragmat) jusqu'au meme mot.</summary>
+    /// <summary>CO / COMMENT / PR / PRAGMAT: comment (or pragmat) up to the same word.</summary>
     static bool TryComment(string s, ref int i, int st, string word, bool quoted, List<Token> tokens)
     {
         if (word is not ("CO" or "COMMENT" or "PR" or "PRAGMAT")) return false;
@@ -238,7 +238,7 @@ public sealed class Algol68Definition : LanguageDefinition
             }
             else if (Closers.Contains(t.Norm) && IsStructural(t))
             {
-                // Tolerance aux erreurs : depile jusqu'a l'ouvrant correspondant
+                // Error tolerance: pop up to the matching opener
                 if (stack.Any(o => Openers[toks[o].Norm] == t.Norm))
                 {
                     while (stack.Count > 0)
@@ -267,14 +267,14 @@ public sealed class Algol68Definition : LanguageDefinition
         CollectIdentifiers(m, StringComparer.Ordinal);
     }
 
-    /// <summary>PROC nom = …, OP nom = …, MODE NOM = … (plusieurs declarations separees par des virgules).</summary>
+    /// <summary>PROC name = …, OP name = …, MODE NAME = … (several declarations separated by commas).</summary>
     static void AddOutline(CodeModel m, int k, OutlineKind kind, string word, int depth)
     {
         var toks = m.Tokens;
         int j = k + 1;
         while (j < toks.Count)
         {
-            // Nom : identifiants consecutifs (les espaces sont permis dans les noms Algol 68), mot gras ou symbole
+            // Name: consecutive identifiers (spaces are allowed in Algol 68 names), bold word or symbol
             int nameStart = j;
             var parts = new List<string>();
             if (kind == OutlineKind.Procedure)
@@ -285,7 +285,7 @@ public sealed class Algol68Definition : LanguageDefinition
             var next = toks[j];
             if (next.Norm is not ("=" or ":=")) return;
             m.Outline.Add(new OutlineItem(kind, string.Join(" ", parts), word, toks[nameStart].Start, depth));
-            // Cherche une virgule au meme niveau de parentheses avant le prochain « ; » (declarations multiples)
+            // Look for a comma at the same bracket level before the next ";" (multiple declarations)
             int level = 0; j++;
             bool more = false;
             for (; j < toks.Count; j++)
@@ -296,7 +296,7 @@ public sealed class Algol68Definition : LanguageDefinition
                 else if (level == 0 && t.Norm == ";") return;
                 else if (level == 0 && t.Norm == ",")
                 {
-                    // « , nom = » : nouvelle declaration de meme nature
+                    // ", name =": new declaration of the same kind
                     int a = j + 1;
                     while (a < toks.Count && toks[a].Norm != "=" && toks[a].Kind is TokenKind.Identifier or TokenKind.Builtin or TokenKind.BoldWord or TokenKind.Operator) a++;
                     if (a < toks.Count && a > j + 1 && toks[a].Norm == "=") { j++; more = true; break; }

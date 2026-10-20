@@ -4,7 +4,7 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-/// <summary>Rechercher / remplacer (non modal) dans l'editeur actif.</summary>
+/// <summary>Find / replace (modeless) in the active editor.</summary>
 public partial class FindReplaceWindow : Window
 {
     readonly MainWindow _main;
@@ -28,7 +28,7 @@ public partial class FindReplaceWindow : Window
 
     public void ShowMode(bool replace)
     {
-        Title = replace ? "Remplacer" : "Rechercher";
+        Title = replace ? "Replace" : "Find";
         var v = replace ? Visibility.Visible : Visibility.Collapsed;
         ReplaceLabel.Visibility = ReplaceBox.Visibility = ReplaceButton.Visibility = ReplaceAllButton.Visibility = v;
         FindBox.Text = _options.Text;

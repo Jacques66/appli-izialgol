@@ -12,13 +12,13 @@ public sealed class SearchOptions
     public bool UseRegex { get; set; }
 }
 
-/// <summary>Rechercher / remplacer dans un editeur (texte simple ou expression reguliere).</summary>
+/// <summary>Find / replace in an editor (plain text or regular expression).</summary>
 public static class SearchEngine
 {
     public static Regex? Build(SearchOptions o, out string? error)
     {
         error = null;
-        if (string.IsNullOrEmpty(o.Text)) { error = "Texte à rechercher vide."; return null; }
+        if (string.IsNullOrEmpty(o.Text)) { error = "Nothing to search for."; return null; }
         var pattern = o.UseRegex ? o.Text : Regex.Escape(o.Text);
         if (o.WholeWord) pattern = @"(?<![\w])(?:" + pattern + @")(?![\w])";
         var opts = RegexOptions.Multiline | RegexOptions.CultureInvariant;
@@ -29,7 +29,7 @@ public static class SearchEngine
         }
         catch (ArgumentException ex)
         {
-            error = "Expression régulière invalide : " + ex.Message;
+            error = "Invalid regular expression: " + ex.Message;
             return null;
         }
     }
@@ -73,7 +73,7 @@ public static class SearchEngine
         return true;
     }
 
-    /// <summary>Remplace la selection si elle correspond a la recherche.</summary>
+    /// <summary>Replaces the selection if it matches the search.</summary>
     public static bool ReplaceCurrent(EditorDocument doc, Regex rx, SearchOptions o)
     {
         var ed = doc.Editor;
@@ -86,7 +86,7 @@ public static class SearchEngine
         return true;
     }
 
-    /// <summary>Remplace toutes les occurrences (une seule etape d'annulation).</summary>
+    /// <summary>Replaces all occurrences (a single undo step).</summary>
     public static int ReplaceAll(EditorDocument doc, Regex rx, SearchOptions o)
     {
         var ed = doc.Editor;

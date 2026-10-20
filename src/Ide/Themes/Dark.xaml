@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Theme sombre -->
+    <!-- Dark theme -->
     <SolidColorBrush x:Key="Brush.WindowBackground" Color="#1F2023"/>
     <SolidColorBrush x:Key="Brush.PanelBackground" Color="#25262A"/>
     <SolidColorBrush x:Key="Brush.PanelHeader" Color="#2D2F34"/>

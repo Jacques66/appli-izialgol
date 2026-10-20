@@ -6,14 +6,14 @@ using Studio.Tooling;
 
 namespace Studio.Ide;
 
-/// <summary>Options de la ligne de commande.</summary>
+/// <summary>Command-line options.</summary>
 public sealed class AppOptions
 {
     public List<string> Files { get; } = new();
-    /// <summary>Demarre, affiche la fenetre, capture eventuellement un ecran, puis se ferme (code 0 si aucune exception).</summary>
+    /// <summary>Starts, shows the window, optionally takes a screenshot, then exits (exit code 0 when no exception occurred).</summary>
     public bool SmokeTest { get; set; }
     public string? Screenshot { get; set; }
-    /// <summary>Scenario automatique de bout en bout avec le langage de test « echo ».</summary>
+    /// <summary>Automated end-to-end scenario with the "echo" test language.</summary>
     public bool SelfTest { get; set; }
     public string? SelfTestDir { get; set; }
     public bool TestLanguage { get; set; }
@@ -65,10 +65,10 @@ public partial class App : Application
 
         DispatcherUnhandledException += OnDispatcherException;
         AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
-            Log.Write("exception non gérée : " + ev.ExceptionObject);
+            Log.Write("unhandled exception: " + ev.ExceptionObject);
         TaskScheduler.UnobservedTaskException += (_, ev) =>
         {
-            Log.Write("tâche : " + ev.Exception);
+            Log.Write("task: " + ev.Exception);
             ev.SetObserved();
         };
 
@@ -81,11 +81,11 @@ public partial class App : Application
     {
         UnhandledErrors++;
         ErrorMessages.Add(e.Exception.ToString());
-        Log.Write("exception dans l'interface : " + e.Exception);
+        Log.Write("exception in the user interface: " + e.Exception);
         e.Handled = true;
         if (!Options.Automated)
-            MessageBox.Show(MainWindow!, "Une erreur inattendue s'est produite :\n\n" + e.Exception.Message +
-                "\n\nLe détail a été écrit dans " + Path.Combine(IdeSettings.Directory, "ide.log"),
+            MessageBox.Show(MainWindow!, "An unexpected error occurred:\n\n" + e.Exception.Message +
+                "\n\nDetails were written to " + Path.Combine(IdeSettings.Directory, "ide.log"),
                 "Simula 67 & Algol 68 Studio", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 

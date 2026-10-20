@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Studio.Ide.Services;
 
-/// <summary>Parametres persistants (%APPDATA%\Simula67Studio\settings.json).</summary>
+/// <summary>Persistent settings (%APPDATA%\Simula67Studio\settings.json).</summary>
 public sealed class IdeSettings
 {
     public List<string> RecentFiles { get; set; } = new();
@@ -16,7 +16,8 @@ public sealed class IdeSettings
 
     public double FontSize { get; set; } = 14;
     public string FontFamily { get; set; } = "Cascadia Mono, Consolas, Courier New";
-    public string Theme { get; set; } = "clair";
+    /// <summary>"light" or "dark".</summary>
+    public string Theme { get; set; } = "light";
     public bool WordWrap { get; set; }
     public bool ShowWhitespace { get; set; }
     public bool ShowLineNumbers { get; set; } = true;
@@ -44,7 +45,7 @@ public sealed class IdeSettings
 
     // ------------------------------------------------------------------
 
-    /// <summary>Repertoire des parametres (peut etre remplace par --settings-dir).</summary>
+    /// <summary>Settings directory (can be overridden with --settings-dir).</summary>
     public static string Directory { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Simula67Studio");
 
@@ -70,13 +71,15 @@ public sealed class IdeSettings
                     s.RecentFiles ??= new(); s.OpenFiles ??= new(); s.RecentFolders ??= new();
                     if (s.FontSize < 6 || s.FontSize > 72) s.FontSize = 14;
                     if (s.IndentSize < 1 || s.IndentSize > 8) s.IndentSize = 3;
+                    // Older settings files used French theme names ("sombre" = dark).
+                    s.Theme = s.Theme is "dark" or "sombre" ? "dark" : "light";
                     return s;
                 }
             }
         }
         catch (Exception ex)
         {
-            Log.Write("lecture des paramètres impossible : " + ex.Message);
+            Log.Write("cannot read settings: " + ex.Message);
         }
         return new IdeSettings
         {
@@ -96,7 +99,7 @@ public sealed class IdeSettings
         }
         catch (Exception ex)
         {
-            Log.Write("enregistrement des paramètres impossible : " + ex.Message);
+            Log.Write("cannot save settings: " + ex.Message);
         }
     }
 
@@ -115,7 +118,7 @@ public sealed class IdeSettings
     }
 }
 
-/// <summary>Journal technique (%APPDATA%\Simula67Studio\ide.log).</summary>
+/// <summary>Technical log (%APPDATA%\Simula67Studio\ide.log).</summary>
 public static class Log
 {
     static readonly object Gate = new();

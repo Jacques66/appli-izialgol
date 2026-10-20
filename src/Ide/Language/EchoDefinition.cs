@@ -1,10 +1,10 @@
 namespace Studio.Ide.Language;
 
-/// <summary>Langage de test « echo » (active par --test-language) : une instruction par ligne.</summary>
+/// <summary>"echo" test language (enabled by --test-language): one statement per line.</summary>
 public sealed class EchoDefinition : LanguageDefinition
 {
     public override string Id => "echo";
-    public override string DisplayName => "Echo (langage de test)";
+    public override string DisplayName => "Echo (test language)";
     public override string DefaultExtension => ".echo";
     public override bool CaseSensitive => false;
 
@@ -13,7 +13,7 @@ public sealed class EchoDefinition : LanguageDefinition
     public override IReadOnlyList<string> CompletionWords => Words;
 
     public override string NewFileTemplate =>
-        "# Programme de test echo\r\nprint Bonjour !\r\nread nom\r\nprint Salut {nom}\r\n";
+        "# Echo test program\r\nprint Hello!\r\nread name\r\nprint Hi {name}\r\n";
 
     public override List<Token> Tokenize(string s)
     {

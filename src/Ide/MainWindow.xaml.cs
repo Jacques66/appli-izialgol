@@ -29,7 +29,7 @@ public partial class MainWindow : Window
     bool _checkingExternalChanges;
     Key _pendingChord = Key.None;
 
-    // ------------------------------------------------------------------ commandes
+    // ------------------------------------------------------------------ commands
 
     public ICommand CmdNewSimula { get; }
     public ICommand CmdNewAlgol { get; }
@@ -76,8 +76,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         _settings = IdeSettings.Load();
-        if (App.Options.Theme != null) _settings.Theme = App.Options.Theme.StartsWith("s", StringComparison.OrdinalIgnoreCase) || App.Options.Theme.StartsWith("d", StringComparison.OrdinalIgnoreCase) ? "sombre" : "clair";
-        App.ApplyTheme(_settings.Theme == "sombre");
+        if (App.Options.Theme != null) _settings.Theme = App.Options.Theme.StartsWith("s", StringComparison.OrdinalIgnoreCase) || App.Options.Theme.StartsWith("d", StringComparison.OrdinalIgnoreCase) ? "dark" : "light";
+        App.ApplyTheme(IsDarkSetting);
 
         bool HasDoc(object? _) => ActiveDocument != null;
         bool NotBusy(object? _) => ActiveDocument != null && _state == IdeState.Idle;
@@ -161,14 +161,14 @@ public partial class MainWindow : Window
 
     void OnLoaded(object sender, RoutedEventArgs e)
     {
-        // Dossier de l'explorateur
+        // Explorer folder
         var root = _settings.ExplorerRoot;
         if (root == null || !System.IO.Directory.Exists(root)) root = PathLocator.SamplesDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         SetExplorerRoot(root, remember: false);
 
         if (!App.Options.Automated)
         {
-            // Restauration de la session
+            // Restore the previous session
             foreach (var f in _settings.OpenFiles.ToList())
                 if (File.Exists(f)) OpenFile(f, activate: false);
             var active = _documents.FirstOrDefault(d => PathLocator.SamePath(d.FilePath, _settings.ActiveFile));
@@ -181,16 +181,16 @@ public partial class MainWindow : Window
             else if (File.Exists(f)) OpenFile(Path.GetFullPath(f));
         }
 
-        AppendOutput($"Simula 67 & Algol 68 Studio — {DateTime.Now:dddd d MMMM yyyy HH:mm}");
+        AppendOutput("Simula 67 & Algol 68 Studio — " + DateTime.Now.ToString("dddd, MMMM d, yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
         var runner = RunnerLocator.Find();
-        AppendOutput(runner != null ? $"Lanceur des exécutables autonomes : {runner}" : "Attention : " + RunnerLocator.NotFoundMessage);
-        AppendOutput("Langages : " + string.Join(", ", LanguageRegistry.Languages.Select(l => $"{l.DisplayName} ({string.Join(", ", l.FileExtensions)})")));
+        AppendOutput(runner != null ? $"Standalone executable launcher: {runner}" : "Warning: " + RunnerLocator.NotFoundMessage);
+        AppendOutput("Languages: " + string.Join(", ", LanguageRegistry.Languages.Select(l => $"{l.DisplayName} ({string.Join(", ", l.FileExtensions)})")));
 
         if (App.Options.SmokeTest) _ = SelfTest.RunSmokeAsync(this);
         else if (App.Options.SelfTest) _ = SelfTest.RunAsync(this);
     }
 
-    // ------------------------------------------------------------------ documents / onglets
+    // ------------------------------------------------------------------ documents / tabs
 
     public EditorDocument? ActiveDocument => (DocTabs.SelectedItem as TabItem)?.Tag as EditorDocument;
     public IReadOnlyList<EditorDocument> Documents => _documents;
@@ -218,7 +218,7 @@ public partial class MainWindow : Window
             Style = (Style)FindResource("ToolButton"),
             Padding = new Thickness(2),
             Margin = new Thickness(6, 0, 0, 0),
-            ToolTip = "Fermer (Ctrl+W)",
+            ToolTip = "Close (Ctrl+W)",
             Content = new System.Windows.Shapes.Path
             {
                 Data = (Geometry)FindResource("Icon.Close"),
@@ -265,11 +265,11 @@ public partial class MainWindow : Window
             if (enabled != null) cm.Opened += (_, _) => mi.IsEnabled = enabled();
             cm.Items.Add(mi);
         }
-        Add("Fermer", () => CloseDocument(doc));
-        Add("Fermer les autres onglets", () => { foreach (var d in _documents.Where(x => x != doc).ToList()) if (!CloseDocument(d)) break; });
+        Add("Close", () => CloseDocument(doc));
+        Add("Close other tabs", () => { foreach (var d in _documents.Where(x => x != doc).ToList()) if (!CloseDocument(d)) break; });
         cm.Items.Add(new Separator());
-        Add("Copier le chemin complet", () => Clipboard.SetText(doc.CompilePath), () => doc.FilePath != null);
-        Add("Ouvrir le dossier contenant", () => RevealInExplorer(doc.FilePath!), () => doc.FilePath != null);
+        Add("Copy full path", () => Clipboard.SetText(doc.CompilePath), () => doc.FilePath != null);
+        Add("Open containing folder", () => RevealInExplorer(doc.FilePath!), () => doc.FilePath != null);
         return cm;
     }
 
@@ -304,8 +304,8 @@ public partial class MainWindow : Window
             var recent = _settings.RecentFiles.Where(File.Exists).Take(8).ToList();
             WelcomeRecent.ItemsSource = recent;
             WelcomeNoRecent.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            // page d'accueil : exemples principaux seulement (le menu Exemples les liste tous)
-            var samples = ListSamples().Where(f => !f.Contains("fonctionnalites") && !f.Contains("execution")).ToList();
+            // Welcome page: main examples only (the Examples menu lists them all)
+            var samples = ListSamples().Where(f => !IsWelcomeExcluded(f)).ToList();
             WelcomeSamples.ItemsSource = samples;
             WelcomeNoSamples.Visibility = samples.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateOutline();
@@ -318,7 +318,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.Tag is string path) OpenFile(path);
     }
 
-    // ------------------------------------------------------------------ barre d'etat
+    // ------------------------------------------------------------------ status bar
 
     void UpdateStatusBar()
     {
@@ -333,7 +333,7 @@ public partial class MainWindow : Window
         {
             var caret = doc.Editor.TextArea.Caret;
             StatusPosition.Text = $"Ln {caret.Line}, Col {caret.Column}";
-            StatusInsert.Text = doc.Editor.TextArea.OverstrikeMode ? "RFP" : "INS";
+            StatusInsert.Text = doc.Editor.TextArea.OverstrikeMode ? "OVR" : "INS";
             StatusEncoding.Text = doc.Encoding.WebName switch
             {
                 "utf-8" => doc.Encoding.GetPreamble().Length > 0 ? "UTF-8 (BOM)" : "UTF-8",
@@ -352,12 +352,12 @@ public partial class MainWindow : Window
         _state = state;
         StatusState.Text = state switch
         {
-            IdeState.Idle => "Prêt",
-            IdeState.Building => "Compilation…",
-            IdeState.Running => "Exécution…",
-            IdeState.Debugging => "Débogage…",
-            IdeState.Paused => "En pause",
-            IdeState.External => "Exécution (console externe)…",
+            IdeState.Idle => "Ready",
+            IdeState.Building => "Building…",
+            IdeState.Running => "Running…",
+            IdeState.Debugging => "Debugging…",
+            IdeState.Paused => "Paused",
+            IdeState.External => "Running (external console)…",
             _ => "",
         };
         if (message != null) StatusMessage.Text = message;
@@ -373,12 +373,15 @@ public partial class MainWindow : Window
             IdeState.Paused => "Brush.StatusBarPaused",
             _ => "Brush.StatusBar",
         });
-        DebugButtonText.Text = state == IdeState.Paused ? "Continuer" : "Déboguer";
-        DebugMenuItem.Header = state == IdeState.Paused ? "_Continuer" : "_Démarrer le débogage";
+        DebugButtonText.Text = state == IdeState.Paused ? "Continue" : "Debug";
+        DebugMenuItem.Header = state == IdeState.Paused ? "_Continue" : "_Start debugging";
         CommandManager.InvalidateRequerySuggested();
     }
 
     public void SetStatusMessage(string message) => StatusMessage.Text = message;
+
+    /// <summary>Dark theme selected in the settings (legacy values are normalized by IdeSettings.Load).</summary>
+    bool IsDarkSetting => _settings.Theme == "dark";
 
     void OnStatusLanguageClick(object sender, RoutedEventArgs e)
     {
@@ -406,7 +409,7 @@ public partial class MainWindow : Window
         }
     }
 
-    // ------------------------------------------------------------------ panneaux
+    // ------------------------------------------------------------------ panels
 
     void ApplyPanelLayout()
     {
@@ -465,8 +468,8 @@ public partial class MainWindow : Window
         WordWrapItem.IsChecked = _settings.WordWrap;
         LineNumbersItem.IsChecked = _settings.ShowLineNumbers;
         WhitespaceItem.IsChecked = _settings.ShowWhitespace;
-        ThemeLightItem.IsChecked = _settings.Theme != "sombre";
-        ThemeDarkItem.IsChecked = _settings.Theme == "sombre";
+        ThemeLightItem.IsChecked = !IsDarkSetting;
+        ThemeDarkItem.IsChecked = IsDarkSetting;
         BackgroundCheckItem.IsChecked = _settings.BackgroundCheck;
         DebugInfoItem.IsChecked = _settings.GenerateDebugInfo;
         StopOnEntryItem.IsChecked = _settings.StopOnEntry;
@@ -502,8 +505,8 @@ public partial class MainWindow : Window
         _settings.ExternalConsole = ExternalConsoleToggle.IsChecked == true;
         ExternalConsoleItem.IsChecked = _settings.ExternalConsole;
         SetStatusMessage(_settings.ExternalConsole
-            ? "Les programmes seront exécutés dans une console Windows externe (Ctrl+F5)."
-            : "Les programmes seront exécutés dans la console intégrée.");
+            ? "Programs will run in an external Windows console (Ctrl+F5)."
+            : "Programs will run in the integrated console.");
     }
 
     void OnThemeLight(object sender, RoutedEventArgs e) => SetTheme(false);
@@ -511,7 +514,7 @@ public partial class MainWindow : Window
 
     public void SetTheme(bool dark)
     {
-        _settings.Theme = dark ? "sombre" : "clair";
+        _settings.Theme = dark ? "dark" : "light";
         App.ApplyTheme(dark);
         ThemeLightItem.IsChecked = !dark;
         ThemeDarkItem.IsChecked = dark;
@@ -519,7 +522,7 @@ public partial class MainWindow : Window
         ConsoleView.ApplyTheme();
         SetState(_state);
         ApplyTitleBarTheme();
-        // Rafraichit les icones liees aux ressources (liste d'erreurs, structure)
+        // Refresh resource-bound icons (error list, outline)
         ErrorList.Items.Refresh();
         UpdateOutline();
     }
@@ -566,7 +569,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    // ------------------------------------------------------------------ clavier
+    // ------------------------------------------------------------------ keyboard
 
     void RegisterKeyBindings()
     {
@@ -617,14 +620,14 @@ public partial class MainWindow : Window
 
     void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // F10 est une touche « systeme » (active le menu) : traitee ici.
+        // F10 is a "system" key (it activates the menu): handled here.
         if (e.Key == Key.System && e.SystemKey == Key.F10 && Keyboard.Modifiers == ModifierKeys.None)
         {
             if (CmdStepOver.CanExecute(null)) CmdStepOver.Execute(null);
             e.Handled = true;
             return;
         }
-        // Accord Ctrl+M, Ctrl+O / Ctrl+L / Ctrl+M (repliage)
+        // Chord Ctrl+M, Ctrl+O / Ctrl+L / Ctrl+M (folding)
         if (Keyboard.Modifiers == ModifierKeys.Control && ActiveDocument != null && IsInsideEditor((DependencyObject)e.OriginalSource))
         {
             if (_pendingChord == Key.M)
@@ -637,7 +640,7 @@ public partial class MainWindow : Window
             else if (e.Key == Key.M)
             {
                 _pendingChord = Key.M;
-                SetStatusMessage("Ctrl+M a été enfoncé. Attente de la deuxième touche (O, L ou M)…");
+                SetStatusMessage("Ctrl+M was pressed. Waiting for the second key (O, L or M)…");
                 e.Handled = true;
                 return;
             }
@@ -645,7 +648,7 @@ public partial class MainWindow : Window
         if (e.Key is not (Key.LeftCtrl or Key.RightCtrl)) _pendingChord = Key.None;
     }
 
-    // ------------------------------------------------------------------ glisser-deposer
+    // ------------------------------------------------------------------ drag and drop
 
     void OnPreviewDragOver(object sender, DragEventArgs e)
     {
@@ -667,7 +670,7 @@ public partial class MainWindow : Window
         }
     }
 
-    // ------------------------------------------------------------------ explorateur
+    // ------------------------------------------------------------------ explorer
 
     public void SetExplorerRoot(string path, bool remember = true)
     {
@@ -675,7 +678,7 @@ public partial class MainWindow : Window
         var root = new FileNode(path, true);
         root.IsExpanded = true;
         ExplorerTree.ItemsSource = new[] { root };
-        ExplorerTitle.Text = "EXPLORATEUR — " + Path.GetFileName(path.TrimEnd('\\'));
+        ExplorerTitle.Text = "EXPLORER — " + Path.GetFileName(path.TrimEnd('\\'));
         ExplorerTitle.ToolTip = path;
         _settings.ExplorerRoot = path;
         if (remember) _settings.AddRecentFolder(path);
@@ -735,7 +738,7 @@ public partial class MainWindow : Window
         catch { }
     }
 
-    // ------------------------------------------------------------------ structure (outline)
+    // ------------------------------------------------------------------ outline
 
     void UpdateOutline()
     {
@@ -747,9 +750,9 @@ public partial class MainWindow : Window
             foreach (var item in doc.Model.Outline)
                 if (item.Offset <= d.TextLength)
                     _outlineAll.Add(new OutlineEntry(item, d.GetLineByOffset(item.Offset).LineNumber));
-            OutlineTitle.Text = "STRUCTURE — " + doc.DisplayName;
+            OutlineTitle.Text = "OUTLINE — " + doc.DisplayName;
         }
-        else OutlineTitle.Text = "STRUCTURE";
+        else OutlineTitle.Text = "OUTLINE";
         ApplyOutlineFilter();
     }
 
@@ -759,8 +762,8 @@ public partial class MainWindow : Window
         var list = f.Length == 0 ? _outlineAll : _outlineAll.Where(o => o.Name.Contains(f, StringComparison.OrdinalIgnoreCase)).ToList();
         OutlineList.ItemsSource = list.ToList();
         OutlineEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        OutlineEmpty.Text = ActiveDocument == null ? "Aucun fichier ouvert." : _outlineAll.Count == 0
-            ? "Aucune procédure, classe, opérateur ou mode." : "Aucun élément ne correspond au filtre.";
+        OutlineEmpty.Text = ActiveDocument == null ? "No open file." : _outlineAll.Count == 0
+            ? "No procedure, class, operator or mode." : "No item matches the filter.";
     }
 
     void OnOutlineFilterChanged(object sender, TextChangedEventArgs e) => ApplyOutlineFilter();
@@ -784,7 +787,7 @@ public partial class MainWindow : Window
         }
     }
 
-    // ------------------------------------------------------------------ edition
+    // ------------------------------------------------------------------ editing
 
     void ReindentSelection()
     {
@@ -805,7 +808,7 @@ public partial class MainWindow : Window
         var doc = ActiveDocument;
         if (doc == null) return;
         foreach (var f in doc.Folding.AllFoldings) f.IsFolded = folded;
-        SetStatusMessage(folded ? "Tous les blocs ont été repliés." : "Tous les blocs ont été dépliés.");
+        SetStatusMessage(folded ? "All blocks folded." : "All blocks unfolded.");
     }
 
     void ToggleFoldAtCaret()
@@ -849,15 +852,15 @@ public partial class MainWindow : Window
         FindNext(backwards);
     }
 
-    /// <summary>Recherche suivante dans l'editeur actif ; rend un message pour la barre d'etat.</summary>
+    /// <summary>Finds the next match in the active editor; returns a status-bar message.</summary>
     public string FindNext(bool backwards)
     {
         var doc = ActiveDocument;
-        if (doc == null) return "Aucun fichier ouvert.";
+        if (doc == null) return "No open file.";
         var rx = SearchEngine.Build(_search, out var error);
         if (rx == null) return SetSearchStatus(error!);
         bool found = SearchEngine.FindNext(doc, rx, backwards, out bool wrapped);
-        return SetSearchStatus(found ? (wrapped ? "Recherche reprise au début du fichier." : "") : $"« {_search.Text} » introuvable.");
+        return SetSearchStatus(found ? (wrapped ? "Search wrapped to the start of the file." : "") : $"'{_search.Text}' not found.");
     }
 
     public string ReplaceCurrent()
@@ -877,7 +880,7 @@ public partial class MainWindow : Window
         var rx = SearchEngine.Build(_search, out var error);
         if (rx == null) return SetSearchStatus(error!);
         int n = SearchEngine.ReplaceAll(doc, rx, _search);
-        return SetSearchStatus(n == 0 ? $"« {_search.Text} » introuvable." : $"{n} occurrence(s) remplacée(s).");
+        return SetSearchStatus(n == 0 ? $"'{_search.Text}' not found." : $"{n} occurrence(s) replaced.");
     }
 
     string SetSearchStatus(string message)
@@ -886,7 +889,7 @@ public partial class MainWindow : Window
         return message;
     }
 
-    // ------------------------------------------------------------------ aide
+    // ------------------------------------------------------------------ help
 
     Dialogs.HelpWindow? _helpWindow;
 
@@ -902,7 +905,7 @@ public partial class MainWindow : Window
         _helpWindow.Activate();
     }
 
-    // ------------------------------------------------------------------ fenetre
+    // ------------------------------------------------------------------ window
 
     void RestoreWindowPlacement()
     {
@@ -928,7 +931,7 @@ public partial class MainWindow : Window
         if (_closingConfirmed) return;
         if (_state is IdeState.Running or IdeState.Debugging or IdeState.Paused or IdeState.External && !App.Options.Automated)
         {
-            var r = MessageBox.Show(this, "Un programme est en cours d'exécution. L'arrêter et quitter ?", "Simula 67 & Algol 68 Studio",
+            var r = MessageBox.Show(this, "A program is running. Stop it and exit?", "Simula 67 & Algol 68 Studio",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (r != MessageBoxResult.Yes) { e.Cancel = true; return; }
         }
@@ -959,7 +962,7 @@ public partial class MainWindow : Window
         _settings.Save();
     }
 
-    /// <summary>Recharge les fichiers modifies sur le disque par un autre programme.</summary>
+    /// <summary>Reloads files changed on disk by another program.</summary>
     void CheckExternalChanges()
     {
         if (_checkingExternalChanges) return;
@@ -974,22 +977,22 @@ public partial class MainWindow : Window
                 if (!d.IsModified)
                 {
                     d.Reload();
-                    AppendOutput($"Fichier rechargé (modifié hors de l'éditeur) : {d.FilePath}");
+                    AppendOutput($"File reloaded (changed outside the editor): {d.FilePath}");
                 }
                 else
                 {
-                    var r = MessageBox.Show(this, $"Le fichier\n{d.FilePath}\na été modifié hors de l'éditeur.\n\nLe recharger et perdre vos modifications ?",
-                        "Fichier modifié", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    var r = MessageBox.Show(this, $"The file\n{d.FilePath}\nhas been changed outside the editor.\n\nReload it and lose your changes?",
+                        "File changed", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (r == MessageBoxResult.Yes) d.Reload();
                     else d.LastWriteUtc = t;
                 }
             }
         }
-        catch (Exception ex) { Log.Write("vérification des fichiers : " + ex.Message); }
+        catch (Exception ex) { Log.Write("file check: " + ex.Message); }
         finally { _checkingExternalChanges = false; }
     }
 
-    // ------------------------------------------------------------------ sortie
+    // ------------------------------------------------------------------ output
 
     public void AppendOutput(string line)
     {
@@ -1000,7 +1003,7 @@ public partial class MainWindow : Window
 
     void OnClearOutput(object sender, RoutedEventArgs e) => OutputBox.Clear();
 
-    /// <summary>Double-clic sur une ligne « fichier(l,c): … » de la sortie : aller a la position.</summary>
+    /// <summary>Double-click on an output line "file(l,c): …" goes to that position.</summary>
     void OnOutputDoubleClick(object sender, MouseButtonEventArgs e)
     {
         int idx = OutputBox.GetLineIndexFromCharacterIndex(OutputBox.CaretIndex);
@@ -1015,7 +1018,7 @@ public partial class MainWindow : Window
     }
 }
 
-/// <summary>Pastille de langage dans l'onglet (S, A, E).</summary>
+/// <summary>Language badge shown in the tab (SIM, A68, ECHO).</summary>
 public sealed class LanguageBadgeConverter : IValueConverter
 {
     public static readonly LanguageBadgeConverter Instance = new();

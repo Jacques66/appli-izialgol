@@ -10,252 +10,252 @@
     <DockPanel>
         <!-- ============================== Menu ============================== -->
         <Menu DockPanel.Dock="Top" Padding="2,2,2,0">
-            <MenuItem Header="_Fichier">
-                <MenuItem Header="Nouveau programme _Simula 67" Command="{Binding CmdNewSimula}" InputGestureText="Ctrl+N">
+            <MenuItem Header="_File">
+                <MenuItem Header="New _Simula 67 program" Command="{Binding CmdNewSimula}" InputGestureText="Ctrl+N">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Nouveau programme _Algol 68" Command="{Binding CmdNewAlgol}" InputGestureText="Ctrl+Maj+N">
+                <MenuItem Header="New _Algol 68 program" Command="{Binding CmdNewAlgol}" InputGestureText="Ctrl+Shift+N">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem x:Name="NewEchoItem" Header="Nouveau programme _Echo (test)" Command="{Binding CmdNewEcho}" Visibility="Collapsed"/>
+                <MenuItem x:Name="NewEchoItem" Header="New _Echo program (test)" Command="{Binding CmdNewEcho}" Visibility="Collapsed"/>
                 <Separator/>
-                <MenuItem Header="_Ouvrir…" Command="{Binding CmdOpen}" InputGestureText="Ctrl+O">
+                <MenuItem Header="_Open…" Command="{Binding CmdOpen}" InputGestureText="Ctrl+O">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Ouvrir un _dossier…" Command="{Binding CmdOpenFolder}"/>
-                <MenuItem x:Name="RecentFilesMenu" Header="Fichiers _récents" SubmenuOpened="OnRecentMenuOpened">
-                    <MenuItem Header="(aucun)" IsEnabled="False"/>
+                <MenuItem Header="Open _folder…" Command="{Binding CmdOpenFolder}"/>
+                <MenuItem x:Name="RecentFilesMenu" Header="_Recent files" SubmenuOpened="OnRecentMenuOpened">
+                    <MenuItem Header="(none)" IsEnabled="False"/>
                 </MenuItem>
-                <MenuItem x:Name="RecentFoldersMenu" Header="Dossiers ré_cents" SubmenuOpened="OnRecentFoldersMenuOpened">
-                    <MenuItem Header="(aucun)" IsEnabled="False"/>
+                <MenuItem x:Name="RecentFoldersMenu" Header="Recent fol_ders" SubmenuOpened="OnRecentFoldersMenuOpened">
+                    <MenuItem Header="(none)" IsEnabled="False"/>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Enregistrer" Command="{Binding CmdSave}" InputGestureText="Ctrl+S">
+                <MenuItem Header="_Save" Command="{Binding CmdSave}" InputGestureText="Ctrl+S">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Save}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Enregistrer _sous…" Command="{Binding CmdSaveAs}"/>
-                <MenuItem Header="_Tout enregistrer" Command="{Binding CmdSaveAll}" InputGestureText="Ctrl+Maj+S">
+                <MenuItem Header="Save _as…" Command="{Binding CmdSaveAs}"/>
+                <MenuItem Header="Save a_ll" Command="{Binding CmdSaveAll}" InputGestureText="Ctrl+Shift+S">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.SaveAll}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Fermer" Command="{Binding CmdClose}" InputGestureText="Ctrl+W"/>
-                <MenuItem Header="Fermer _tout" Command="{Binding CmdCloseAll}"/>
+                <MenuItem Header="_Close" Command="{Binding CmdClose}" InputGestureText="Ctrl+W"/>
+                <MenuItem Header="Close all" Command="{Binding CmdCloseAll}"/>
                 <Separator/>
-                <MenuItem Header="_Quitter" Command="{Binding CmdExit}" InputGestureText="Alt+F4"/>
+                <MenuItem Header="E_xit" Command="{Binding CmdExit}" InputGestureText="Alt+F4"/>
             </MenuItem>
-            <MenuItem Header="É_dition">
-                <MenuItem Header="_Annuler" Command="Undo" InputGestureText="Ctrl+Z">
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Undo" Command="Undo" InputGestureText="Ctrl+Z">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Undo}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Rétablir" Command="Redo" InputGestureText="Ctrl+Y">
+                <MenuItem Header="_Redo" Command="Redo" InputGestureText="Ctrl+Y">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Redo}"/></MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="Co_uper" Command="Cut" InputGestureText="Ctrl+X"/>
-                <MenuItem Header="_Copier" Command="Copy" InputGestureText="Ctrl+C"/>
-                <MenuItem Header="Co_ller" Command="Paste" InputGestureText="Ctrl+V"/>
-                <MenuItem Header="_Tout sélectionner" Command="SelectAll" InputGestureText="Ctrl+A"/>
+                <MenuItem Header="Cu_t" Command="Cut" InputGestureText="Ctrl+X"/>
+                <MenuItem Header="_Copy" Command="Copy" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="_Paste" Command="Paste" InputGestureText="Ctrl+V"/>
+                <MenuItem Header="Select _all" Command="SelectAll" InputGestureText="Ctrl+A"/>
                 <Separator/>
-                <MenuItem Header="_Rechercher…" Command="{Binding CmdFind}" InputGestureText="Ctrl+F">
+                <MenuItem Header="_Find…" Command="{Binding CmdFind}" InputGestureText="Ctrl+F">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Find}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="R_emplacer…" Command="{Binding CmdReplace}" InputGestureText="Ctrl+H"/>
-                <MenuItem Header="Occurrence _suivante" Command="{Binding CmdFindNext}" InputGestureText="F3"/>
-                <MenuItem Header="Occurrence _précédente" Command="{Binding CmdFindPrevious}" InputGestureText="Maj+F3"/>
-                <MenuItem Header="_Aller à la ligne…" Command="{Binding CmdGoToLine}" InputGestureText="Ctrl+G"/>
+                <MenuItem Header="R_eplace…" Command="{Binding CmdReplace}" InputGestureText="Ctrl+H"/>
+                <MenuItem Header="Find _next" Command="{Binding CmdFindNext}" InputGestureText="F3"/>
+                <MenuItem Header="Find pre_vious" Command="{Binding CmdFindPrevious}" InputGestureText="Shift+F3"/>
+                <MenuItem Header="_Go to line…" Command="{Binding CmdGoToLine}" InputGestureText="Ctrl+G"/>
                 <Separator/>
-                <MenuItem Header="Compléter le _mot" Command="{Binding CmdComplete}" InputGestureText="Ctrl+Espace"/>
-                <MenuItem Header="_Commenter la sélection" Command="{Binding CmdComment}" InputGestureText="Ctrl+K">
+                <MenuItem Header="Complete _word" Command="{Binding CmdComplete}" InputGestureText="Ctrl+Space"/>
+                <MenuItem Header="C_omment selection" Command="{Binding CmdComment}" InputGestureText="Ctrl+K">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Comment}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Décommenter la sélection" Command="{Binding CmdUncomment}" InputGestureText="Ctrl+Maj+K"/>
-                <MenuItem Header="Réin_denter la sélection" Command="{Binding CmdReindent}" InputGestureText="Ctrl+I"/>
+                <MenuItem Header="_Uncomment selection" Command="{Binding CmdUncomment}" InputGestureText="Ctrl+Shift+K"/>
+                <MenuItem Header="Re_indent selection" Command="{Binding CmdReindent}" InputGestureText="Ctrl+I"/>
                 <Separator/>
-                <MenuItem Header="_Replier tout" Command="{Binding CmdFoldAll}" InputGestureText="Ctrl+M, Ctrl+O"/>
-                <MenuItem Header="_Déplier tout" Command="{Binding CmdUnfoldAll}" InputGestureText="Ctrl+M, Ctrl+L"/>
+                <MenuItem Header="Fold a_ll" Command="{Binding CmdFoldAll}" InputGestureText="Ctrl+M, Ctrl+O"/>
+                <MenuItem Header="Unfol_d all" Command="{Binding CmdUnfoldAll}" InputGestureText="Ctrl+M, Ctrl+L"/>
             </MenuItem>
-            <MenuItem Header="_Affichage">
-                <MenuItem x:Name="ShowExplorerItem" Header="_Explorateur" IsCheckable="True" Click="OnTogglePanels"/>
-                <MenuItem x:Name="ShowOutlineItem" Header="_Structure" IsCheckable="True" Click="OnTogglePanels"/>
-                <MenuItem x:Name="ShowBottomItem" Header="_Panneau inférieur" IsCheckable="True" Click="OnTogglePanels"/>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="ShowExplorerItem" Header="_Explorer" IsCheckable="True" Click="OnTogglePanels"/>
+                <MenuItem x:Name="ShowOutlineItem" Header="_Outline" IsCheckable="True" Click="OnTogglePanels"/>
+                <MenuItem x:Name="ShowBottomItem" Header="_Bottom panel" IsCheckable="True" Click="OnTogglePanels"/>
                 <Separator/>
-                <MenuItem Header="_Sortie" Command="{Binding CmdShowPanel}" CommandParameter="output" InputGestureText="Ctrl+Alt+O"/>
-                <MenuItem Header="Liste d'_erreurs" Command="{Binding CmdShowPanel}" CommandParameter="errors" InputGestureText="Ctrl+Alt+E"/>
+                <MenuItem Header="O_utput" Command="{Binding CmdShowPanel}" CommandParameter="output" InputGestureText="Ctrl+Alt+O"/>
+                <MenuItem Header="Error _list" Command="{Binding CmdShowPanel}" CommandParameter="errors" InputGestureText="Ctrl+Alt+E"/>
                 <MenuItem Header="_Console" Command="{Binding CmdShowPanel}" CommandParameter="console" InputGestureText="Ctrl+Alt+C"/>
-                <MenuItem Header="_Pile d'appels" Command="{Binding CmdShowPanel}" CommandParameter="stack" InputGestureText="Ctrl+Alt+P"/>
+                <MenuItem Header="Call _stack" Command="{Binding CmdShowPanel}" CommandParameter="stack" InputGestureText="Ctrl+Alt+P"/>
                 <MenuItem Header="_Variables" Command="{Binding CmdShowPanel}" CommandParameter="variables" InputGestureText="Ctrl+Alt+V"/>
                 <Separator/>
-                <MenuItem Header="_Zoom avant" Command="{Binding CmdZoomIn}" InputGestureText="Ctrl++"/>
-                <MenuItem Header="Zoom a_rrière" Command="{Binding CmdZoomOut}" InputGestureText="Ctrl+-"/>
-                <MenuItem Header="Taille _normale" Command="{Binding CmdZoomReset}" InputGestureText="Ctrl+0"/>
+                <MenuItem Header="_Zoom in" Command="{Binding CmdZoomIn}" InputGestureText="Ctrl++"/>
+                <MenuItem Header="Zoom ou_t" Command="{Binding CmdZoomOut}" InputGestureText="Ctrl+-"/>
+                <MenuItem Header="_Normal size" Command="{Binding CmdZoomReset}" InputGestureText="Ctrl+0"/>
                 <Separator/>
-                <MenuItem x:Name="WordWrapItem" Header="_Retour automatique à la ligne" IsCheckable="True" Click="OnEditorOptionChanged"/>
-                <MenuItem x:Name="LineNumbersItem" Header="_Numéros de ligne" IsCheckable="True" Click="OnEditorOptionChanged"/>
-                <MenuItem x:Name="WhitespaceItem" Header="Afficher les _espaces" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <MenuItem x:Name="WordWrapItem" Header="_Word wrap" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <MenuItem x:Name="LineNumbersItem" Header="Line _numbers" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <MenuItem x:Name="WhitespaceItem" Header="Show w_hitespace" IsCheckable="True" Click="OnEditorOptionChanged"/>
                 <Separator/>
-                <MenuItem Header="_Thème">
+                <MenuItem Header="_Theme">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Theme}"/></MenuItem.Icon>
-                    <MenuItem x:Name="ThemeLightItem" Header="_Clair" IsCheckable="True" Click="OnThemeLight"/>
-                    <MenuItem x:Name="ThemeDarkItem" Header="_Sombre" IsCheckable="True" Click="OnThemeDark"/>
+                    <MenuItem x:Name="ThemeLightItem" Header="_Light" IsCheckable="True" Click="OnThemeLight"/>
+                    <MenuItem x:Name="ThemeDarkItem" Header="_Dark" IsCheckable="True" Click="OnThemeDark"/>
                 </MenuItem>
             </MenuItem>
-            <MenuItem Header="_Construire">
-                <MenuItem Header="_Construire (compiler)" Command="{Binding CmdBuild}" InputGestureText="F7">
+            <MenuItem Header="_Build">
+                <MenuItem Header="_Build" Command="{Binding CmdBuild}" InputGestureText="F7">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Build}" Fill="{DynamicResource Brush.IconOrange}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Générer un .exe autonome…" Command="{Binding CmdGenerateExe}" InputGestureText="Ctrl+Maj+E">
+                <MenuItem Header="_Generate standalone .exe…" Command="{Binding CmdGenerateExe}" InputGestureText="Ctrl+Shift+E">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Package}" Fill="{DynamicResource Brush.IconPurple}"/></MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem x:Name="LanguageMenu" Header="_Langage du fichier" SubmenuOpened="OnLanguageMenuOpened"/>
+                <MenuItem x:Name="LanguageMenu" Header="File _language" SubmenuOpened="OnLanguageMenuOpened"/>
                 <Separator/>
-                <MenuItem x:Name="BackgroundCheckItem" Header="_Vérification en arrière-plan" IsCheckable="True" Click="OnBuildOptionChanged"/>
-                <MenuItem x:Name="DebugInfoItem" Header="Informations de _mise au point dans les .exe" IsCheckable="True" Click="OnBuildOptionChanged"/>
+                <MenuItem x:Name="BackgroundCheckItem" Header="Background _checking" IsCheckable="True" Click="OnBuildOptionChanged"/>
+                <MenuItem x:Name="DebugInfoItem" Header="_Debug information in .exe files" IsCheckable="True" Click="OnBuildOptionChanged"/>
             </MenuItem>
-            <MenuItem Header="_Déboguer">
-                <MenuItem x:Name="DebugMenuItem" Header="_Démarrer le débogage" Command="{Binding CmdDebug}" InputGestureText="F5">
+            <MenuItem Header="_Debug">
+                <MenuItem x:Name="DebugMenuItem" Header="_Start debugging" Command="{Binding CmdDebug}" InputGestureText="F5">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Play}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Exécuter sans débogage" Command="{Binding CmdRun}" InputGestureText="Ctrl+F5">
+                <MenuItem Header="_Run without debugging" Command="{Binding CmdRun}" InputGestureText="Ctrl+F5">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.PlayOutline}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Arrêter" Command="{Binding CmdStop}" InputGestureText="Maj+F5">
+                <MenuItem Header="S_top" Command="{Binding CmdStop}" InputGestureText="Shift+F5">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Stop}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="_Redémarrer" Command="{Binding CmdRestart}" InputGestureText="Ctrl+Maj+F5"/>
+                <MenuItem Header="R_estart" Command="{Binding CmdRestart}" InputGestureText="Ctrl+Shift+F5"/>
                 <MenuItem Header="_Pause" Command="{Binding CmdPause}" InputGestureText="Ctrl+Alt+Pause">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Pause}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="Pas à pas _détaillé" Command="{Binding CmdStepInto}" InputGestureText="F11">
+                <MenuItem Header="Step _into" Command="{Binding CmdStepInto}" InputGestureText="F11">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepInto}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Pas à pas _principal" Command="{Binding CmdStepOver}" InputGestureText="F10">
+                <MenuItem Header="Step _over" Command="{Binding CmdStepOver}" InputGestureText="F10">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOver}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Pas à pas _sortant" Command="{Binding CmdStepOut}" InputGestureText="Maj+F11">
+                <MenuItem Header="Step o_ut" Command="{Binding CmdStepOut}" InputGestureText="Shift+F11">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOut}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Basculer le point d'arrêt" Command="{Binding CmdToggleBreakpoint}" InputGestureText="F9">
+                <MenuItem Header="Toggle _breakpoint" Command="{Binding CmdToggleBreakpoint}" InputGestureText="F9">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Breakpoint}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Supprimer _tous les points d'arrêt" Command="{Binding CmdClearBreakpoints}" InputGestureText="Ctrl+Maj+F9"/>
+                <MenuItem Header="_Delete all breakpoints" Command="{Binding CmdClearBreakpoints}" InputGestureText="Ctrl+Shift+F9"/>
                 <Separator/>
-                <MenuItem x:Name="StopOnEntryItem" Header="S'arrêter à la première _instruction" IsCheckable="True" Click="OnDebugOptionChanged"/>
-                <MenuItem x:Name="BreakOnErrorItem" Header="S'arrêter sur _erreur d'exécution" IsCheckable="True" Click="OnDebugOptionChanged"/>
-                <MenuItem x:Name="ExternalConsoleItem" Header="Exécuter dans une console Windows e_xterne" IsCheckable="True" Click="OnDebugOptionChanged"/>
+                <MenuItem x:Name="StopOnEntryItem" Header="Stop at _first statement" IsCheckable="True" Click="OnDebugOptionChanged"/>
+                <MenuItem x:Name="BreakOnErrorItem" Header="Break on runtime _error" IsCheckable="True" Click="OnDebugOptionChanged"/>
+                <MenuItem x:Name="ExternalConsoleItem" Header="Run in e_xternal Windows console" IsCheckable="True" Click="OnDebugOptionChanged"/>
             </MenuItem>
-            <MenuItem x:Name="ExamplesMenu" Header="_Exemples" SubmenuOpened="OnExamplesMenuOpened">
-                <MenuItem Header="(aucun exemple trouvé)" IsEnabled="False"/>
+            <MenuItem x:Name="ExamplesMenu" Header="E_xamples" SubmenuOpened="OnExamplesMenuOpened">
+                <MenuItem Header="(no examples found)" IsEnabled="False"/>
             </MenuItem>
-            <MenuItem Header="_Aide">
-                <MenuItem Header="Aide _Simula 67" Command="{Binding CmdHelp}" CommandParameter="simula">
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Simula 67 help" Command="{Binding CmdHelp}" CommandParameter="simula">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Aide _Algol 68" Command="{Binding CmdHelp}" CommandParameter="algol68">
+                <MenuItem Header="_Algol 68 help" Command="{Binding CmdHelp}" CommandParameter="algol68">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Aide sur le langage du fichier _courant" Command="{Binding CmdHelp}" InputGestureText="F1"/>
-                <MenuItem Header="_Raccourcis clavier" Command="{Binding CmdHelp}" CommandParameter="shortcuts"/>
+                <MenuItem Header="Help for the _current file's language" Command="{Binding CmdHelp}" InputGestureText="F1"/>
+                <MenuItem Header="_Keyboard shortcuts" Command="{Binding CmdHelp}" CommandParameter="shortcuts"/>
                 <Separator/>
-                <MenuItem Header="_À propos de Simula 67 &amp; Algol 68 Studio" Command="{Binding CmdAbout}"/>
+                <MenuItem Header="_About Simula 67 &amp; Algol 68 Studio" Command="{Binding CmdAbout}"/>
             </MenuItem>
         </Menu>
 
-        <!-- ============================== Barre d'outils ============================== -->
+        <!-- ============================== Toolbar ============================== -->
         <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,3">
             <StackPanel Orientation="Horizontal">
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewSimula}" ToolTip="Nouveau programme Simula 67 (Ctrl+N)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewSimula}" ToolTip="New Simula 67 program (Ctrl+N)">
                     <Grid>
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconBlue}"/>
                         <TextBlock Text="S" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource Brush.IconBlue}" Margin="6,6,0,0"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewAlgol}" ToolTip="Nouveau programme Algol 68 (Ctrl+Maj+N)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewAlgol}" ToolTip="New Algol 68 program (Ctrl+Shift+N)">
                     <Grid>
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconGreen}"/>
                         <TextBlock Text="A" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource Brush.IconGreen}" Margin="6,6,0,0"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdOpen}" ToolTip="Ouvrir (Ctrl+O)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdOpen}" ToolTip="Open (Ctrl+O)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSave}" ToolTip="Enregistrer (Ctrl+S)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSave}" ToolTip="Save (Ctrl+S)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Save}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSaveAll}" ToolTip="Tout enregistrer (Ctrl+Maj+S)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSaveAll}" ToolTip="Save all (Ctrl+Shift+S)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.SaveAll}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
                 <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
-                <Button Style="{StaticResource ToolButton}" Command="Undo" ToolTip="Annuler (Ctrl+Z)">
+                <Button Style="{StaticResource ToolButton}" Command="Undo" ToolTip="Undo (Ctrl+Z)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Undo}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="Redo" ToolTip="Rétablir (Ctrl+Y)">
+                <Button Style="{StaticResource ToolButton}" Command="Redo" ToolTip="Redo (Ctrl+Y)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Redo}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdFind}" ToolTip="Rechercher / remplacer (Ctrl+F, Ctrl+H)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdFind}" ToolTip="Find / replace (Ctrl+F, Ctrl+H)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Find}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleComment}" ToolTip="Commenter / décommenter (Ctrl+K)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleComment}" ToolTip="Comment / uncomment (Ctrl+K)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Comment}"/>
                 </Button>
                 <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdBuild}" ToolTip="Construire (F7)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdBuild}" ToolTip="Build (F7)">
                     <StackPanel Orientation="Horizontal">
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Build}" Fill="{DynamicResource Brush.IconOrange}"/>
-                        <TextBlock Text="Construire" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Build" Margin="4,0,2,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdDebug}" ToolTip="Démarrer le débogage / Continuer (F5)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdDebug}" ToolTip="Start debugging / Continue (F5)">
                     <StackPanel Orientation="Horizontal">
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Play}" Fill="{DynamicResource Brush.IconGreen}"/>
-                        <TextBlock x:Name="DebugButtonText" Text="Déboguer" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="DebugButtonText" Text="Debug" Margin="4,0,2,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdRun}" ToolTip="Exécuter sans débogage (Ctrl+F5)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdRun}" ToolTip="Run without debugging (Ctrl+F5)">
                     <StackPanel Orientation="Horizontal">
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.PlayOutline}" Fill="{DynamicResource Brush.IconGreen}"/>
-                        <TextBlock Text="Exécuter" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Run" Margin="4,0,2,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button Style="{StaticResource ToolButton}" Command="{Binding CmdPause}" ToolTip="Pause (Ctrl+Alt+Pause)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Pause}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStop}" ToolTip="Arrêter (Maj+F5)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStop}" ToolTip="Stop (Shift+F5)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Stop}" Fill="{DynamicResource Brush.IconRed}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepInto}" ToolTip="Pas à pas détaillé (F11)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepInto}" ToolTip="Step into (F11)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepInto}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOver}" ToolTip="Pas à pas principal (F10)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOver}" ToolTip="Step over (F10)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOver}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOut}" ToolTip="Pas à pas sortant (Maj+F11)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOut}" ToolTip="Step out (Shift+F11)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOut}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleBreakpoint}" ToolTip="Basculer le point d'arrêt (F9)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleBreakpoint}" ToolTip="Toggle breakpoint (F9)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Breakpoint}" Fill="{DynamicResource Brush.IconRed}"/>
                 </Button>
                 <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdGenerateExe}" ToolTip="Générer un .exe autonome (Ctrl+Maj+E)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdGenerateExe}" ToolTip="Generate standalone .exe (Ctrl+Shift+E)">
                     <StackPanel Orientation="Horizontal">
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Package}" Fill="{DynamicResource Brush.IconPurple}"/>
                         <TextBlock Text=".exe" Margin="4,0,2,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <ToggleButton x:Name="ExternalConsoleToggle" Style="{StaticResource ToolToggle}" Click="OnExternalConsoleToggle"
-                              ToolTip="Exécuter dans une console Windows externe">
+                              ToolTip="Run in an external Windows console">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Console}"/>
                 </ToggleButton>
                 <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
-                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdHelp}" ToolTip="Aide (F1)">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdHelp}" ToolTip="Help (F1)">
                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconBlue}"/>
                 </Button>
             </StackPanel>
         </Border>
 
-        <!-- ============================== Barre d'etat ============================== -->
+        <!-- ============================== Status bar ============================== -->
         <Border x:Name="StatusBarBorder" DockPanel.Dock="Bottom" Background="{DynamicResource Brush.StatusBar}" Padding="8,2">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -263,18 +263,18 @@
                     <TextBlock x:Name="StatusInsert" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0" VerticalAlignment="Center"/>
                     <TextBlock x:Name="StatusEncoding" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0" VerticalAlignment="Center"/>
                     <Button x:Name="StatusLanguage" Style="{StaticResource ToolButton}" Padding="6,0" Click="OnStatusLanguageClick"
-                            ToolTip="Langage du fichier (cliquer pour changer)">
+                            ToolTip="File language (click to change)">
                         <TextBlock x:Name="StatusLanguageText" Foreground="{DynamicResource Brush.StatusBarText}" FontWeight="SemiBold"/>
                     </Button>
                     <TextBlock x:Name="StatusZoom" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock x:Name="StatusState" Foreground="{DynamicResource Brush.StatusBarText}" FontWeight="SemiBold" VerticalAlignment="Center" Text="Prêt"/>
+                <TextBlock x:Name="StatusState" Foreground="{DynamicResource Brush.StatusBarText}" FontWeight="SemiBold" VerticalAlignment="Center" Text="Ready"/>
                 <TextBlock x:Name="StatusMessage" Foreground="{DynamicResource Brush.StatusBarText}" Margin="16,0,0,0" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis"/>
             </DockPanel>
         </Border>
 
-        <!-- ============================== Zone principale ============================== -->
+        <!-- ============================== Main area ============================== -->
         <Grid x:Name="MainGrid">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" MinHeight="120"/>
@@ -289,23 +289,23 @@
                 <ColumnDefinition x:Name="RightColumn" Width="220"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Explorateur -->
+            <!-- Explorer -->
             <DockPanel x:Name="ExplorerPanel" Grid.Column="0" Background="{DynamicResource Brush.PanelBackground}">
                 <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" Height="28"
                         BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Style="{StaticResource ToolButton}" Padding="3" Command="{Binding CmdOpenFolder}" ToolTip="Ouvrir un dossier…">
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Command="{Binding CmdOpenFolder}" ToolTip="Open folder…">
                                 <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerRefresh" ToolTip="Actualiser">
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerRefresh" ToolTip="Refresh">
                                 <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Refresh}"/>
                             </Button>
-                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerCollapse" ToolTip="Réduire tout">
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerCollapse" ToolTip="Collapse all">
                                 <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Collapse}"/>
                             </Button>
                         </StackPanel>
-                        <TextBlock x:Name="ExplorerTitle" Text="EXPLORATEUR" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="ExplorerTitle" Text="EXPLORER" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
                 </Border>
                 <TreeView x:Name="ExplorerTree" MouseDoubleClick="OnExplorerDoubleClick" KeyDown="OnExplorerKeyDown"
@@ -318,10 +318,10 @@
                     </TreeView.ItemContainerStyle>
                     <TreeView.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Ouvrir" Click="OnExplorerOpen"/>
-                            <MenuItem Header="Ouvrir dans l'Explorateur Windows" Click="OnExplorerReveal"/>
+                            <MenuItem Header="Open" Click="OnExplorerOpen"/>
+                            <MenuItem Header="Open in Windows Explorer" Click="OnExplorerReveal"/>
                             <Separator/>
-                            <MenuItem Header="Actualiser" Click="OnExplorerRefresh"/>
+                            <MenuItem Header="Refresh" Click="OnExplorerRefresh"/>
                         </ContextMenu>
                     </TreeView.ContextMenu>
                     <TreeView.ItemTemplate>
@@ -340,7 +340,7 @@
             </DockPanel>
             <GridSplitter x:Name="LeftSplitter" Grid.Column="1" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
 
-            <!-- Editeurs -->
+            <!-- Editors -->
             <Grid Grid.Column="2">
                 <TabControl x:Name="DocTabs" Style="{StaticResource DocTabControl}" SelectionChanged="OnDocTabChanged"/>
                 <ScrollViewer x:Name="WelcomePanel" VerticalScrollBarVisibility="Auto" Background="{DynamicResource Brush.Welcome}">
@@ -349,7 +349,7 @@
                             <Image Source="Assets/app256.png" Width="64" Height="64"/>
                             <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="Simula 67 &amp; Algol 68 Studio" FontSize="26" FontWeight="Light"/>
-                                <TextBlock Text="Environnement de développement pour deux grands langages historiques"
+                                <TextBlock Text="A development environment for two great historic languages"
                                            Foreground="{DynamicResource Brush.TextDim}" FontSize="13"/>
                             </StackPanel>
                         </StackPanel>
@@ -359,14 +359,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="Démarrer" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewSimula}" Content="Nouveau programme Simula 67"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewAlgol}" Content="Nouveau programme Algol 68"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpen}" Content="Ouvrir un fichier…"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Ouvrir un dossier…"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula" Content="Aide Simula 67"/>
-                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol68" Content="Aide Algol 68"/>
-                                <TextBlock Text="Fichiers récents" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,8"/>
+                                <TextBlock Text="Start" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewSimula}" Content="New Simula 67 program"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewAlgol}" Content="New Algol 68 program"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpen}" Content="Open a file…"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Open a folder…"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula" Content="Simula 67 help"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol68" Content="Algol 68 help"/>
+                                <TextBlock Text="Recent files" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,8"/>
                                 <ItemsControl x:Name="WelcomeRecent">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -376,10 +376,10 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock x:Name="WelcomeNoRecent" Text="(aucun)" Foreground="{DynamicResource Brush.TextDim}"/>
+                                <TextBlock x:Name="WelcomeNoRecent" Text="(none)" Foreground="{DynamicResource Brush.TextDim}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="24,0,0,0">
-                                <TextBlock Text="Exemples" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBlock Text="Examples" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <ItemsControl x:Name="WelcomeSamples">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -389,12 +389,12 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock x:Name="WelcomeNoSamples" Text="(dossier samples introuvable)" Foreground="{DynamicResource Brush.TextDim}"/>
+                                <TextBlock x:Name="WelcomeNoSamples" Text="(samples folder not found)" Foreground="{DynamicResource Brush.TextDim}"/>
                             </StackPanel>
                         </Grid>
                         <TextBlock Margin="0,28,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextDim}">
-                            Raccourcis : F7 construire · F5 déboguer · Ctrl+F5 exécuter · F9 point d'arrêt · F10/F11 pas à pas ·
-                            Ctrl+Espace compléter · Ctrl+F rechercher · F1 aide. Glissez-déposez des fichiers dans la fenêtre pour les ouvrir.
+                            Shortcuts: F7 build · F5 debug · Ctrl+F5 run · F9 breakpoint · F10/F11 step ·
+                            Ctrl+Space complete · Ctrl+F find · F1 help. Drag and drop files onto the window to open them.
                         </TextBlock>
                     </StackPanel>
                 </ScrollViewer>
@@ -402,16 +402,16 @@
 
             <GridSplitter x:Name="RightSplitter" Grid.Column="3" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
 
-            <!-- Structure -->
+            <!-- Outline -->
             <DockPanel x:Name="OutlinePanel" Grid.Column="4" Background="{DynamicResource Brush.PanelBackground}">
                 <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" Height="28"
                         BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
-                    <TextBlock x:Name="OutlineTitle" Text="STRUCTURE" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="OutlineTitle" Text="OUTLINE" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
                 </Border>
                 <TextBox x:Name="OutlineFilter" DockPanel.Dock="Top" Margin="4" TextChanged="OnOutlineFilterChanged"
-                         ToolTip="Filtrer la structure"/>
+                         ToolTip="Filter the outline"/>
                 <TextBlock x:Name="OutlineEmpty" DockPanel.Dock="Top" Margin="10,6" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextDim}"
-                           Text="Aucune procédure, classe, opérateur ou mode."/>
+                           Text="No procedure, class, operator or mode."/>
                 <ListBox x:Name="OutlineList" SelectionMode="Single" MouseLeftButtonUp="OnOutlineClick" KeyDown="OnOutlineKeyDown"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
@@ -433,14 +433,14 @@
             <GridSplitter x:Name="BottomSplitter" Grid.Row="1" Grid.ColumnSpan="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                           ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"/>
 
-            <!-- ============================== Panneau inferieur ============================== -->
+            <!-- ============================== Bottom panel ============================== -->
             <TabControl x:Name="BottomTabs" Grid.Row="2" Grid.ColumnSpan="5" Style="{StaticResource PanelTabControl}"
                         ItemContainerStyle="{StaticResource PanelTabItem}">
-                <TabItem x:Name="OutputTab" Header="Sortie">
+                <TabItem x:Name="OutputTab" Header="Output">
                     <DockPanel>
                         <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,2">
                             <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource ToolButton}" Click="OnClearOutput" ToolTip="Effacer la sortie">
+                                <Button Style="{StaticResource ToolButton}" Click="OnClearOutput" ToolTip="Clear the output">
                                     <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Clear}"/>
                                 </Button>
                             </StackPanel>
@@ -448,7 +448,7 @@
                         <TextBox x:Name="OutputBox" IsReadOnly="True" BorderThickness="0" FontFamily="{StaticResource CodeFont}" FontSize="12.5"
                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
                                  Background="{DynamicResource Brush.EditorBackground}" MouseDoubleClick="OnOutputDoubleClick"
-                                 ToolTip="Double-cliquer sur un diagnostic pour aller à la ligne">
+                                 ToolTip="Double-click a diagnostic to go to its line">
                             <TextBox.Template>
                                 <ControlTemplate TargetType="TextBox">
                                     <Border Background="{TemplateBinding Background}">
@@ -461,7 +461,7 @@
                 </TabItem>
                 <TabItem x:Name="ErrorsTab">
                     <TabItem.Header>
-                        <TextBlock x:Name="ErrorsTabHeader" Text="Erreurs"/>
+                        <TextBlock x:Name="ErrorsTabHeader" Text="Errors"/>
                     </TabItem.Header>
                     <DockPanel>
                         <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,2">
@@ -469,19 +469,19 @@
                                 <ToggleButton x:Name="FilterErrors" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.ErrorMark}" Fill="{DynamicResource Brush.Error}"/>
-                                        <TextBlock x:Name="FilterErrorsText" Text="0 erreur" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FilterErrorsText" Text="0 errors" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </ToggleButton>
                                 <ToggleButton x:Name="FilterWarnings" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.WarningMark}" Fill="{DynamicResource Brush.Warning}"/>
-                                        <TextBlock x:Name="FilterWarningsText" Text="0 avertissement" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FilterWarningsText" Text="0 warnings" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </ToggleButton>
                                 <ToggleButton x:Name="FilterInfos" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.InfoMark}" Fill="{DynamicResource Brush.Info}"/>
-                                        <TextBlock x:Name="FilterInfosText" Text="0 message" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FilterInfosText" Text="0 messages" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </ToggleButton>
                             </StackPanel>
@@ -503,10 +503,10 @@
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="Fichier" Width="160" DisplayMemberBinding="{Binding FileName}"/>
-                                    <GridViewColumn Header="Ligne" Width="55" DisplayMemberBinding="{Binding LineText}"/>
+                                    <GridViewColumn Header="File" Width="160" DisplayMemberBinding="{Binding FileName}"/>
+                                    <GridViewColumn Header="Line" Width="55" DisplayMemberBinding="{Binding LineText}"/>
                                     <GridViewColumn Header="Col." Width="45" DisplayMemberBinding="{Binding ColumnText}"/>
-                                    <GridViewColumn Header="Origine" Width="90" DisplayMemberBinding="{Binding Origin}"/>
+                                    <GridViewColumn Header="Origin" Width="90" DisplayMemberBinding="{Binding Origin}"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>
@@ -515,7 +515,7 @@
                 <TabItem x:Name="ConsoleTab" Header="Console">
                     <panels:ConsolePanel x:Name="ConsoleView"/>
                 </TabItem>
-                <TabItem x:Name="StackTab" Header="Pile d'appels">
+                <TabItem x:Name="StackTab" Header="Call stack">
                     <Grid>
                         <ListView x:Name="StackList" MouseDoubleClick="OnStackDoubleClick" KeyDown="OnStackKeyDown">
                             <ListView.View>
@@ -528,15 +528,15 @@
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="Procédure / bloc" Width="300" DisplayMemberBinding="{Binding Name}"/>
-                                    <GridViewColumn Header="Fichier" Width="200" DisplayMemberBinding="{Binding FileName}"/>
-                                    <GridViewColumn Header="Ligne" Width="60" DisplayMemberBinding="{Binding LineText}"/>
+                                    <GridViewColumn Header="Procedure / block" Width="300" DisplayMemberBinding="{Binding Name}"/>
+                                    <GridViewColumn Header="File" Width="200" DisplayMemberBinding="{Binding FileName}"/>
+                                    <GridViewColumn Header="Line" Width="60" DisplayMemberBinding="{Binding LineText}"/>
                                     <GridViewColumn Header="Col." Width="50" DisplayMemberBinding="{Binding ColumnText}"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>
                         <TextBlock x:Name="StackEmpty" Margin="10" Foreground="{DynamicResource Brush.TextDim}"
-                                   Text="La pile d'appels est affichée lorsque le programme est en pause dans le débogueur."/>
+                                   Text="The call stack is shown when the program is paused in the debugger."/>
                     </Grid>
                 </TabItem>
                 <TabItem x:Name="VariablesTab" Header="Variables">
@@ -544,7 +544,7 @@
                         <DockPanel>
                             <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" BorderBrush="{DynamicResource Brush.Border}"
                                     BorderThickness="0,0,0,1" Padding="8,3">
-                                <TextBlock x:Name="VariablesHeader" Foreground="{DynamicResource Brush.TextDim}" Text="Nom = valeur   (type)"/>
+                                <TextBlock x:Name="VariablesHeader" Foreground="{DynamicResource Brush.TextDim}" Text="Name = value   (type)"/>
                             </Border>
                             <TreeView x:Name="VariablesTree" FontFamily="{StaticResource CodeFont}" FontSize="12.5">
                                 <TreeView.ItemContainerStyle>
@@ -565,7 +565,7 @@
                             </TreeView>
                         </DockPanel>
                         <TextBlock x:Name="VariablesEmpty" Margin="10,34,10,10" Foreground="{DynamicResource Brush.TextDim}"
-                                   Text="Les variables sont affichées lorsque le programme est en pause dans le débogueur."/>
+                                   Text="Variables are shown when the program is paused in the debugger."/>
                     </Grid>
                 </TabItem>
             </TabControl>

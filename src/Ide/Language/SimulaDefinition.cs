@@ -1,7 +1,7 @@
 namespace Studio.Ide.Language;
 
-/// <summary>Simula 67 : mots-cles insensibles a la casse, commentaires « comment ... ; », « ! ... ; »
-/// et commentaires apres « end » (jusqu'a ; end else when otherwise).</summary>
+/// <summary>Simula 67: case-insensitive keywords, comments "comment ... ;", "! ... ;"
+/// and comments after "end" (up to ; end else when otherwise).</summary>
 public sealed class SimulaDefinition : LanguageDefinition
 {
     public override string Id => "simula";
@@ -48,8 +48,8 @@ public sealed class SimulaDefinition : LanguageDefinition
 
     public override string NewFileTemplate =>
         "begin\r\n" +
-        "   comment Nouveau programme Simula 67;\r\n" +
-        "   OutText(\"Bonjour, monde !\");\r\n" +
+        "   comment New Simula 67 program;\r\n" +
+        "   OutText(\"Hello, world!\");\r\n" +
         "   OutImage\r\n" +
         "end\r\n";
 
@@ -82,7 +82,7 @@ public sealed class SimulaDefinition : LanguageDefinition
                 tokens.Add(new Token(BuiltinSet.Contains(lw) ? TokenKind.Builtin : TokenKind.Identifier, st, i - st, lw));
                 continue;
             }
-            // Directive (%include "…", % commentaire) : ligne commencant par % en premiere colonne
+            // Directive (%include "…", % comment): line starting with % in the first column
             if (c == '%' && (i == 0 || s[i - 1] == '\n'))
             {
                 int st = i;
@@ -94,7 +94,7 @@ public sealed class SimulaDefinition : LanguageDefinition
             {
                 int st = i;
                 while (i < n && (char.IsDigit(s[i]) || (s[i] == '_' && i > st))) i++;
-                // Entier en base : 2R1010, 8R777, 16RFF
+                // Based integer: 2R1010, 8R777, 16RFF
                 if (i < n && (s[i] == 'R' || s[i] == 'r') && i + 1 < n && char.IsLetterOrDigit(s[i + 1]))
                 {
                     i++;
@@ -169,7 +169,7 @@ public sealed class SimulaDefinition : LanguageDefinition
         return s[i].ToString();
     }
 
-    /// <summary>Avance jusqu'apres le prochain caractere c (inclus) ou la fin du texte.</summary>
+    /// <summary>Advances past the next character c (inclusive) or to the end of the text.</summary>
     static int SkipTo(string s, int i, char c)
     {
         int k = s.IndexOf(c, i);
@@ -178,7 +178,7 @@ public sealed class SimulaDefinition : LanguageDefinition
 
     static readonly string[] EndCommentStops = { "end", "else", "when", "otherwise" };
 
-    /// <summary>Apres « end », tout ce qui precede ; end else when otherwise est un commentaire.</summary>
+    /// <summary>After "end", everything before ; end else when otherwise is a comment.</summary>
     static int ScanEndComment(string s, int i, List<Token> tokens)
     {
         int n = s.Length, j = i;
@@ -220,7 +220,7 @@ public sealed class SimulaDefinition : LanguageDefinition
         var toks = m.Tokens;
         var stack = new Stack<(int Index, int HeaderStart, string Title)>();
         var parenStack = new Stack<int>();
-        int pendingHeader = -1;     // offset de la ligne d'en-tete procedure/class en attente de son begin
+        int pendingHeader = -1;     // offset of the procedure/class header line waiting for its begin
         string pendingTitle = "";
         bool inVirtual = false, skipNextDecl = false;
         HashSet<string>? pendingParams = null;
@@ -267,14 +267,14 @@ public sealed class SimulaDefinition : LanguageDefinition
                     if (nameIdx >= toks.Count || toks[nameIdx].Kind is not (TokenKind.Identifier or TokenKind.Builtin)) break;
                     string name = m.TokenText(toks[nameIdx]);
                     if (inVirtual || skipNextDecl) { skipNextDecl = false; break; }
-                    if (!isClass && pendingParams != null && pendingParams.Contains(name)) break; // specification de parametre
+                    if (!isClass && pendingParams != null && pendingParams.Contains(name)) break; // parameter specification
                     if (!isClass && k > 0 && toks[k - 1].Norm == "(") break;
                     string detail = "";
                     if (isClass && k > 0 && toks[k - 1].Kind is TokenKind.Identifier or TokenKind.Builtin)
                         detail = m.TokenText(toks[k - 1]) + " class";
                     else if (!isClass && k > 0 && toks[k - 1].Kind == TokenKind.Type)
                         detail = m.TokenText(toks[k - 1]) + " procedure";
-                    // Parametres formels
+                    // Formal parameters
                     var pars = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     if (nameIdx + 1 < toks.Count && toks[nameIdx + 1].Norm == "(")
                         for (int j = nameIdx + 2; j < toks.Count && toks[j].Norm != ")"; j++)
@@ -307,10 +307,10 @@ public sealed class SimulaDefinition : LanguageDefinition
         m.PairOf[close] = open;
     }
 
-    // Commentaire de ligne : « ! texte » (un commentaire « ! » se termine au premier « ; »).
-    // Chaque « ; » interieur est suivi de la marque « !~ » qui ouvre un nouveau commentaire, et
-    // si la ligne ne se termine pas par « ; », on ajoute « !; » pour fermer le commentaire.
-    // Les deux marques sont retirees au decommentaire.
+    // Line comment: "! text" (a "!" comment ends at the first ";").
+    // Each inner ";" is followed by the mark "!~" which opens a new comment, and
+    // if the line does not end with ";", "!;" is appended to close the comment.
+    // Both marks are removed when uncommenting.
     const string CloseMark = " !;";
     const string InnerMark = ";!~";
 

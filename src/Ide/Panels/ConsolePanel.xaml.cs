@@ -10,7 +10,7 @@ namespace Studio.Ide.Panels;
 
 public enum ConsoleTextKind { Program, Input, Info, Error }
 
-/// <summary>Console integree : sortie du programme en continu, saisie de lignes, fin de fichier.</summary>
+/// <summary>Integrated console: continuous program output, line input, end of file.</summary>
 public partial class ConsolePanel : UserControl
 {
     const int MaxChars = 4_000_000;
@@ -33,7 +33,7 @@ public partial class ConsolePanel : UserControl
         Output.Options.EnableHyperlinks = false;
         Output.Options.EnableEmailHyperlinks = false;
         Output.TextArea.Caret.CaretBrush = Brushes.Transparent;
-        // Taper dans la zone de sortie envoie la frappe vers la saisie
+        // Typing in the output area sends the keystrokes to the input box
         Output.TextArea.PreviewTextInput += (_, e) =>
         {
             if (!Input.IsEnabled) return;
@@ -45,7 +45,7 @@ public partial class ConsolePanel : UserControl
         ApplyTheme();
     }
 
-    /// <summary>Ligne saisie (null = fin de fichier).</summary>
+    /// <summary>Line typed (null = end of file).</summary>
     public event Action<string?>? InputSubmitted;
     public event Action? StopRequested;
     public event Action<bool>? ClearOnRunChanged;
@@ -96,7 +96,7 @@ public partial class ConsolePanel : UserControl
         Output.ScrollToEnd();
     }
 
-    /// <summary>Ajoute une ligne de message (en commencant une nouvelle ligne si besoin).</summary>
+    /// <summary>Appends a message line (starting a new line if needed).</summary>
     public void AppendLine(string text, ConsoleTextKind kind)
     {
         var doc = Output.Document;
@@ -112,7 +112,7 @@ public partial class ConsolePanel : UserControl
         EofButton.IsEnabled = running;
         StopButton.IsEnabled = running;
         if (!running) SetWaiting(false);
-        StatusText.Text = running ? "Programme en cours d'exécution" : "";
+        StatusText.Text = running ? "Program running" : "";
     }
 
     public bool IsWaiting { get; private set; }
@@ -121,7 +121,7 @@ public partial class ConsolePanel : UserControl
     {
         if (!_running) waiting = false;
         IsWaiting = waiting;
-        StatusText.Text = waiting ? "En attente d'une saisie…" : _running ? "Programme en cours d'exécution" : "";
+        StatusText.Text = waiting ? "Waiting for input…" : _running ? "Program running" : "";
         Prompt.Foreground = waiting ? (Brush)FindResource("Brush.Accent") : (Brush)FindResource("Brush.TextDim");
         if (waiting && IsVisible) Input.Focus();
     }
@@ -131,7 +131,7 @@ public partial class ConsolePanel : UserControl
         if (Input.IsEnabled) Input.Focus();
     }
 
-    /// <summary>Envoie une ligne au programme (utilise aussi par l'auto-test).</summary>
+    /// <summary>Sends a line to the program (also used by the self-test).</summary>
     public void Submit(string? line)
     {
         if (!_running) return;

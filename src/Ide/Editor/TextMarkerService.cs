@@ -19,7 +19,7 @@ public sealed class TextMarker : TextSegment
     public string Message { get; }
 }
 
-/// <summary>Soulignement ondule des diagnostics + infobulle au survol.</summary>
+/// <summary>Wavy underline of diagnostics + tooltip on hover.</summary>
 public sealed class TextMarkerService : IBackgroundRenderer
 {
     readonly TextEditor _editor;
@@ -47,7 +47,7 @@ public sealed class TextMarkerService : IBackgroundRenderer
         _editor.TextArea.TextView.InvalidateLayer(Layer);
     }
 
-    /// <summary>Ajoute un marqueur a la position (ligne, colonne) : le mot sous la colonne, ou la ligne entiere.</summary>
+    /// <summary>Adds a marker at (line, column): the word under the column, or the whole line.</summary>
     public void Add(int line, int column, Severity severity, string message)
     {
         var doc = _editor.Document;
@@ -129,7 +129,7 @@ public sealed class TextMarkerService : IBackgroundRenderer
         if (hits.Count == 0) return;
         _toolTip.PlacementTarget = tv;
         _toolTip.Content = string.Join(Environment.NewLine, hits.Select(h =>
-            (h.Severity == Severity.Error ? "Erreur : " : h.Severity == Severity.Warning ? "Avertissement : " : "Info : ") + h.Message));
+            (h.Severity == Severity.Error ? "Error: " : h.Severity == Severity.Warning ? "Warning: " : "Info: ") + h.Message));
         _toolTip.IsOpen = true;
         e.Handled = true;
     }

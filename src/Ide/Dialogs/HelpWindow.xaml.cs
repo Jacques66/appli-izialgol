@@ -10,7 +10,7 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-/// <summary>Aide : rendu des fichiers docs/simula.md et docs/algol68.md (Markdig → HTML).</summary>
+/// <summary>Help: renders docs/simula.md and docs/algol68.md (Markdig → HTML).</summary>
 public partial class HelpWindow : Window
 {
     public sealed record TocEntry(string Title, string Id, int Level)
@@ -56,20 +56,20 @@ public partial class HelpWindow : Window
                 if (file != null && System.IO.File.Exists(file))
                     markdown = System.IO.File.ReadAllText(file);
                 else
-                    markdown = $"# {title}\n\nLa documentation `docs/{topic}.md` est introuvable.\n\n" +
-                               "Elle est recherchée dans le dossier `docs` à côté de l'application, puis dans les dossiers parents.";
+                    markdown = $"# {title}\n\nThe documentation file `docs/{topic}.md` was not found.\n\n" +
+                               "It is looked up in the `docs` folder next to the application, then in the parent folders.";
                 break;
             }
             case "shortcuts":
-                title = "Raccourcis clavier";
+                title = "Keyboard shortcuts";
                 markdown = ShortcutsMarkdown;
                 break;
             default:
-                title = "Utiliser l'environnement";
+                title = "Using the environment";
                 markdown = IdeMarkdown;
                 break;
         }
-        Title = $"Aide — {title}";
+        Title = $"Help — {title}";
         var doc = Markdown.Parse(markdown, Pipeline);
         var toc = new List<TocEntry>();
         foreach (var h in doc.Descendants<HeadingBlock>())
@@ -121,7 +121,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 </style>
 <script>function goTo(id) {{ var e = document.getElementById(id); if (e) {{ e.scrollIntoView(true); }} }}</script>
 </head><body>{body}</body></html>";
-        // WebBrowser.NavigateToString gere mal les caracteres non ASCII : entites numeriques.
+        // WebBrowser.NavigateToString mishandles non-ASCII characters: use numeric entities.
         var sb = new StringBuilder(html.Length + 1024);
         foreach (var ch in html)
             if (ch < 128) sb.Append(ch);
@@ -161,7 +161,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
     {
         var uri = e.Uri;
         if (uri == null) return;
-        // Ancres internes (#id) et liens vers l'autre fichier d'aide
+        // Internal anchors (#id) and links to the other help file
         var s = uri.OriginalString;
         if (s.StartsWith("about:", StringComparison.OrdinalIgnoreCase) && s.Contains('#'))
         {
@@ -189,113 +189,113 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
         catch { }
     }
 
-    public const string ShortcutsMarkdown = @"# Raccourcis clavier
+    public const string ShortcutsMarkdown = @"# Keyboard shortcuts
 
-## Fichiers
+## Files
 
-| Raccourci | Action |
+| Shortcut | Action |
 |---|---|
-| <kbd>Ctrl+N</kbd> | Nouveau programme Simula 67 |
-| <kbd>Ctrl+Maj+N</kbd> | Nouveau programme Algol 68 |
-| <kbd>Ctrl+O</kbd> | Ouvrir |
-| <kbd>Ctrl+S</kbd> | Enregistrer |
-| <kbd>Ctrl+Maj+S</kbd> | Tout enregistrer |
-| <kbd>Ctrl+W</kbd>, <kbd>Ctrl+F4</kbd> | Fermer l'onglet (clic du milieu sur l'onglet également) |
+| <kbd>Ctrl+N</kbd> | New Simula 67 program |
+| <kbd>Ctrl+Shift+N</kbd> | New Algol 68 program |
+| <kbd>Ctrl+O</kbd> | Open |
+| <kbd>Ctrl+S</kbd> | Save |
+| <kbd>Ctrl+Shift+S</kbd> | Save all |
+| <kbd>Ctrl+W</kbd>, <kbd>Ctrl+F4</kbd> | Close the tab (a middle click on the tab works too) |
 
-## Édition
+## Editing
 
-| Raccourci | Action |
+| Shortcut | Action |
 |---|---|
-| <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd> | Annuler / rétablir |
-| <kbd>Ctrl+F</kbd> | Rechercher (texte ou expression régulière) |
-| <kbd>Ctrl+H</kbd> | Remplacer |
-| <kbd>F3</kbd> / <kbd>Maj+F3</kbd> | Occurrence suivante / précédente |
-| <kbd>Ctrl+G</kbd> | Aller à la ligne |
-| <kbd>Ctrl+Espace</kbd> | Compléter le mot (mots-clés, procédures standard, identificateurs du fichier) |
-| <kbd>Ctrl+K</kbd> / <kbd>Ctrl+Maj+K</kbd> | Commenter / décommenter les lignes sélectionnées |
-| <kbd>Ctrl+I</kbd> | Réindenter la sélection |
-| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+O</kbd> | Replier tous les blocs |
-| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+L</kbd> | Déplier tous les blocs |
-| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+M</kbd> | Replier / déplier le bloc courant |
-| <kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd> / <kbd>Ctrl+0</kbd> | Zoom avant / arrière / normal (ou Ctrl+molette) |
-| <kbd>Inser</kbd> | Mode insertion / refrappe |
+| <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd> | Undo / redo |
+| <kbd>Ctrl+F</kbd> | Find (plain text or regular expression) |
+| <kbd>Ctrl+H</kbd> | Replace |
+| <kbd>F3</kbd> / <kbd>Shift+F3</kbd> | Find next / previous |
+| <kbd>Ctrl+G</kbd> | Go to line |
+| <kbd>Ctrl+Space</kbd> | Complete the word (keywords, standard procedures, identifiers of the file) |
+| <kbd>Ctrl+K</kbd> / <kbd>Ctrl+Shift+K</kbd> | Comment / uncomment the selected lines |
+| <kbd>Ctrl+I</kbd> | Re-indent the selection |
+| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+O</kbd> | Collapse all blocks |
+| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+L</kbd> | Expand all blocks |
+| <kbd>Ctrl+M</kbd>, <kbd>Ctrl+M</kbd> | Collapse / expand the current block |
+| <kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd> / <kbd>Ctrl+0</kbd> | Zoom in / out / reset (or Ctrl+mouse wheel) |
+| <kbd>Ins</kbd> | Insert / overwrite mode |
 
-## Construire, exécuter, déboguer
+## Build, run, debug
 
-| Raccourci | Action |
+| Shortcut | Action |
 |---|---|
-| <kbd>F7</kbd>, <kbd>Ctrl+Maj+B</kbd> | Construire (compiler le fichier courant) |
-| <kbd>Ctrl+Maj+E</kbd> | Générer un .exe autonome |
-| <kbd>F5</kbd> | Démarrer le débogage / continuer |
-| <kbd>Ctrl+F5</kbd> | Exécuter sans débogage |
-| <kbd>Maj+F5</kbd> | Arrêter |
-| <kbd>Ctrl+Maj+F5</kbd> | Redémarrer |
+| <kbd>F7</kbd>, <kbd>Ctrl+Shift+B</kbd> | Build (compile the current file) |
+| <kbd>Ctrl+Shift+E</kbd> | Generate a standalone .exe |
+| <kbd>F5</kbd> | Start debugging / continue |
+| <kbd>Ctrl+F5</kbd> | Run without debugging |
+| <kbd>Shift+F5</kbd> | Stop |
+| <kbd>Ctrl+Shift+F5</kbd> | Restart |
 | <kbd>Ctrl+Alt+Pause</kbd> | Pause |
-| <kbd>F9</kbd> | Basculer le point d'arrêt (ou clic dans la marge) |
-| <kbd>Ctrl+Maj+F9</kbd> | Supprimer tous les points d'arrêt |
-| <kbd>F11</kbd> | Pas à pas détaillé |
-| <kbd>F10</kbd> | Pas à pas principal |
-| <kbd>Maj+F11</kbd> | Pas à pas sortant |
+| <kbd>F9</kbd> | Toggle breakpoint (or click in the margin) |
+| <kbd>Ctrl+Shift+F9</kbd> | Delete all breakpoints |
+| <kbd>F11</kbd> | Step into |
+| <kbd>F10</kbd> | Step over |
+| <kbd>Shift+F11</kbd> | Step out |
 
-## Console intégrée
+## Integrated console
 
-| Raccourci | Action |
+| Shortcut | Action |
 |---|---|
-| <kbd>Entrée</kbd> | Envoyer la ligne au programme |
-| <kbd>Ctrl+Z</kbd> | Fin de fichier |
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Historique des lignes saisies |
+| <kbd>Enter</kbd> | Send the line to the program |
+| <kbd>Ctrl+Z</kbd> | End of file |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | History of the lines typed |
 
-## Panneaux
+## Panels
 
-| Raccourci | Action |
+| Shortcut | Action |
 |---|---|
-| <kbd>Ctrl+Alt+O</kbd> | Sortie |
-| <kbd>Ctrl+Alt+E</kbd> | Liste d'erreurs |
+| <kbd>Ctrl+Alt+O</kbd> | Output |
+| <kbd>Ctrl+Alt+E</kbd> | Error list |
 | <kbd>Ctrl+Alt+C</kbd> | Console |
-| <kbd>Ctrl+Alt+P</kbd> | Pile d'appels |
+| <kbd>Ctrl+Alt+P</kbd> | Call stack |
 | <kbd>Ctrl+Alt+V</kbd> | Variables |
-| <kbd>F1</kbd> | Aide sur le langage du fichier courant |
+| <kbd>F1</kbd> | Help on the language of the current file |
 ";
 
-    public const string IdeMarkdown = @"# Utiliser l'environnement
+    public const string IdeMarkdown = @"# Using the environment
 
-## Écrire un programme
+## Writing a program
 
-* **Fichier › Nouveau programme Simula 67** (<kbd>Ctrl+N</kbd>) ou **Algol 68** (<kbd>Ctrl+Maj+N</kbd>) crée un onglet avec un gabarit.
-* Le langage est déterminé par l'extension (`.sim` ou `.a68`) ; il peut être changé dans **Construire › Langage du fichier** ou en cliquant sur le nom du langage dans la barre d'état.
-* Le menu **Exemples** ouvre les programmes du dossier `samples`.
-* Les fichiers peuvent être glissés-déposés dans la fenêtre ; un dossier déposé devient la racine de l'explorateur.
-* La session (onglets ouverts, points d'arrêt, position du curseur, disposition) est restaurée au démarrage.
+* **File › New Simula 67 program** (<kbd>Ctrl+N</kbd>) or **Algol 68** (<kbd>Ctrl+Shift+N</kbd>) creates a tab with a template.
+* The language is chosen from the extension (`.sim` or `.a68`); it can be changed in **Build › File language** or by clicking the language name in the status bar.
+* The **Examples** menu opens the programs of the `samples` folder.
+* Files can be dragged and dropped into the window; a dropped folder becomes the root of the explorer.
+* The session (open tabs, breakpoints, caret position, layout) is restored at start-up.
 
 ## Simula 67
 
-Mots-clés insensibles à la casse. Commentaires : `comment … ;`, `! … ;` et le texte qui suit `end` jusqu'au prochain `;`, `end`, `else`, `when` ou `otherwise`.
+Keywords are case-insensitive. Comments: `comment … ;`, `! … ;` and the text that follows `end` up to the next `;`, `end`, `else`, `when` or `otherwise`.
 
 ## Algol 68
 
-Stropping UPPER : les mots en majuscules (`BEGIN`, `INT`, `PROC`…) sont des mots gras ; le stropping QUOTE (`'BEGIN'`) est aussi reconnu.
-Commentaires : `CO … CO`, `COMMENT … COMMENT`, `# … #`.
+UPPER stropping: upper-case words (`BEGIN`, `INT`, `PROC`…) are bold words; QUOTE stropping (`'BEGIN'`) is recognised too.
+Comments: `CO … CO`, `COMMENT … COMMENT`, `# … #`.
 
-## Construire et exécuter
+## Build and run
 
-* **Construire** (<kbd>F7</kbd>) compile le fichier courant : les diagnostics apparaissent dans la **Sortie**, dans la **liste d'erreurs** (double-clic pour aller à la ligne) et sont soulignés dans l'éditeur. Une vérification en arrière-plan souligne les erreurs pendant la frappe.
-* **Exécuter** (<kbd>Ctrl+F5</kbd>) lance le programme dans la **console intégrée** : la sortie s'affiche au fur et à mesure, les lignes saisies sont envoyées au programme, <kbd>Ctrl+Z</kbd> envoie la fin de fichier, **Arrêter** (<kbd>Maj+F5</kbd>) interrompt l'exécution.
-* L'option **Exécuter dans une console Windows externe** (bouton de la barre d'outils) ouvre une vraie fenêtre de console.
-* **Générer un .exe autonome** produit un exécutable Windows qui peut être copié et lancé seul (le runtime .NET 8 doit être installé).
+* **Build** (<kbd>F7</kbd>) compiles the current file: diagnostics appear in the **Output**, in the **error list** (double-click to go to the line) and are underlined in the editor. A background check underlines errors while you type.
+* **Run** (<kbd>Ctrl+F5</kbd>) starts the program in the **integrated console**: output appears as it is produced, typed lines are sent to the program, <kbd>Ctrl+Z</kbd> sends end of file, **Stop** (<kbd>Shift+F5</kbd>) interrupts the run.
+* The **Run in external Windows console** option (toolbar button) opens a real console window.
+* **Generate a standalone .exe** produces a Windows executable that can be copied and run on its own (the .NET 8 runtime must be installed).
 
-## Déboguer
+## Debugging
 
-* Cliquez dans la marge gauche (ou <kbd>F9</kbd>) pour placer un point d'arrêt (pastille rouge).
-* <kbd>F5</kbd> démarre le débogage ; à l'arrêt, la ligne courante est surlignée en jaune avec une flèche.
-* <kbd>F11</kbd> entre dans les procédures, <kbd>F10</kbd> passe par-dessus, <kbd>Maj+F11</kbd> sort de la procédure courante.
-* La **pile d'appels** (double-clic pour afficher un appelant) et les **variables** (arbre dépliable) sont mises à jour à chaque arrêt.
-* Une erreur d'exécution arrête le programme sur la ligne fautive (option **S'arrêter sur erreur d'exécution**).
+* Click in the left margin (or press <kbd>F9</kbd>) to set a breakpoint (red dot).
+* <kbd>F5</kbd> starts debugging; when stopped, the current line is highlighted in yellow with an arrow.
+* <kbd>F11</kbd> steps into procedures, <kbd>F10</kbd> steps over them, <kbd>Shift+F11</kbd> steps out of the current procedure.
+* The **call stack** (double-click to show a caller) and the **variables** (expandable tree) are refreshed at each stop.
+* A runtime error stops the program on the faulty line (option **Break on runtime error**).
 
-## Ligne de commande
+## Command line
 
 ```
-simc programme.sim [-o programme.exe] [--run] [--no-debug]
-a68c programme.a68 [-o programme.exe] [--run] [--no-debug]
+simc program.sim [-o program.exe] [--run] [--no-debug]
+a68c program.a68 [-o program.exe] [--run] [--no-debug]
 ```
 ";
 }

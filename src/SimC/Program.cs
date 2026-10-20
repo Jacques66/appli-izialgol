@@ -1,4 +1,4 @@
-﻿// simc : compilateur Simula 67 en ligne de commande.
+﻿// simc: command-line Simula 67 compiler.
 using Studio.Simula;
 using Studio.Tooling;
 

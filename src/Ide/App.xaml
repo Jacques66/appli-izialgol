@@ -5,7 +5,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- [0] = theme (remplace a l'execution par Light.xaml ou Dark.xaml) -->
+                <!-- [0] = theme (replaced at run time by Light.xaml or Dark.xaml) -->
                 <ResourceDictionary Source="Themes/Light.xaml"/>
                 <ResourceDictionary Source="Themes/Icons.xaml"/>
                 <ResourceDictionary Source="Themes/Controls.xaml"/>

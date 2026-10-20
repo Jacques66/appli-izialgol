@@ -13,17 +13,17 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Runner</AssemblyName>
     <RootNamespace>Studio.Runner</RootNamespace>
-    <!-- Necessaire pour la publication mono-fichier win-x64 (exe autonomes). -->
+    <!-- Required for the win-x64 single-file publish (standalone executables). -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <Product>Simula 67 &amp; Algol 68 Studio</Product>
   </PropertyGroup>
 
   <!--
-    Apres chaque build "normal", publie aussi Runner en mono-fichier dependant du framework dans
-    bin\$(Configuration)\single\Runner.exe : c'est ce fichier que simc, a68c et l'IDE copient
-    (avec le programme compile ajoute a la fin) pour produire un .exe autonome.
-    build.ps1 publie directement en mono-fichier (PublishSingleFile=true) : la cible est alors ignoree.
+    After every "normal" build, also publishes Runner as a framework-dependent single file in
+    bin\$(Configuration)\single\Runner.exe: this is the file that simc, a68c and the IDE copy
+    (with the compiled program appended at the end) to produce a standalone .exe.
+    build.ps1 publishes directly as a single file (PublishSingleFile=true): the target is then skipped.
   -->
   <Target Name="PublishSingleFileRunner" AfterTargets="Build"
           Condition="'$(_RunnerSinglePublish)' != 'true' and '$(PublishSingleFile)' != 'true'">

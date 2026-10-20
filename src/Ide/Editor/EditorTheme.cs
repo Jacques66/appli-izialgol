@@ -6,7 +6,7 @@ namespace Studio.Ide.Editor;
 
 public sealed record TokenStyle(Brush Brush, bool Bold = false, bool Italic = false);
 
-/// <summary>Couleurs de l'editeur (coloration syntaxique, marges, surlignages) pour un theme.</summary>
+/// <summary>Editor colors (syntax highlighting, margins, highlights) for one theme.</summary>
 public sealed class EditorTheme
 {
     public required bool IsDark { get; init; }

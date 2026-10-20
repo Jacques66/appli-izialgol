@@ -1,15 +1,15 @@
-// Analyse lexicale legere pour l'editeur : coloration, repliage, appariement des blocs,
-// structure du fichier (outline), identifiants pour l'auto-completion, indentation.
-// Aucune dependance WPF (fichier lie dans tests/IdeTests).
+// Lightweight lexical analysis for the editor: highlighting, folding, block matching,
+// file structure (outline), identifiers for auto-completion, indentation.
+// No WPF dependency (file linked into tests/IdeTests).
 
 namespace Studio.Ide.Language;
 
 public enum TokenKind
 {
-    Keyword,      // mot reserve
-    Type,         // mot de type (integer, INT, REF...)
-    BoldWord,     // Algol 68 : mot gras non reserve (indicant de mode ou d'operateur)
-    Builtin,      // procedure standard (OutText, print...)
+    Keyword,      // reserved word
+    Type,         // type word (integer, INT, REF...)
+    BoldWord,     // Algol 68: non-reserved bold word (mode or operator indicant)
+    Builtin,      // standard procedure (OutText, print...)
     Identifier,
     Number,
     String,
@@ -20,7 +20,7 @@ public enum TokenKind
     Punctuation,
 }
 
-/// <summary>Jeton. Norm = forme normalisee (minuscules pour Simula, majuscules sans apostrophes pour les mots gras Algol 68).</summary>
+/// <summary>Token. Norm = normalized form (lower case for Simula, upper case without quotes for Algol 68 bold words).</summary>
 public readonly record struct Token(TokenKind Kind, int Start, int Length, string Norm)
 {
     public int End => Start + Length;
@@ -32,7 +32,7 @@ public enum OutlineKind { Procedure, Class, Operator, Mode, Label }
 
 public sealed record OutlineItem(OutlineKind Kind, string Name, string Detail, int Offset, int Depth);
 
-/// <summary>Paire ouvrant/fermant (indices de jetons) : begin/end, ( ), IF/FI...</summary>
+/// <summary>Opener/closer pair (token indices): begin/end, ( ), IF/FI...</summary>
 public readonly record struct TokenPair(int Open, int Close);
 
 public sealed class CodeModel
@@ -49,12 +49,12 @@ public sealed class CodeModel
     public List<TokenPair> Pairs { get; } = new();
     public List<OutlineItem> Outline { get; } = new();
     public List<string> Identifiers { get; } = new();
-    /// <summary>Pour chaque jeton apparie : indice du jeton correspondant.</summary>
+    /// <summary>For each matched token: index of the matching token.</summary>
     public Dictionary<int, int> PairOf { get; } = new();
 
     public string TokenText(Token t) => Text.Substring(t.Start, t.Length);
 
-    /// <summary>Indice du premier jeton dont la fin est > offset (recherche dichotomique).</summary>
+    /// <summary>Index of the first token whose end is > offset (binary search).</summary>
     public int FirstTokenEndingAfter(int offset)
     {
         int lo = 0, hi = Tokens.Count;
@@ -66,7 +66,7 @@ public sealed class CodeModel
         return lo;
     }
 
-    /// <summary>Jeton contenant l'offset (ou qui se termine juste a l'offset), -1 sinon.</summary>
+    /// <summary>Token containing the offset (or ending exactly at the offset), -1 otherwise.</summary>
     public int TokenAt(int offset, bool allowEndTouch = true)
     {
         int i = FirstTokenEndingAfter(offset);
@@ -76,14 +76,14 @@ public sealed class CodeModel
     }
 }
 
-/// <summary>Description d'un langage pour l'editeur.</summary>
+/// <summary>Language description for the editor.</summary>
 public abstract class LanguageDefinition
 {
     public abstract string Id { get; }
     public abstract string DisplayName { get; }
     public abstract string DefaultExtension { get; }
     public abstract bool CaseSensitive { get; }
-    /// <summary>Mots proposes par l'auto-completion (mots-cles, procedures standard).</summary>
+    /// <summary>Words offered by auto-completion (keywords, standard procedures).</summary>
     public abstract IReadOnlyList<string> CompletionWords { get; }
     public abstract string NewFileTemplate { get; }
     public abstract List<Token> Tokenize(string text);
@@ -95,15 +95,15 @@ public abstract class LanguageDefinition
     {
         var model = new CodeModel(text, Tokenize(text));
         try { AnalyzeStructure(model); }
-        catch { /* l'analyse ne doit jamais faire tomber l'editeur */ }
+        catch { /* analysis must never crash the editor */ }
         return model;
     }
 
     // ---- Indentation ----
 
-    /// <summary>Mots ouvrants (+1) / fermants (-1) : solde d'une ligne.</summary>
+    /// <summary>Opening (+1) / closing (-1) words: balance of a line.</summary>
     protected abstract int BlockDelta(Token t);
-    /// <summary>Mots "intermediaires" (THEN, ELSE...) : alignes sur l'ouvrant, contenu indente.</summary>
+    /// <summary>"Middle" words (THEN, ELSE...): aligned with the opener, content indented.</summary>
     protected virtual bool IsMiddleWord(Token t) => false;
 
     public int NetOpeners(string line)
@@ -126,14 +126,14 @@ public abstract class LanguageDefinition
         return toks.Count > 0 && IsMiddleWord(toks[0]);
     }
 
-    /// <summary>Indentation souhaitee pour une ligne, a partir de la ligne precedente non vide.</summary>
+    /// <summary>Desired indentation for a line, based on the previous non-empty line.</summary>
     public string ComputeIndent(string previousLine, string currentLine)
     {
         string prevIndent = previousLine[..(previousLine.Length - previousLine.TrimStart().Length)];
         int level = 0;
         var prevToks = Tokenize(previousLine);
         int delta = 0;
-        // Les fermants en tete de la ligne precedente ont deja ete desindentes.
+        // Closers at the start of the previous line have already been outdented.
         for (int i = 0; i < prevToks.Count; i++)
         {
             int d = BlockDelta(prevToks[i]);
@@ -158,21 +158,21 @@ public abstract class LanguageDefinition
         return indent[..^n];
     }
 
-    // ---- Commentaires de ligne ----
+    // ---- Line comments ----
 
     public abstract string CommentLine(string line);
     public abstract bool IsCommentedLine(string line);
     public abstract string UncommentLine(string line);
 
-    // ---- Outils communs ----
+    // ---- Shared helpers ----
 
     protected static void AddFold(CodeModel m, int openEnd, int closeEnd, string title)
     {
-        // Le repliage commence a la fin de la ligne de l'ouvrant : l'en-tete reste visible.
+        // Folding starts at the end of the opener's line: the header stays visible.
         int lineEnd = m.Text.IndexOf('\n', openEnd);
         if (lineEnd < 0) return;
         if (lineEnd > 0 && m.Text[lineEnd - 1] == '\r') lineEnd--;
-        if (closeEnd <= lineEnd + 1) return; // une seule ligne
+        if (closeEnd <= lineEnd + 1) return; // single line
         if (m.Text.IndexOf('\n', lineEnd + 1) < 0) return;
         m.Folds.Add(new FoldRegion(lineEnd, closeEnd, title));
     }

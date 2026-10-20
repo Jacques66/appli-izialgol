@@ -5,8 +5,8 @@ using ICSharpCode.AvalonEdit.Rendering;
 
 namespace Studio.Ide.Editor;
 
-/// <summary>Coloration a partir des jetons du CodeModel du document (analyse du texte entier :
-/// les commentaires multi-lignes sont toujours justes).</summary>
+/// <summary>Highlighting from the tokens of the document CodeModel (analysis of the whole text:
+/// multi-line comments are always correct).</summary>
 public sealed class SyntaxColorizer : DocumentColorizingTransformer
 {
     readonly EditorDocument _doc;

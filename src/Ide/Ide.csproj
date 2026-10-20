@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -12,9 +12,9 @@
     <AssemblyTitle>Simula 67 &amp; Algol 68 Studio</AssemblyTitle>
     <Version>1.0.0</Version>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <!-- Runner est reference uniquement pour l'ordre de construction (pas d'assembly). -->
+    <!-- Runner is referenced only for the build order (no assembly reference). -->
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
@@ -27,7 +27,7 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Simula\Simula.csproj" />
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
-    <!-- Runner.exe mono-fichier (bin\...\single) pour « Générer un .exe » et la console externe. -->
+    <!-- Single-file Runner.exe (bin\...\single) for "Generate .exe" and the external console. -->
     <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 

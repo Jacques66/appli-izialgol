@@ -17,7 +17,7 @@ using Studio.Tooling;
 
 namespace Studio.Ide.Editor;
 
-/// <summary>Un fichier ouvert dans un onglet : editeur AvalonEdit et tous ses services.</summary>
+/// <summary>A file open in a tab: AvalonEdit editor and all its services.</summary>
 public sealed class EditorDocument : INotifyPropertyChanged
 {
     static int _untitledCounter;
@@ -36,7 +36,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         _language = language;
         _filePath = filePath;
         Encoding = encoding ?? new UTF8Encoding(false);
-        if (filePath == null) UntitledName = $"SansTitre{++_untitledCounter}{language.DefaultExtension}";
+        if (filePath == null) UntitledName = $"Untitled{++_untitledCounter}{language.DefaultExtension}";
         else UntitledName = "";
 
         Editor = new TextEditor
@@ -84,7 +84,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.TextArea.TextEntered += OnTextEntered;
         Editor.TextArea.TextEntering += OnTextEntering;
 
-        // Ctrl+Espace : completion (lie a la zone de texte pour passer avant toute autre gestion)
+        // Ctrl+Space: completion (bound on the text area so it runs before any other handling)
         Editor.TextArea.InputBindings.Add(new KeyBinding(new RelayCommand(_ => ShowCompletion()), Key.Space, ModifierKeys.Control));
 
         _analysisTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(350) };
@@ -94,7 +94,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         RefreshAnalysis();
     }
 
-    // ------------------------------------------------------------------ proprietes
+    // ------------------------------------------------------------------ properties
 
     public TextEditor Editor { get; }
     public TextMarkerService Markers { get; }
@@ -150,14 +150,14 @@ public sealed class EditorDocument : INotifyPropertyChanged
 
     public string DisplayName => _filePath != null ? Path.GetFileName(_filePath) : UntitledName;
     public string Title => DisplayName + (IsModified ? " •" : "");
-    /// <summary>Chemin transmis au compilateur (chemin complet, ou nom provisoire pour un fichier non enregistre).</summary>
+    /// <summary>Path passed to the compiler (full path, or temporary name for an unsaved file).</summary>
     public string CompilePath => _filePath ?? UntitledName;
     public string? Directory => _filePath != null ? Path.GetDirectoryName(_filePath) : null;
 
-    /// <summary>Analyse du texte courant (recalculee a la demande apres chaque modification).</summary>
+    /// <summary>Analysis of the current text (recomputed on demand after each change).</summary>
     public CodeModel Model => _model ??= _language.Analyze(Editor.Document.Text);
 
-    // ------------------------------------------------------------------ analyse
+    // ------------------------------------------------------------------ analysis
 
     public void RefreshAnalysis()
     {
@@ -171,13 +171,13 @@ public sealed class EditorDocument : INotifyPropertyChanged
                 .ToList();
             Folding.UpdateFoldings(folds, -1);
         }
-        catch (Exception ex) { Log.Write("repliage : " + ex.Message); }
+        catch (Exception ex) { Log.Write("folding: " + ex.Message); }
         Brackets.Update(Editor.CaretOffset);
         ModelUpdated?.Invoke(this);
         BreakpointsChanged?.Invoke(this);
     }
 
-    // ------------------------------------------------------------------ points d'arret
+    // ------------------------------------------------------------------ breakpoints
 
     public HashSet<int> BreakpointLineSet()
     {
@@ -215,7 +215,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         _breakpoints.Add(anchor);
     }
 
-    // ------------------------------------------------------------------ ligne d'execution
+    // ------------------------------------------------------------------ execution line
 
     public int? ExecutionLine { get; private set; }
     public bool ExecutionIsTopFrame { get; private set; } = true;
@@ -243,7 +243,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         var dl = doc.GetLineByNumber(line);
         column = Math.Clamp(column, 1, dl.Length + 1);
         Editor.TextArea.Caret.Location = new TextLocation(line, column);
-        // Deplie la region qui contient la ligne
+        // Unfold the region containing the line
         foreach (var f in Folding.GetFoldingsContaining(dl.Offset)) f.IsFolded = false;
         if (select && dl.Length > 0)
         {
@@ -255,7 +255,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.TextArea.Caret.BringCaretToView();
     }
 
-    // ------------------------------------------------------------------ edition
+    // ------------------------------------------------------------------ editing
 
     void OnTextEntering(object sender, TextCompositionEventArgs e)
     {
@@ -288,7 +288,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         int caret = Editor.CaretOffset;
         int start = caret;
         while (start > 0 && (char.IsLetterOrDigit(doc.GetCharAt(start - 1)) || doc.GetCharAt(start - 1) == '_')) start--;
-        // Algol 68 QUOTE stropping : inclure l'apostrophe ouvrante
+        // Algol 68 QUOTE stropping: include the opening apostrophe
         string prefix = doc.GetText(start, caret - start);
 
         _completion = new CompletionWindow(Editor.TextArea)
@@ -306,16 +306,16 @@ public sealed class EditorDocument : INotifyPropertyChanged
         var seen = new HashSet<string>(_language.CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
         var currentWord = prefix;
         foreach (var id in Model.Identifiers.OrderBy(s => s, StringComparer.OrdinalIgnoreCase))
-            if (id != currentWord && seen.Add(id)) data.Add(new CompletionData(id, "identificateur du fichier", 1));
+            if (id != currentWord && seen.Add(id)) data.Add(new CompletionData(id, "identifier in this file", 1));
         foreach (var w in _language.CompletionWords)
-            if (seen.Add(w)) data.Add(new CompletionData(w, "mot du langage " + _language.DisplayName, 0));
+            if (seen.Add(w)) data.Add(new CompletionData(w, _language.DisplayName + " keyword", 0));
         if (data.Count == 0) { _completion = null; return; }
         _completion.Closed += (_, _) => _completion = null;
         _completion.Show();
         if (prefix.Length > 0) _completion.CompletionList.SelectItem(prefix);
     }
 
-    /// <summary>Commente ou decommente les lignes de la selection.</summary>
+    /// <summary>Comments or uncomments the selected lines.</summary>
     public void ToggleComment(bool? comment = null)
     {
         var doc = Editor.Document;
@@ -348,7 +348,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.Select(first.Offset, last.EndOffset - first.Offset);
     }
 
-    // ------------------------------------------------------------------ apparence
+    // ------------------------------------------------------------------ appearance
 
     public void ApplySettings(IdeSettings s)
     {
@@ -383,7 +383,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         BreakpointMarginControl.InvalidateVisual();
     }
 
-    // ------------------------------------------------------------------ fichiers
+    // ------------------------------------------------------------------ files
 
     public static (string Text, Encoding Encoding) ReadFile(string path)
     {

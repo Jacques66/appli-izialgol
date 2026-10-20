@@ -3,8 +3,8 @@ using ICSharpCode.AvalonEdit.Indentation;
 
 namespace Studio.Ide.Editor;
 
-/// <summary>Indentation automatique : +1 niveau apres un ouvrant (begin, BEGIN, IF, DO…),
-/// -1 pour une ligne qui commence par un fermant (end, FI, OD…) ou un mot intermediaire (THEN, ELSE…).</summary>
+/// <summary>Automatic indentation: +1 level after an opener (begin, BEGIN, IF, DO…),
+/// -1 for a line starting with a closer (end, FI, OD…) or a middle word (THEN, ELSE…).</summary>
 public sealed class SmartIndentation : IIndentationStrategy
 {
     readonly EditorDocument _doc;

@@ -14,8 +14,8 @@ public partial class AboutWindow : Window
         VersionText.Text = $"Version {v?.ToString(3)}";
         RuntimeText.Text =
             $"{RuntimeInformation.FrameworkDescription} — {RuntimeInformation.OSDescription}\n" +
-            $"Langages : {string.Join(", ", LanguageRegistry.Languages.Select(l => l.DisplayName))}\n" +
-            $"Lanceur : {RunnerLocator.Find() ?? "introuvable"}\n" +
-            $"Paramètres : {IdeSettings.Directory}";
+            $"Languages: {string.Join(", ", LanguageRegistry.Languages.Select(l => l.DisplayName))}\n" +
+            $"Launcher: {RunnerLocator.Find() ?? "not found"}\n" +
+            $"Settings: {IdeSettings.Directory}";
     }
 }

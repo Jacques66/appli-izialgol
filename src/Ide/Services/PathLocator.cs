@@ -1,6 +1,6 @@
 namespace Studio.Ide.Services;
 
-/// <summary>Recherche des dossiers samples/ et docs/ : a cote de l'exe, puis en remontant (mode developpement).</summary>
+/// <summary>Finds the samples/ and docs/ folders: next to the exe, then walking up the tree (development mode).</summary>
 public static class PathLocator
 {
     public static string? FindDirectory(string name, Func<string, bool>? accept = null)

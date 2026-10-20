@@ -10,7 +10,7 @@ public partial class GoToLineWindow : Window
     {
         InitializeComponent();
         _max = max;
-        Prompt.Text = $"Numéro de ligne (1 – {max}) :";
+        Prompt.Text = $"Line number (1 – {max}):";
         LineBox.Text = current.ToString();
         Loaded += (_, _) => { LineBox.Focus(); LineBox.SelectAll(); };
     }
@@ -26,7 +26,7 @@ public partial class GoToLineWindow : Window
         }
         else
         {
-            ErrorText.Text = $"Entrez un nombre entre 1 et {_max}.";
+            ErrorText.Text = $"Enter a number between 1 and {_max}.";
             ErrorText.Visibility = Visibility.Visible;
             LineBox.Focus();
             LineBox.SelectAll();

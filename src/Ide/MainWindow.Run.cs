@@ -22,7 +22,7 @@ public partial class MainWindow
 
     public RunSession? Session => _session;
 
-    /// <summary>Execute (debug = false) ou debogue (debug = true) le document actif.</summary>
+    /// <summary>Runs (debug = false) or debugs (debug = true) the active document.</summary>
     public async Task RunAsync(bool debug, bool stopOnEntry = false)
     {
         if (ActiveDocument == null || _state != IdeState.Idle) return;
@@ -49,7 +49,7 @@ public partial class MainWindow
                 ConsoleView.SetWaiting(waiting);
                 if (waiting && _state is IdeState.Running or IdeState.Debugging)
                 {
-                    SetStatusMessage("Le programme attend une saisie dans la console.");
+                    SetStatusMessage("The program is waiting for input in the console.");
                     ShowBottomPanel("console");
                 }
             });
@@ -61,7 +61,7 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            ShowError($"Impossible de préparer l'exécution : {ex.Message}", "Exécuter");
+            ShowError($"Cannot prepare the execution: {ex.Message}", "Run");
             return;
         }
 
@@ -80,12 +80,12 @@ public partial class MainWindow
                 }
                 foreach (var (file, lines) in _settings.Breakpoints)
                     if (!sent.Contains(file)) dbg.SetBreakpoints(file, lines);
-                // Paused est leve sur le thread d'execution, qui se bloque ensuite : on marshale vers l'interface.
+                // Paused is raised on the execution thread, which then blocks: marshal to the UI thread.
                 dbg.Paused += info => Dispatcher.BeginInvoke(new Action(() => OnPaused(session, info)));
             }
             catch (Exception ex)
             {
-                AppendOutput($"Débogueur indisponible pour {outcome.Service.DisplayName} : {ex.Message} — exécution sans débogage.");
+                AppendOutput($"Debugger unavailable for {outcome.Service.DisplayName}: {ex.Message} — running without debugging.");
                 session = new RunSession(outcome.Result.Program!, io, cts, false, session.Main);
                 debug = false;
             }
@@ -96,10 +96,10 @@ public partial class MainWindow
         RefreshErrorList();
         ClearDebugPanels();
         ConsoleView.SetRunning(true);
-        ConsoleView.AppendLine($"[{(debug ? "Débogage" : "Exécution")} de {doc.DisplayName} — {DateTime.Now:HH:mm:ss}]", ConsoleTextKind.Info);
+        ConsoleView.AppendLine($"[{(debug ? "Debugging" : "Running")} {doc.DisplayName} — {DateTime.Now:HH:mm:ss}]", ConsoleTextKind.Info);
         ShowBottomPanel("console");
-        SetState(debug ? IdeState.Debugging : IdeState.Running, debug ? "Débogage en cours (F5 continuer, Maj+F5 arrêter)" : "Exécution en cours (Maj+F5 pour arrêter)");
-        AppendOutput($"{(debug ? "Débogage" : "Exécution")} de {doc.DisplayName}…");
+        SetState(debug ? IdeState.Debugging : IdeState.Running, debug ? "Debugging (F5 continue, Shift+F5 stop)" : "Running (Shift+F5 to stop)");
+        AppendOutput($"{(debug ? "Debugging" : "Running")} {doc.DisplayName}…");
 
         var task = session.Start();
         task.ContinueWith(t => Dispatcher.BeginInvoke(new Action(() => OnFinished(session, t.Result))), TaskScheduler.Default);
@@ -120,20 +120,20 @@ public partial class MainWindow
         {
             var err = result.Error;
             ConsoleView.AppendLine(ProgramHost.FormatError(err), ConsoleTextKind.Error);
-            message = $"Erreur d'exécution : {err.Message}";
+            message = $"Runtime error: {err.Message}";
             AppendOutput(ProgramHost.FormatError(err));
             AddRuntimeError(err.Message, string.IsNullOrEmpty(err.File) ? session.Main.CompilePath : err.File, err.Line, err.Column);
             if (err.Line > 0 && !App.Options.Automated) NavigateTo(string.IsNullOrEmpty(err.File) ? session.Main.CompilePath : err.File, err.Line, err.Column);
         }
         else if (result.Cancelled || session.StopRequested)
         {
-            ConsoleView.AppendLine($"[Programme arrêté — {duration}]", ConsoleTextKind.Info);
-            message = "Programme arrêté.";
+            ConsoleView.AppendLine($"[Program stopped — {duration}]", ConsoleTextKind.Info);
+            message = "Program stopped.";
         }
         else
         {
-            ConsoleView.AppendLine($"[Programme terminé avec le code {result.ExitCode} — {duration}]", ConsoleTextKind.Info);
-            message = $"Programme terminé (code {result.ExitCode}).";
+            ConsoleView.AppendLine($"[Program finished with exit code {result.ExitCode} — {duration}]", ConsoleTextKind.Info);
+            message = $"Program finished (exit code {result.ExitCode}).";
         }
         AppendOutput(message);
         LastResult = result;
@@ -141,7 +141,7 @@ public partial class MainWindow
         RunFinished?.Invoke(result);
     }
 
-    /// <summary>Dernier resultat d'execution (auto-test).</summary>
+    /// <summary>Last execution result (self-test).</summary>
     public ExecutionResult? LastResult { get; private set; }
     public event Action<ExecutionResult>? RunFinished;
     public event Action<PauseInfo>? DebuggerPaused;
@@ -155,30 +155,30 @@ public partial class MainWindow
         _selectedFrame = 0;
         string reason = info.Reason switch
         {
-            PauseReason.Breakpoint => "point d'arrêt",
-            PauseReason.Step => "pas à pas",
-            PauseReason.PauseRequest => "pause demandée",
-            PauseReason.Exception => "erreur d'exécution",
-            PauseReason.Entry => "première instruction",
+            PauseReason.Breakpoint => "breakpoint",
+            PauseReason.Step => "step",
+            PauseReason.PauseRequest => "pause requested",
+            PauseReason.Exception => "runtime error",
+            PauseReason.Entry => "first statement",
             _ => "",
         };
-        SetState(IdeState.Paused, $"En pause ({reason}) — {System.IO.Path.GetFileName(info.File)}, ligne {info.Line}");
+        SetState(IdeState.Paused, $"Paused ({reason}) — {System.IO.Path.GetFileName(info.File)}, line {info.Line}");
         ShowExecutionPoint(info.File, info.Line, info.Column, top: true);
         LoadStack();
         LoadVariables(0);
         StackList.Opacity = VariablesTree.Opacity = 1;
         if (info.Reason == PauseReason.Exception)
         {
-            var msg = info.Message ?? "erreur d'exécution";
-            ConsoleView.AppendLine($"Erreur d'exécution : {msg}", ConsoleTextKind.Error);
+            var msg = info.Message ?? "runtime error";
+            ConsoleView.AppendLine($"Runtime error: {msg}", ConsoleTextKind.Error);
             var doc = FindDocument(info.File);
             doc?.Markers.Add(info.Line, info.Column, Severity.Error, msg);
             ShowBottomPanel("variables");
             if (!App.Options.Automated)
                 MessageBox.Show(this,
-                    $"Le programme s'est arrêté sur une erreur d'exécution :\n\n{msg}\n\n{System.IO.Path.GetFileName(info.File)}, ligne {info.Line}, colonne {info.Column}\n\n" +
-                    "Examinez la pile d'appels et les variables, puis continuez (F5) ou arrêtez (Maj+F5).",
-                    "Erreur d'exécution", MessageBoxButton.OK, MessageBoxImage.Error);
+                    $"The program stopped on a runtime error:\n\n{msg}\n\n{System.IO.Path.GetFileName(info.File)}, line {info.Line}, column {info.Column}\n\n" +
+                    "Inspect the call stack and the variables, then continue (F5) or stop (Shift+F5).",
+                    "Runtime error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         else if (!ConsoleView.IsWaiting)
             ShowBottomPanel("variables");
@@ -220,17 +220,17 @@ public partial class MainWindow
         s.IsPaused = false;
         ClearExecutionLine();
         StackList.Opacity = VariablesTree.Opacity = 0.45;
-        SetState(IdeState.Debugging, "Débogage en cours…");
+        SetState(IdeState.Debugging, "Debugging…");
         try { action(s.Debugger); }
-        catch (Exception ex) { AppendOutput("Débogueur : " + ex.Message); }
+        catch (Exception ex) { AppendOutput("Debugger: " + ex.Message); }
     }
 
     void PauseExecution()
     {
         var dbg = _session?.Debugger;
         if (dbg == null) return;
-        try { dbg.RequestPause(); } catch (Exception ex) { AppendOutput("Débogueur : " + ex.Message); }
-        SetStatusMessage("Pause demandée…");
+        try { dbg.RequestPause(); } catch (Exception ex) { AppendOutput("Debugger: " + ex.Message); }
+        SetStatusMessage("Pause requested…");
     }
 
     public void StopExecution()
@@ -249,15 +249,15 @@ public partial class MainWindow
             s.IsPaused = false;
             try { s.Debugger?.Continue(); } catch { }
         }
-        SetStatusMessage("Arrêt du programme…");
-        // Un programme qui ne surveille pas l'annulation ne peut pas etre tue (thread .NET) : on le detache.
+        SetStatusMessage("Stopping the program…");
+        // A program that ignores cancellation cannot be killed (.NET thread): detach it.
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         timer.Tick += (_, _) =>
         {
             timer.Stop();
             if (_session == s)
             {
-                AppendOutput("Le programme ne répond pas à la demande d'arrêt ; il est abandonné en arrière-plan.");
+                AppendOutput("The program does not respond to the stop request; it is abandoned in the background.");
                 OnFinished(s, new ExecutionResult(130, null, Cancelled: true));
             }
         };
@@ -272,14 +272,14 @@ public partial class MainWindow
         if (_state == IdeState.Idle) await RunAsync(debug);
     }
 
-    // ------------------------------------------------------------------ console externe
+    // ------------------------------------------------------------------ external console
 
     async Task RunExternalAsync()
     {
         var runner = RunnerLocator.Find();
         if (runner == null)
         {
-            ShowError(RunnerLocator.NotFoundMessage, "Exécuter");
+            ShowError(RunnerLocator.NotFoundMessage, "Run");
             return;
         }
         var outcome = await BuildAsync(debug: true, showSuccess: false);
@@ -296,7 +296,7 @@ public partial class MainWindow
             ExePackage.Write(runner, exe, outcome.Service.Id, outcome.Result.Program.Serialize());
             var workDir = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var psi = new ProcessStartInfo("cmd.exe",
-                $"/v:on /c \"title {baseName} — Simula 67 & Algol 68 Studio & \"{exe}\" & echo. & echo [Programme terminé avec le code !errorlevel!] & pause\"")
+                $"/v:on /c \"title {baseName} — Simula 67 & Algol 68 Studio & \"{exe}\" & echo. & echo [Program finished with exit code !errorlevel!] & pause\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = false,
@@ -308,19 +308,19 @@ public partial class MainWindow
             p.Exited += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
             {
                 _externalProcess = null;
-                AppendOutput("Console externe fermée.");
-                SetState(IdeState.Idle, "Console externe fermée.");
+                AppendOutput("External console closed.");
+                SetState(IdeState.Idle, "External console closed.");
             }));
-            AppendOutput($"Exécution dans une console externe : {exe}");
-            SetState(IdeState.External, "Le programme s'exécute dans une console Windows externe.");
+            AppendOutput($"Running in an external console: {exe}");
+            SetState(IdeState.External, "The program is running in an external Windows console.");
         }
         catch (Exception ex)
         {
-            ShowError($"Impossible de lancer la console externe : {ex.Message}", "Exécuter");
+            ShowError($"Cannot start the external console: {ex.Message}", "Run");
         }
     }
 
-    // ------------------------------------------------------------------ ligne courante, pile, variables
+    // ------------------------------------------------------------------ current line, call stack, variables
 
     void ShowExecutionPoint(string file, int line, int column, bool top)
     {
@@ -330,8 +330,8 @@ public partial class MainWindow
         if (doc == null && string.IsNullOrEmpty(file) && _session != null) doc = FindDocument(_session.Main.CompilePath);
         if (doc == null || line <= 0)
         {
-            // Frame sans source disponible (bibliotheque standard, prelude…)
-            if (!string.IsNullOrEmpty(file)) SetStatusMessage($"Source non disponible : {file}, ligne {line}");
+            // Frame without available source (standard library, prelude…)
+            if (!string.IsNullOrEmpty(file)) SetStatusMessage($"Source not available: {file}, line {line}");
             return;
         }
         Activate(doc);
@@ -347,7 +347,7 @@ public partial class MainWindow
 
     void ClearCallerHighlight()
     {
-        // Clic dans l'editeur apres selection d'un appelant : on revient a la ligne courante.
+        // Click in the editor after selecting a caller: go back to the current line.
         if (_session?.IsPaused == true && _selectedFrame != 0 && _session.LastPause is { } p)
         {
             _selectedFrame = 0;
@@ -364,7 +364,7 @@ public partial class MainWindow
         StackList.ItemsSource = null;
         VariablesTree.ItemsSource = null;
         StackEmpty.Visibility = VariablesEmpty.Visibility = Visibility.Visible;
-        VariablesHeader.Text = "Nom = valeur   (type)";
+        VariablesHeader.Text = "Name = value   (type)";
         StackList.Opacity = VariablesTree.Opacity = 1;
     }
 
@@ -373,7 +373,7 @@ public partial class MainWindow
         var dbg = _session?.Debugger;
         if (dbg == null) return;
         try { _currentStack = dbg.GetStack(); }
-        catch (Exception ex) { _currentStack = Array.Empty<StackFrameInfo>(); AppendOutput("Pile d'appels indisponible : " + ex.Message); }
+        catch (Exception ex) { _currentStack = Array.Empty<StackFrameInfo>(); AppendOutput("Call stack unavailable: " + ex.Message); }
         var items = _currentStack.Select((f, i) => new StackItem(i, f)).ToList();
         if (items.Count > 0) items[Math.Min(_selectedFrame, items.Count - 1)].IsSelectedFrame = true;
         StackList.ItemsSource = items;
@@ -389,12 +389,12 @@ public partial class MainWindow
         if (dbg == null) return;
         IReadOnlyList<VariableInfo> vars;
         try { vars = dbg.GetVariables(frame); }
-        catch (Exception ex) { vars = Array.Empty<VariableInfo>(); AppendOutput("Variables indisponibles : " + ex.Message); }
+        catch (Exception ex) { vars = Array.Empty<VariableInfo>(); AppendOutput("Variables unavailable: " + ex.Message); }
         string frameName = frame < _currentStack.Count ? _currentStack[frame].Name : "#" + frame;
         IReadOnlyList<VariableInfo> LoadChildren(VariableInfo v)
         {
             if (_session?.IsPaused != true || _session.Debugger != dbg)
-                return new[] { new VariableInfo("(programme en cours d'exécution)", "", "") };
+                return new[] { new VariableInfo("(program is running)", "", "") };
             return dbg.GetChildren(v);
         }
         var nodes = new List<VariableNode>();
@@ -407,9 +407,9 @@ public partial class MainWindow
         foreach (var n in nodes) if (_expandedVariablePaths.Contains(n.Path)) n.IsExpanded = true;
         VariablesEmpty.Visibility = nodes.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         VariablesEmpty.Text = nodes.Count == 0 && _session?.IsPaused == true
-            ? "Aucune variable dans ce bloc."
-            : "Les variables sont affichées lorsque le programme est en pause dans le débogueur.";
-        VariablesHeader.Text = $"Variables de « {frameName} »   —   nom = valeur   (type)";
+            ? "No variables in this block."
+            : "Variables are shown when the program is paused in the debugger.";
+        VariablesHeader.Text = $"Variables of '{frameName}'   —   name = value   (type)";
     }
 
     void OnStackDoubleClick(object sender, MouseButtonEventArgs e) => SelectFrameFromList();

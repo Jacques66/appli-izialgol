@@ -11,10 +11,10 @@ namespace Studio.Ide;
 public partial class MainWindow
 {
     const string FileFilter =
-        "Programmes Simula 67 et Algol 68 (*.sim;*.a68)|*.sim;*.a68|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|Tous les fichiers (*.*)|*.*";
+        "Simula 67 and Algol 68 programs (*.sim;*.a68)|*.sim;*.a68|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|All files (*.*)|*.*";
 
     string FileFilterWithEcho => LanguageRegistry.TestLanguageEnabled
-        ? FileFilter + "|Echo, langage de test (*.echo)|*.echo"
+        ? FileFilter + "|Echo, test language (*.echo)|*.echo"
         : FileFilter;
 
     public EditorDocument NewDocument(LanguageDefinition lang, string? text = null)
@@ -23,7 +23,7 @@ public partial class MainWindow
         AddDocument(doc);
         if (text == null)
         {
-            // Curseur sur la ligne du message
+            // Caret on the message line
             doc.GoTo(Math.Min(3, doc.Editor.Document.LineCount), 4);
         }
         return doc;
@@ -35,7 +35,7 @@ public partial class MainWindow
         {
             Filter = FileFilterWithEcho,
             Multiselect = true,
-            Title = "Ouvrir un programme",
+            Title = "Open a program",
             InitialDirectory = ActiveDocument?.Directory ?? _settings.ExplorerRoot ?? "",
         };
         if (dlg.ShowDialog(this) == true)
@@ -44,7 +44,7 @@ public partial class MainWindow
 
     void OpenFolderWithDialog()
     {
-        var dlg = new OpenFolderDialog { Title = "Ouvrir un dossier dans l'explorateur", InitialDirectory = _settings.ExplorerRoot ?? "" };
+        var dlg = new OpenFolderDialog { Title = "Open a folder in the explorer", InitialDirectory = _settings.ExplorerRoot ?? "" };
         if (dlg.ShowDialog(this) == true)
         {
             SetExplorerRoot(dlg.FolderName);
@@ -52,7 +52,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Ouvre un fichier (ou active son onglet s'il est deja ouvert).</summary>
+    /// <summary>Opens a file (or activates its tab when it is already open).</summary>
     public EditorDocument? OpenFile(string path, bool activate = true)
     {
         try
@@ -83,13 +83,13 @@ public partial class MainWindow
         catch (Exception ex)
         {
             if (!App.Options.Automated)
-                MessageBox.Show(this, $"Impossible d'ouvrir le fichier\n{path}\n\n{ex.Message}", "Ouvrir", MessageBoxButton.OK, MessageBoxImage.Error);
-            AppendOutput($"Impossible d'ouvrir {path} : {ex.Message}");
+                MessageBox.Show(this, $"Cannot open the file\n{path}\n\n{ex.Message}", "Open", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppendOutput($"Cannot open {path}: {ex.Message}");
             return null;
         }
     }
 
-    /// <summary>Extension inconnue : Algol 68 si on voit des mots gras en majuscules, sinon Simula.</summary>
+    /// <summary>Unknown extension: Algol 68 when upper-case bold words are found, otherwise Simula.</summary>
     static LanguageDefinition GuessLanguage(string text)
     {
         var t = text.Length > 4000 ? text[..4000] : text;
@@ -104,13 +104,13 @@ public partial class MainWindow
         try
         {
             doc.Save(doc.FilePath);
-            SetStatusMessage($"Enregistré : {doc.FilePath}");
+            SetStatusMessage($"Saved: {doc.FilePath}");
             UpdateStatusBar();
             return true;
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Impossible d'enregistrer\n{doc.FilePath}\n\n{ex.Message}", "Enregistrer", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, $"Cannot save\n{doc.FilePath}\n\n{ex.Message}", "Save", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
     }
@@ -127,7 +127,7 @@ public partial class MainWindow
                 DefaultExt = doc.Language.DefaultExtension,
                 AddExtension = true,
                 InitialDirectory = doc.Directory ?? _settings.ExplorerRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                Title = "Enregistrer sous",
+                Title = "Save as",
             };
             if (dlg.ShowDialog(this) != true) return false;
             path = dlg.FileName;
@@ -139,12 +139,12 @@ public partial class MainWindow
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, $"Impossible d'enregistrer\n{path}\n\n{ex.Message}", "Enregistrer sous", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, $"Cannot save\n{path}\n\n{ex.Message}", "Save as", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
         _settings.AddRecentFile(path);
         if (oldPath == null || !PathLocator.SamePath(oldPath, path)) OnDocumentBreakpointsChanged(doc);
-        SetStatusMessage($"Enregistré : {path}");
+        SetStatusMessage($"Saved: {path}");
         UpdateStatusBar();
         UpdateTitle();
         UpdateOutline();
@@ -157,13 +157,13 @@ public partial class MainWindow
             if (!SaveDocument(d)) break;
     }
 
-    /// <summary>Demande d'enregistrer les fichiers modifies. Rend false si l'utilisateur annule.</summary>
+    /// <summary>Asks to save modified files. Returns false when the user cancels.</summary>
     bool ConfirmSaveModified(IList<EditorDocument> docs)
     {
         var modified = docs.Where(d => d.IsModified).ToList();
         if (modified.Count == 0) return true;
         var names = string.Join("\n", modified.Select(d => "  • " + d.DisplayName));
-        var r = MessageBox.Show(this, $"Enregistrer les modifications des fichiers suivants ?\n\n{names}",
+        var r = MessageBox.Show(this, $"Save changes to the following files?\n\n{names}",
             "Simula 67 & Algol 68 Studio", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
         if (r == MessageBoxResult.Cancel) return false;
         if (r == MessageBoxResult.Yes)
@@ -196,7 +196,7 @@ public partial class MainWindow
         foreach (var d in _documents.ToList()) CloseDocument(d, force: true);
     }
 
-    // ------------------------------------------------------------------ menus dynamiques
+    // ------------------------------------------------------------------ dynamic menus
 
     void OnRecentMenuOpened(object sender, RoutedEventArgs e)
     {
@@ -210,11 +210,11 @@ public partial class MainWindow
             mi.Click += (_, _) => OpenFile(f);
             RecentFilesMenu.Items.Add(mi);
         }
-        if (files.Count == 0) RecentFilesMenu.Items.Add(new MenuItem { Header = "(aucun)", IsEnabled = false });
+        if (files.Count == 0) RecentFilesMenu.Items.Add(new MenuItem { Header = "(none)", IsEnabled = false });
         else
         {
             RecentFilesMenu.Items.Add(new Separator());
-            var clear = new MenuItem { Header = "Effacer la liste" };
+            var clear = new MenuItem { Header = "Clear the list" };
             clear.Click += (_, _) => { _settings.RecentFiles.Clear(); UpdateWelcome(); };
             RecentFilesMenu.Items.Add(clear);
         }
@@ -231,7 +231,7 @@ public partial class MainWindow
             mi.Click += (_, _) => SetExplorerRoot(d);
             RecentFoldersMenu.Items.Add(mi);
         }
-        if (dirs.Count == 0) RecentFoldersMenu.Items.Add(new MenuItem { Header = "(aucun)", IsEnabled = false });
+        if (dirs.Count == 0) RecentFoldersMenu.Items.Add(new MenuItem { Header = "(none)", IsEnabled = false });
     }
 
     static string ShortDir(string f)
@@ -256,14 +256,21 @@ public partial class MainWindow
         return list;
     }
 
-    /// <summary>Sous-dossiers qui ne contiennent pas d'exemples compilables (fichiers inclus, erreurs volontaires).</summary>
+    /// <summary>Subfolders that do not hold compilable examples (included files, deliberate compile errors).</summary>
     static bool IsNonSampleDir(string relPath)
     {
         var parts = relPath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
-        return parts.Take(parts.Length - 1).Any(p => p.Equals("include", StringComparison.OrdinalIgnoreCase) || p.Equals("erreurs", StringComparison.OrdinalIgnoreCase));
+        return parts.Take(parts.Length - 1).Any(p => p.Equals("include", StringComparison.OrdinalIgnoreCase) || p.Equals("errors", StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>Ajoute au menu les exemples d'un dossier, avec un sous-menu par sous-dossier.</summary>
+    /// <summary>Welcome page: only the main examples (feature demos and runtime-error demos stay in the Examples menu).</summary>
+    static bool IsWelcomeExcluded(string samplePath)
+    {
+        var parts = samplePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        return parts.Take(parts.Length - 1).Any(p => p.Equals("features", StringComparison.OrdinalIgnoreCase) || p.Equals("runtime_errors", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Adds the examples of a folder to the menu, with one submenu per subfolder.</summary>
     int FillSamplesMenu(MenuItem group, string dir, string ext)
     {
         int count = 0;
@@ -291,7 +298,7 @@ public partial class MainWindow
         var root = PathLocator.SamplesDirectory;
         if (root == null)
         {
-            ExamplesMenu.Items.Add(new MenuItem { Header = "(dossier samples introuvable)", IsEnabled = false });
+            ExamplesMenu.Items.Add(new MenuItem { Header = "(samples folder not found)", IsEnabled = false });
             return;
         }
         foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68") })
@@ -299,16 +306,16 @@ public partial class MainWindow
             var group = new MenuItem { Header = title };
             var dir = System.IO.Path.Combine(root, sub);
             int count = System.IO.Directory.Exists(dir) ? FillSamplesMenu(group, dir, ext) : 0;
-            if (count == 0) group.Items.Add(new MenuItem { Header = "(aucun exemple)", IsEnabled = false });
+            if (count == 0) group.Items.Add(new MenuItem { Header = "(no examples)", IsEnabled = false });
             ExamplesMenu.Items.Add(group);
         }
         ExamplesMenu.Items.Add(new Separator());
-        var browse = new MenuItem { Header = "Afficher le dossier des exemples dans l'explorateur" };
+        var browse = new MenuItem { Header = "Show the examples folder in the explorer" };
         browse.Click += (_, _) => { SetExplorerRoot(root); if (!_settings.ShowExplorer) { _settings.ShowExplorer = true; ApplyPanelLayout(); } };
         ExamplesMenu.Items.Add(browse);
     }
 
-    /// <summary>Premiere ligne de commentaire d'un exemple (infobulle du menu).</summary>
+    /// <summary>First comment line of an example (menu tooltip).</summary>
     static string? FirstCommentLine(string path)
     {
         try
@@ -326,7 +333,7 @@ public partial class MainWindow
 
     // ------------------------------------------------------------------ navigation
 
-    /// <summary>Va a (fichier, ligne, colonne) : onglet ouvert correspondant, sinon ouverture du fichier.</summary>
+    /// <summary>Goes to (file, line, column): the matching open tab, otherwise opens the file.</summary>
     public EditorDocument? NavigateTo(string file, int line, int column)
     {
         var doc = FindDocument(file);
@@ -339,7 +346,7 @@ public partial class MainWindow
         return doc;
     }
 
-    /// <summary>Document correspondant a un chemin du compilateur (chemin complet, nom provisoire ou nom de fichier).</summary>
+    /// <summary>Document matching a compiler path (full path, temporary name or file name).</summary>
     public EditorDocument? FindDocument(string? file)
     {
         if (string.IsNullOrEmpty(file)) return null;
@@ -347,7 +354,7 @@ public partial class MainWindow
                ?? _documents.FirstOrDefault(d => string.Equals(d.DisplayName, System.IO.Path.GetFileName(file), StringComparison.OrdinalIgnoreCase));
     }
 
-    // ------------------------------------------------------------------ points d'arret
+    // ------------------------------------------------------------------ breakpoints
 
     void OnDocumentBreakpointsChanged(EditorDocument doc)
     {
@@ -368,6 +375,6 @@ public partial class MainWindow
             _session?.Debugger?.SetBreakpoints(key, Array.Empty<int>());
             _settings.Breakpoints.Remove(key);
         }
-        SetStatusMessage("Tous les points d'arrêt ont été supprimés.");
+        SetStatusMessage("All breakpoints deleted.");
     }
 }

@@ -1,5 +1,5 @@
-// Logique commune des compilateurs en ligne de commande simc (Simula 67) et a68c (Algol 68).
-// Ce fichier est lie dans le projet A68C.
+// Shared logic of the command-line compilers simc (Simula 67) and a68c (Algol 68).
+// This file is linked into the A68C project.
 
 using System.Text;
 using Studio.Common;
@@ -31,7 +31,7 @@ public static class CliMain
                     return 0;
                 case "-o":
                 case "--output":
-                    if (i + 1 >= args.Length) return UsageError(toolName, "nom de fichier attendu après -o");
+                    if (i + 1 >= args.Length) return UsageError(toolName, "output file name expected after -o");
                     output = args[++i];
                     break;
                 case "--run":
@@ -43,17 +43,17 @@ public static class CliMain
                     break;
                 default:
                     if (a.StartsWith("-o", StringComparison.Ordinal) && a.Length > 2) { output = a[2..]; break; }
-                    if (a.StartsWith('-')) return UsageError(toolName, $"option inconnue : {a}");
-                    if (input != null) return UsageError(toolName, "un seul fichier source est accepté");
+                    if (a.StartsWith('-')) return UsageError(toolName, $"unknown option: {a}");
+                    if (input != null) return UsageError(toolName, "only one source file is accepted");
                     input = a;
                     break;
             }
         }
 
-        if (input == null) return UsageError(toolName, "fichier source manquant");
+        if (input == null) return UsageError(toolName, "missing source file");
         if (!File.Exists(input))
         {
-            Console.Error.WriteLine($"{toolName}: fichier introuvable : {input}");
+            Console.Error.WriteLine($"{toolName}: file not found: {input}");
             return 2;
         }
 
@@ -61,7 +61,7 @@ public static class CliMain
         try { text = ReadSource(input); }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"{toolName}: impossible de lire {input} : {ex.Message}");
+            Console.Error.WriteLine($"{toolName}: cannot read {input}: {ex.Message}");
             return 2;
         }
 
@@ -73,7 +73,7 @@ public static class CliMain
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"{toolName}: erreur interne du compilateur : {ex}");
+            Console.Error.WriteLine($"{toolName}: internal compiler error: {ex}");
             return 3;
         }
 
@@ -82,13 +82,13 @@ public static class CliMain
         {
             if (d.Severity == Severity.Error) errors++;
             else if (d.Severity == Severity.Warning) warnings++;
-            // Diagnostics sur stderr pour --run (stdout reste au programme), sinon sur stdout.
+            // Diagnostics go to stderr with --run (stdout belongs to the program), otherwise to stdout.
             (run ? Console.Error : Console.Out).WriteLine(d.ToString());
         }
 
         if (!result.Success || result.Program == null)
         {
-            Console.Error.WriteLine($"échec de la compilation : {errors} erreur(s), {warnings} avertissement(s)");
+            Console.Error.WriteLine($"compilation failed: {errors} error(s), {warnings} warning(s)");
             return 1;
         }
 
@@ -104,11 +104,11 @@ public static class CliMain
             {
                 if (!output.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) output += ".exe";
                 ExePackage.Write(runner, output, language.Id, result.Program.Serialize());
-                if (!run) Console.WriteLine($"exécutable généré : {Path.GetFullPath(output)}");
+                if (!run) Console.WriteLine($"executable generated: {Path.GetFullPath(output)}");
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"{toolName}: impossible d'écrire {output} : {ex.Message}");
+                Console.Error.WriteLine($"{toolName}: cannot write {output}: {ex.Message}");
                 return 4;
             }
         }
@@ -120,11 +120,11 @@ public static class CliMain
         }
 
         if (output == null)
-            Console.WriteLine($"compilation réussie : {errors} erreur(s), {warnings} avertissement(s)");
+            Console.WriteLine($"compilation succeeded: {errors} error(s), {warnings} warning(s)");
         return 0;
     }
 
-    /// <summary>Lit un source en UTF-8 (avec ou sans BOM), sinon en Latin-1.</summary>
+    /// <summary>Reads a source file as UTF-8 (with or without BOM), otherwise as Latin-1.</summary>
     public static string ReadSource(string path)
     {
         var bytes = File.ReadAllBytes(path);
@@ -138,7 +138,7 @@ public static class CliMain
         }
     }
 
-    /// <summary>Fichiers inclus : relatifs au fichier qui inclut, puis au repertoire courant.</summary>
+    /// <summary>Included files: relative to the including file, then to the current directory.</summary>
     static SourceFile? ResolveInclude(string name, string includingFile)
     {
         var candidates = new List<string>();
@@ -158,24 +158,24 @@ public static class CliMain
     static int UsageError(string toolName, string message)
     {
         Console.Error.WriteLine($"{toolName}: {message}");
-        Console.Error.WriteLine($"Essayez « {toolName} --help ».");
+        Console.Error.WriteLine($"Try '{toolName} --help'.");
         return 2;
     }
 
     static void PrintUsage(string toolName, ILanguageService language, string ext)
     {
-        Console.WriteLine($"{toolName} — compilateur {language.DisplayName} (Simula 67 & Algol 68 Studio)");
+        Console.WriteLine($"Usage: {toolName} file{ext} [-o output.exe] [--run] [--no-debug]");
         Console.WriteLine();
-        Console.WriteLine($"Usage : {toolName} fichier{ext} [-o sortie.exe] [--run] [--no-debug]");
+        Console.WriteLine($"{toolName} — {language.DisplayName} compiler (Simula 67 & Algol 68 Studio)");
         Console.WriteLine();
-        Console.WriteLine("  -o, --output FICHIER   produit un exécutable autonome (.exe)");
-        Console.WriteLine("  -r, --run              exécute le programme dans la console après compilation");
-        Console.WriteLine("      --no-debug         sans informations de mise au point");
-        Console.WriteLine("      --version          affiche la version");
-        Console.WriteLine("  -h, --help             affiche cette aide");
+        Console.WriteLine("  -o, --output FILE      produce a standalone executable (.exe)");
+        Console.WriteLine("  -r, --run              run the program in the console after compiling");
+        Console.WriteLine("      --no-debug         without debugging information");
+        Console.WriteLine("      --version          show the version");
+        Console.WriteLine("  -h, --help             show this help");
         Console.WriteLine();
-        Console.WriteLine("Codes de retour : 0 succès, 1 erreur de compilation, 2 erreur d'utilisation,");
-        Console.WriteLine("                  3 erreur interne, 4 génération de l'exécutable impossible ;");
-        Console.WriteLine("avec --run : code de sortie du programme.");
+        Console.WriteLine("Exit codes: 0 success, 1 compilation error, 2 usage error,");
+        Console.WriteLine("            3 internal error, 4 executable could not be generated;");
+        Console.WriteLine("with --run: the program's exit code.");
     }
 }

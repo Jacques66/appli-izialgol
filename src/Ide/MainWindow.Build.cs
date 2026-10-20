@@ -20,21 +20,21 @@ public partial class MainWindow
     readonly DispatcherTimer _backgroundCheckTimer;
     int _backgroundCheckVersion;
 
-    /// <summary>Resultat d'une compilation avec son contexte.</summary>
+    /// <summary>Result of a compilation with its context.</summary>
     public sealed record BuildOutcome(EditorDocument Document, ILanguageService Service, CompilationResult Result, TimeSpan Duration);
 
-    /// <summary>Compile le document actif. silent = verification en arriere-plan (pas de sortie).</summary>
+    /// <summary>Compiles the active document. silent = background check (no output).</summary>
     async Task<BuildOutcome?> CompileAsync(EditorDocument doc, bool debug, bool silent)
     {
         var service = doc.Service;
         if (service == null)
         {
-            if (!silent) AppendOutput($"Aucun compilateur pour le langage {doc.Language.DisplayName}.");
+            if (!silent) AppendOutput($"No compiler for the {doc.Language.DisplayName} language.");
             return null;
         }
         var text = doc.Editor.Document.Text;
         var path = doc.CompilePath;
-        // Instantane des fichiers ouverts (texte non enregistre) pour les inclusions
+        // Snapshot of the open files (unsaved text) for includes
         var openTexts = _documents.ToDictionary(d => d.CompilePath, d => d.Editor.Document.Text, StringComparer.OrdinalIgnoreCase);
         var options = new CompileOptions
         {
@@ -57,7 +57,7 @@ public partial class MainWindow
                 {
                     return new CompilationResult(new[]
                     {
-                        new Diagnostic(Severity.Error, path, 0, 0, $"erreur interne du compilateur : {ex.GetType().Name} : {ex.Message}"),
+                        new Diagnostic(Severity.Error, path, 0, 0, $"internal compiler error: {ex.GetType().Name}: {ex.Message}"),
                     }, null);
                 }
             });
@@ -90,13 +90,13 @@ public partial class MainWindow
                 try { return new SourceFile(full, EditorDocument.ReadFile(full).Text); } catch { }
             }
         }
-        // Fichier ouvert non enregistre, designe par son nom
+        // Unsaved open file, referred to by its name
         foreach (var (k, v) in openTexts)
             if (string.Equals(System.IO.Path.GetFileName(k), name, StringComparison.OrdinalIgnoreCase)) return new SourceFile(k, v);
         return null;
     }
 
-    /// <summary>Construire (F7) : compile, affiche les diagnostics. Rend le resultat (null si echec).</summary>
+    /// <summary>Build (F7): compiles and shows the diagnostics. Returns the result (null on failure).</summary>
     public async Task<BuildOutcome?> BuildAsync(bool debug = true, bool showSuccess = true)
     {
         var doc = ActiveDocument;
@@ -107,7 +107,7 @@ public partial class MainWindow
         try
         {
             AppendOutput("");
-            AppendOutput($"------ Construction : {doc.DisplayName} ({doc.Language.DisplayName}) — {DateTime.Now:HH:mm:ss} ------");
+            AppendOutput($"------ Build: {doc.DisplayName} ({doc.Language.DisplayName}) — {DateTime.Now:HH:mm:ss} ------");
             var outcome = await CompileAsync(doc, debug, silent: false);
             if (outcome == null) return null;
             var diags = outcome.Result.Diagnostics;
@@ -116,13 +116,13 @@ public partial class MainWindow
             int warnings = diags.Count(d => d.Severity == Severity.Warning);
             bool ok = outcome.Result.Success && outcome.Result.Program != null;
             string summary = ok
-                ? $"Construction réussie — {errors} erreur(s), {warnings} avertissement(s) — {outcome.Duration.TotalMilliseconds:F0} ms"
-                : $"Échec de la construction — {Math.Max(errors, 1)} erreur(s), {warnings} avertissement(s)";
+                ? $"Build succeeded — {errors} error(s), {warnings} warning(s) — {outcome.Duration.TotalMilliseconds:F0} ms"
+                : $"Build failed — {Math.Max(errors, 1)} error(s), {warnings} warning(s)";
             AppendOutput("========== " + summary + " ==========");
             ShowDiagnostics(diags, outcome.Document);
             if (!ok)
             {
-                if (errors == 0) AddRuntimeError("la compilation n'a pas produit de programme", doc.CompilePath, 0, 0, compileError: true);
+                if (errors == 0) AddRuntimeError("the compilation produced no program", doc.CompilePath, 0, 0, compileError: true);
                 ShowBottomPanel("errors");
                 SetStatusMessage(summary);
                 if (_visibleErrors.Count > 0) ErrorList.SelectedIndex = 0;
@@ -139,7 +139,7 @@ public partial class MainWindow
         }
     }
 
-    // ------------------------------------------------------------------ verification en arriere-plan
+    // ------------------------------------------------------------------ background checking
 
     void ScheduleBackgroundCheck()
     {
@@ -159,7 +159,7 @@ public partial class MainWindow
         ShowDiagnostics(outcome.Result.Diagnostics, doc);
     }
 
-    // ------------------------------------------------------------------ liste d'erreurs et soulignements
+    // ------------------------------------------------------------------ error list and squiggles
 
     void ShowDiagnostics(IReadOnlyList<Diagnostic> diags, EditorDocument main)
     {
@@ -206,10 +206,10 @@ public partial class MainWindow
         int e = _allErrors.Count(x => x.Severity == Severity.Error);
         int w = _allErrors.Count(x => x.Severity == Severity.Warning);
         int i = _allErrors.Count(x => x.Severity == Severity.Info);
-        FilterErrorsText.Text = e <= 1 ? $"{e} erreur" : $"{e} erreurs";
-        FilterWarningsText.Text = w <= 1 ? $"{w} avertissement" : $"{w} avertissements";
-        FilterInfosText.Text = i <= 1 ? $"{i} message" : $"{i} messages";
-        ErrorsTabHeader.Text = e + w > 0 ? $"Erreurs ({e + w})" : "Erreurs";
+        FilterErrorsText.Text = e == 1 ? $"{e} error" : $"{e} errors";
+        FilterWarningsText.Text = w == 1 ? $"{w} warning" : $"{w} warnings";
+        FilterInfosText.Text = i == 1 ? $"{i} message" : $"{i} messages";
+        ErrorsTabHeader.Text = e + w > 0 ? $"Errors ({e + w})" : "Errors";
     }
 
     public IReadOnlyList<ErrorItem> ErrorItems => _allErrors;
@@ -228,9 +228,9 @@ public partial class MainWindow
         if (ErrorList.SelectedItem is ErrorItem item) NavigateTo(item.File, item.Line, item.Column);
     }
 
-    // ------------------------------------------------------------------ generation d'exe
+    // ------------------------------------------------------------------ exe generation
 
-    /// <summary>Genere un .exe autonome. targetPath null = dialogue « Enregistrer sous ».</summary>
+    /// <summary>Generates a standalone .exe. targetPath null = "Save as" dialog.</summary>
     public async Task<string?> GenerateExeAsync(string? targetPath)
     {
         var doc = ActiveDocument;
@@ -238,7 +238,7 @@ public partial class MainWindow
         var runner = RunnerLocator.Find();
         if (runner == null)
         {
-            ShowError(RunnerLocator.NotFoundMessage, "Générer un .exe");
+            ShowError(RunnerLocator.NotFoundMessage, "Generate .exe");
             return null;
         }
         if (targetPath == null)
@@ -246,8 +246,8 @@ public partial class MainWindow
             var baseName = System.IO.Path.GetFileNameWithoutExtension(doc.DisplayName);
             var dlg = new SaveFileDialog
             {
-                Title = "Générer un exécutable autonome",
-                Filter = "Exécutable Windows (*.exe)|*.exe",
+                Title = "Generate a standalone executable",
+                Filter = "Windows executable (*.exe)|*.exe",
                 FileName = baseName + ".exe",
                 DefaultExt = ".exe",
                 InitialDirectory = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -262,22 +262,22 @@ public partial class MainWindow
             var payload = outcome.Result.Program.Serialize();
             ExePackage.Write(runner, targetPath, outcome.Service.Id, payload);
             var size = new System.IO.FileInfo(targetPath).Length;
-            AppendOutput($"Exécutable autonome généré : {targetPath} ({size / 1024.0:F0} Ko, programme {payload.Length} octets)");
-            AppendOutput("Il nécessite le runtime .NET 8 (installé avec cet environnement) et peut être copié seul.");
-            SetStatusMessage($"Exécutable généré : {targetPath}");
+            AppendOutput($"Standalone executable generated: {targetPath} ({size / 1024.0:F0} KB, program {payload.Length} bytes)");
+            AppendOutput("It needs the .NET 8 runtime (installed with this environment) and can be copied on its own.");
+            SetStatusMessage($"Executable generated: {targetPath}");
             ShowBottomPanel("output");
             return targetPath;
         }
         catch (Exception ex)
         {
-            ShowError($"Impossible de générer {targetPath} :\n{ex.Message}", "Générer un .exe");
+            ShowError($"Cannot generate {targetPath}:\n{ex.Message}", "Generate .exe");
             return null;
         }
     }
 
     public void ShowError(string message, string title)
     {
-        AppendOutput("Erreur : " + message.Replace("\n", " "));
+        AppendOutput("Error: " + message.Replace("\n", " "));
         if (!App.Options.Automated)
             MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error);
     }

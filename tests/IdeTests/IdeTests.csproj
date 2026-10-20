@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Studio.IdeTests</RootNamespace>
-    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
-    <!-- Runner est reference uniquement pour l'ordre de construction (pas d'assembly). -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Runner is referenced only for build ordering (no assembly reference). -->
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
@@ -15,7 +15,7 @@
     <ProjectReference Include="..\..\src\Common\Common.csproj" />
     <ProjectReference Include="..\..\src\Simula\Simula.csproj" />
     <ProjectReference Include="..\..\src\Algol68\Algol68.csproj" />
-    <!-- Construits pour les tests de bout en bout (exe autonome, CLI), sans reference d'assembly. -->
+    <!-- Built for the end-to-end tests (standalone exe, CLI), without assembly reference. -->
     <ProjectReference Include="..\..\src\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\..\src\SimC\SimC.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\..\src\A68C\A68C.csproj" ReferenceOutputAssembly="false" Private="false" />

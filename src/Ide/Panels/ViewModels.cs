@@ -14,7 +14,7 @@ public abstract class Observable : INotifyPropertyChanged
     protected void Notify([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-/// <summary>Ligne de la liste d'erreurs.</summary>
+/// <summary>Row of the error list.</summary>
 public sealed class ErrorItem
 {
     public ErrorItem(Severity severity, string message, string file, int line, int column, bool runtime)
@@ -30,7 +30,7 @@ public sealed class ErrorItem
     public string FileName => string.IsNullOrEmpty(File) ? "" : System.IO.Path.GetFileName(File);
     public string LineText => Line > 0 ? Line.ToString() : "";
     public string ColumnText => Column > 0 ? Column.ToString() : "";
-    public string Origin => IsRuntime ? "Exécution" : "Compilation";
+    public string Origin => IsRuntime ? "Runtime" : "Compiler";
     public Geometry Icon => (Geometry)Application.Current.Resources[Severity switch
     {
         Severity.Error => "Icon.ErrorMark",
@@ -45,7 +45,7 @@ public sealed class ErrorItem
     }];
 }
 
-/// <summary>Ligne de la pile d'appels.</summary>
+/// <summary>Row of the call stack.</summary>
 public sealed class StackItem : Observable
 {
     bool _isSelectedFrame;
@@ -61,7 +61,7 @@ public sealed class StackItem : Observable
     public Brush MarkerBrush => (Brush)Application.Current.Resources[Index == 0 ? "Brush.IconYellow" : "Brush.IconGreen"];
 }
 
-/// <summary>Noeud de l'arbre des variables (enfants charges a la demande).</summary>
+/// <summary>Node of the variables tree (children loaded on demand).</summary>
 public sealed class VariableNode : Observable
 {
     readonly Func<VariableInfo, IReadOnlyList<VariableInfo>>? _loadChildren;
@@ -82,7 +82,7 @@ public sealed class VariableNode : Observable
         _loaded = true;
     }
 
-    static VariableNode Placeholder => new("chargement…");
+    static VariableNode Placeholder => new("loading…");
 
     public VariableInfo Info { get; }
     public string Path { get; }
@@ -92,7 +92,7 @@ public sealed class VariableNode : Observable
     public string TypeSuffix => string.IsNullOrEmpty(Info.Type) ? "" : "   (" + Info.Type + ")";
     public ObservableCollection<VariableNode> Children { get; } = new();
 
-    /// <summary>Chemins deplies (conserves entre deux pauses).</summary>
+    /// <summary>Expanded paths (kept between two pauses).</summary>
     public HashSet<string>? ExpandedPaths { get; set; }
 
     public bool IsExpanded
@@ -125,12 +125,12 @@ public sealed class VariableNode : Observable
         }
         catch (Exception ex)
         {
-            Children.Add(new VariableNode("erreur : " + ex.Message));
+            Children.Add(new VariableNode("error: " + ex.Message));
         }
     }
 }
 
-/// <summary>Element du panneau Structure.</summary>
+/// <summary>Item of the Outline panel.</summary>
 public sealed class OutlineEntry
 {
     public OutlineEntry(OutlineItem item, int line)
@@ -158,10 +158,10 @@ public sealed class OutlineEntry
         OutlineKind.Mode => "Brush.IconBlue",
         _ => "Brush.IconPurple",
     }];
-    public string ToolTipText => $"{Detail} {Name} — ligne {Line}";
+    public string ToolTipText => $"{Detail} {Name} — line {Line}";
 }
 
-/// <summary>Noeud de l'explorateur de fichiers (chargement paresseux).</summary>
+/// <summary>Node of the file explorer (lazy loading).</summary>
 public sealed class FileNode : Observable
 {
     bool _isExpanded, _loaded;

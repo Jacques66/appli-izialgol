@@ -4,7 +4,7 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Simula\Simula.csproj" />
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
-    <!-- Garantit que Runner.exe (mono-fichier) est construit pour l'option -o. -->
+    <!-- Ensures Runner.exe (single file) is built for the -o option. -->
     <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
@@ -20,9 +20,9 @@
     <AssemblyName>simc</AssemblyName>
     <RootNamespace>Studio.SimC</RootNamespace>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <Product>Simula 67 &amp; Algol 68 Studio</Product>
-    <!-- Runner est reference uniquement pour l'ordre de construction (pas d'assembly). -->
+    <!-- Runner is referenced only for build ordering (no assembly reference). -->
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 

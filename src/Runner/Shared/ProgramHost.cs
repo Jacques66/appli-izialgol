@@ -1,4 +1,4 @@
-// Execution d'un programme compile : thread a grande pile, console Windows, format des erreurs.
+// Running a compiled program: large-stack thread, Windows console, error formatting.
 
 using System.Text;
 using Studio.Common;
@@ -7,24 +7,24 @@ namespace Studio.Tooling;
 
 public static class ProgramHost
 {
-    /// <summary>Taille de pile du thread d'execution (programmes tres recursifs).</summary>
+    /// <summary>Stack size of the execution thread (deeply recursive programs).</summary>
     public const int StackSize = 256 * 1024 * 1024;
 
-    /// <summary>Execute sur un thread dedie a grande pile et attend la fin.</summary>
+    /// <summary>Runs on a dedicated large-stack thread and waits for completion.</summary>
     public static ExecutionResult RunOnLargeStack(IProgramExecution execution, CancellationToken token)
     {
         ExecutionResult? result = null;
         var thread = new Thread(() => result = SafeRun(execution, token), StackSize)
         {
-            Name = "Execution du programme",
+            Name = "Program execution",
             IsBackground = true,
         };
         thread.Start();
         thread.Join();
-        return result ?? new ExecutionResult(1, InternalError("le programme s'est arrêté sans résultat"));
+        return result ?? new ExecutionResult(1, InternalError("the program stopped without a result"));
     }
 
-    /// <summary>Appelle Run en interceptant toute exception (le contrat dit qu'il n'en leve pas, mais on se protege).</summary>
+    /// <summary>Calls Run and catches any exception (the contract says it throws none, but we guard anyway).</summary>
     public static ExecutionResult SafeRun(IProgramExecution execution, CancellationToken token)
     {
         try
@@ -37,14 +37,14 @@ public static class ProgramHost
         }
         catch (Exception ex)
         {
-            return new ExecutionResult(1, InternalError(ex.GetType().Name + " : " + ex.Message));
+            return new ExecutionResult(1, InternalError(ex.GetType().Name + ": " + ex.Message));
         }
     }
 
     public static RuntimeErrorInfo InternalError(string message) =>
-        new("erreur interne : " + message, "", 0, 0, Array.Empty<StackFrameInfo>());
+        new("internal error: " + message, "", 0, 0, Array.Empty<StackFrameInfo>());
 
-    /// <summary>Message d'erreur d'execution + pile d'appels (une ligne par frame).</summary>
+    /// <summary>Runtime error message + call stack (one line per frame).</summary>
     public static string FormatError(RuntimeErrorInfo error)
     {
         var sb = new StringBuilder();
@@ -52,14 +52,14 @@ public static class ProgramHost
         foreach (var f in error.Stack)
         {
             sb.AppendLine();
-            sb.Append("   à ").Append(string.IsNullOrEmpty(f.Name) ? "?" : f.Name);
+            sb.Append("   at ").Append(string.IsNullOrEmpty(f.Name) ? "?" : f.Name);
             if (!string.IsNullOrEmpty(f.File) || f.Line > 0)
-                sb.Append(" dans ").Append(f.File).Append('(').Append(f.Line).Append(',').Append(f.Column).Append(')');
+                sb.Append(" in ").Append(f.File).Append('(').Append(f.Line).Append(',').Append(f.Column).Append(')');
         }
         return sb.ToString();
     }
 
-    /// <summary>Code de sortie du processus pour un resultat d'execution.</summary>
+    /// <summary>Process exit code for an execution result.</summary>
     public static int ExitCodeOf(ExecutionResult result)
     {
         if (result.Cancelled) return result.ExitCode != 0 ? result.ExitCode : 130;
@@ -68,13 +68,13 @@ public static class ProgramHost
     }
 
     /// <summary>
-    /// Execute dans la console Windows (Runner, simc --run, a68c --run) : ConsoleProgramIO,
-    /// Ctrl+C = arret, erreur d'execution sur stderr. Rend le code de sortie.
+    /// Runs in the Windows console (Runner, simc --run, a68c --run): ConsoleProgramIO,
+    /// Ctrl+C = stop, runtime error on stderr. Returns the exit code.
     /// </summary>
     public static int RunInConsole(ICompiledProgram program, string? workingDirectory = null)
     {
-        try { Console.OutputEncoding = new UTF8Encoding(false); } catch { /* pas de console */ }
-        // Entree redirigee (fichier, tube) : lue en UTF-8. Au clavier, on garde l'encodage de la console.
+        try { Console.OutputEncoding = new UTF8Encoding(false); } catch { /* no console */ }
+        // Redirected input (file, pipe): read as UTF-8. From the keyboard, keep the console encoding.
         try { if (Console.IsInputRedirected) Console.InputEncoding = new UTF8Encoding(false); } catch { }
 
         using var cts = new CancellationTokenSource();
@@ -94,7 +94,7 @@ public static class ProgramHost
             }
             catch (Exception ex)
             {
-                result = new ExecutionResult(1, InternalError(ex.GetType().Name + " : " + ex.Message));
+                result = new ExecutionResult(1, InternalError(ex.GetType().Name + ": " + ex.Message));
             }
             Console.Out.Flush();
             if (result.Error != null)
@@ -105,7 +105,7 @@ public static class ProgramHost
             else if (result.Cancelled)
             {
                 Console.Error.WriteLine();
-                Console.Error.WriteLine("exécution interrompue");
+                Console.Error.WriteLine("execution interrupted");
             }
             Console.Error.Flush();
             return ExitCodeOf(result);

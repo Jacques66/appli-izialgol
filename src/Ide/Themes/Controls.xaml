@@ -4,7 +4,7 @@
     <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
     <FontFamily x:Key="CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
 
-    <!-- ===================== Barres de defilement fines ===================== -->
+    <!-- ===================== Thin scroll bars ===================== -->
     <Style x:Key="ScrollThumb" TargetType="Thumb">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="IsTabStop" Value="False"/>
@@ -231,7 +231,7 @@
         <Setter Property="Padding" Value="6,3"/>
     </Style>
 
-    <!-- ===================== Boutons ===================== -->
+    <!-- ===================== Buttons ===================== -->
     <Style x:Key="ToolButton" TargetType="Button">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
@@ -347,7 +347,7 @@
         </Setter>
     </Style>
 
-    <!-- ===================== Saisie ===================== -->
+    <!-- ===================== Input ===================== -->
     <Style TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
@@ -385,7 +385,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
     </Style>
 
-    <!-- ===================== Onglets ===================== -->
+    <!-- ===================== Tabs ===================== -->
     <Style x:Key="PanelTabControl" TargetType="TabControl">
         <Setter Property="Background" Value="{DynamicResource Brush.PanelBackground}"/>
         <Setter Property="BorderThickness" Value="0"/>
@@ -480,7 +480,7 @@
         </Setter>
     </Style>
 
-    <!-- ===================== Listes et arbres ===================== -->
+    <!-- ===================== Lists and trees ===================== -->
     <Style TargetType="TreeView">
         <Setter Property="Background" Value="{DynamicResource Brush.PanelBackground}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>

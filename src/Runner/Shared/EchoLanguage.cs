@@ -1,13 +1,13 @@
-// Langage de test « echo » : faux ILanguageService qui permet de verifier l'IDE, le Runner et
-// la generation d'exe sans les vrais compilateurs. Une instruction par ligne :
+// "echo" test language: a fake ILanguageService used to check the IDE, the Runner and
+// exe generation without the real compilers. One statement per line:
 //
-//   # commentaire                    print texte {variable}      read variable
-//   set variable = valeur            add variable nombre         list variable = a, b, c
-//   proc nom ... end                 call nom                    loop n ... end
-//   include fichier.echo             sleep millisecondes         error message
+//   # comment                        print text {variable}       read variable
+//   set variable = value             add variable number         list variable = a, b, c
+//   proc name ... end                call name                   loop n ... end
+//   include file.echo                sleep milliseconds          error message
 //   exit code
 //
-// Il supporte la mise au point complete (points d'arret, pas a pas, pile, variables).
+// It supports full debugging (breakpoints, stepping, call stack, variables).
 
 using System.Text;
 using System.Text.Json;
@@ -19,7 +19,7 @@ public sealed class EchoLanguage : ILanguageService
 {
     public const string LanguageId = "echo";
     public string Id => LanguageId;
-    public string DisplayName => "Echo (langage de test)";
+    public string DisplayName => "Echo (test language)";
     public IReadOnlyList<string> FileExtensions { get; } = new[] { ".echo" };
 
     public CompilationResult Compile(SourceFile main, CompileOptions options)
@@ -35,7 +35,7 @@ public sealed class EchoLanguage : ILanguageService
     public ICompiledProgram Deserialize(byte[] payload)
     {
         var data = JsonSerializer.Deserialize<EchoPayload>(payload)
-                   ?? throw new InvalidDataException("charge utile echo invalide");
+                   ?? throw new InvalidDataException("invalid echo payload");
         var resolver = new Func<string, string, SourceFile?>((name, from) =>
         {
             foreach (var (path, text) in data.Sources)
@@ -46,7 +46,7 @@ public sealed class EchoLanguage : ILanguageService
         });
         var result = Compile(new SourceFile(data.Main, data.Sources[data.Main]),
             new CompileOptions { IncludeResolver = resolver });
-        return result.Program ?? throw new InvalidDataException("charge utile echo invalide : " +
+        return result.Program ?? throw new InvalidDataException("invalid echo payload: " +
             string.Join("; ", result.Diagnostics));
     }
 }
@@ -65,7 +65,7 @@ sealed class EchoStmt
     public string File = "";
     public int Line, Column;
     public string Name = "";      // variable, procedure
-    public string Text = "";      // texte, valeur
+    public string Text = "";      // text, value
     public int Number;
     public List<string> Items = new();
     public List<EchoStmt> Body = new();
@@ -108,20 +108,20 @@ sealed class EchoParser
             {
                 case "print":
                     st.Op = EchoOp.Print; st.Text = rest;
-                    if (rest.Length == 0) Warn(path, line, col, "instruction print sans texte");
+                    if (rest.Length == 0) Warn(path, line, col, "print statement without text");
                     break;
                 case "read":
                     st.Op = EchoOp.Read; st.Name = rest;
-                    if (!IsIdent(rest)) { Error(path, line, restCol, "nom de variable attendu après read"); continue; }
+                    if (!IsIdent(rest)) { Error(path, line, restCol, "variable name expected after read"); continue; }
                     break;
                 case "set":
                 case "list":
                 {
                     st.Op = kw == "set" ? EchoOp.Set : EchoOp.List;
                     int eq = rest.IndexOf('=');
-                    if (eq < 0) { Error(path, line, restCol, "« = » attendu"); continue; }
+                    if (eq < 0) { Error(path, line, restCol, "'=' expected"); continue; }
                     st.Name = rest[..eq].Trim();
-                    if (!IsIdent(st.Name)) { Error(path, line, restCol, "nom de variable invalide"); continue; }
+                    if (!IsIdent(st.Name)) { Error(path, line, restCol, "invalid variable name"); continue; }
                     st.Text = rest[(eq + 1)..].Trim();
                     if (st.Op == EchoOp.List)
                         st.Items = st.Text.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
@@ -132,20 +132,20 @@ sealed class EchoParser
                     st.Op = EchoOp.Add;
                     var parts = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length != 2 || !IsIdent(parts[0]) || !int.TryParse(parts[1], out st.Number))
-                    { Error(path, line, restCol, "syntaxe : add variable nombre"); continue; }
+                    { Error(path, line, restCol, "syntax: add variable number"); continue; }
                     st.Name = parts[0];
                     break;
                 }
                 case "call":
                     st.Op = EchoOp.Call; st.Name = rest;
-                    if (!IsIdent(rest)) { Error(path, line, restCol, "nom de procédure attendu après call"); continue; }
+                    if (!IsIdent(rest)) { Error(path, line, restCol, "procedure name expected after call"); continue; }
                     _calls.Add(st);
                     break;
                 case "proc":
-                    if (stack.Count > 0) { Error(path, line, col, "une procédure ne peut être déclarée que au niveau principal"); }
-                    if (!IsIdent(rest)) { Error(path, line, restCol, "nom de procédure attendu après proc"); }
+                    if (stack.Count > 0) { Error(path, line, col, "a procedure can only be declared at top level"); }
+                    if (!IsIdent(rest)) { Error(path, line, restCol, "procedure name expected after proc"); }
                     st.Name = rest;
-                    if (Procs.ContainsKey(rest)) Error(path, line, restCol, $"procédure « {rest} » déjà déclarée");
+                    if (Procs.ContainsKey(rest)) Error(path, line, restCol, $"procedure '{rest}' already declared");
                     else if (IsIdent(rest)) Procs[rest] = st;
                     stack.Push((st, current));
                     current = st.Body;
@@ -153,21 +153,21 @@ sealed class EchoParser
                 case "loop":
                     st.Op = EchoOp.Loop;
                     if (!int.TryParse(rest, out st.Number) || st.Number < 0)
-                        Error(path, line, restCol, "nombre de répétitions attendu après loop");
+                        Error(path, line, restCol, "repeat count expected after loop");
                     current.Add(st);
                     stack.Push((st, current));
                     current = st.Body;
                     continue;
                 case "end":
-                    if (stack.Count == 0) { Error(path, line, col, "« end » sans « proc » ni « loop » correspondant"); continue; }
+                    if (stack.Count == 0) { Error(path, line, col, "'end' without matching 'proc' or 'loop'"); continue; }
                     current = stack.Pop().Outer;
                     continue;
                 case "include":
                 {
-                    if (rest.Length == 0) { Error(path, line, restCol, "nom de fichier attendu après include"); continue; }
+                    if (rest.Length == 0) { Error(path, line, restCol, "file name expected after include"); continue; }
                     var src = _resolver?.Invoke(rest, path);
-                    if (src == null) { Error(path, line, restCol, $"fichier inclus introuvable : {rest}"); continue; }
-                    if (_includeDepth > 16) { Error(path, line, restCol, "inclusions trop imbriquées"); continue; }
+                    if (src == null) { Error(path, line, restCol, $"included file not found: {rest}"); continue; }
+                    if (_includeDepth > 16) { Error(path, line, restCol, "includes nested too deeply"); continue; }
                     _includeDepth++;
                     var inner = ParseFile(src.Path, src.Text);
                     _includeDepth--;
@@ -176,17 +176,17 @@ sealed class EchoParser
                 }
                 case "sleep":
                     st.Op = EchoOp.Sleep;
-                    if (!int.TryParse(rest, out st.Number)) { Error(path, line, restCol, "durée en millisecondes attendue"); continue; }
+                    if (!int.TryParse(rest, out st.Number)) { Error(path, line, restCol, "duration in milliseconds expected"); continue; }
                     break;
                 case "error":
                     st.Op = EchoOp.Error; st.Text = rest;
                     break;
                 case "exit":
                     st.Op = EchoOp.Exit;
-                    if (!int.TryParse(rest, out st.Number)) { Error(path, line, restCol, "code de sortie entier attendu"); continue; }
+                    if (!int.TryParse(rest, out st.Number)) { Error(path, line, restCol, "integer exit code expected"); continue; }
                     break;
                 default:
-                    Error(path, line, col, $"instruction inconnue « {kw} »");
+                    Error(path, line, col, $"unknown statement '{kw}'");
                     continue;
             }
             current.Add(st);
@@ -194,7 +194,7 @@ sealed class EchoParser
         while (stack.Count > 0)
         {
             var (block, outer) = stack.Pop();
-            Error(block.File, block.Line, block.Column, "bloc non terminé : « end » manquant");
+            Error(block.File, block.Line, block.Column, "unterminated block: missing 'end'");
             current = outer;
         }
         return root;
@@ -204,7 +204,7 @@ sealed class EchoParser
     {
         foreach (var c in _calls)
             if (!Procs.ContainsKey(c.Name))
-                Error(c.File, c.Line, c.Column, $"procédure inconnue « {c.Name} »");
+                Error(c.File, c.Line, c.Column, $"unknown procedure '{c.Name}'");
     }
 
     static bool IsIdent(string s) =>
@@ -258,7 +258,7 @@ sealed class EchoExecution : IProgramExecution
     readonly EchoProgram _program;
     readonly IProgramIO _io;
     readonly EchoDebugger _debugger = new();
-    internal readonly List<EchoFrame> Frames = new();   // Frames[0] = programme principal
+    internal readonly List<EchoFrame> Frames = new();   // Frames[0] = main program
     bool _eof;
 
     public EchoExecution(EchoProgram program, IProgramIO io)
@@ -272,7 +272,7 @@ sealed class EchoExecution : IProgramExecution
     public ExecutionResult Run(CancellationToken cancellationToken)
     {
         Frames.Clear();
-        Frames.Add(new EchoFrame("programme principal"));
+        Frames.Add(new EchoFrame("main program"));
         EchoStmt? last = null;
         try
         {
@@ -318,7 +318,7 @@ sealed class EchoExecution : IProgramExecution
             }
             catch (EchoRuntimeException e) when (e.Stack == null)
             {
-                // Erreur levee par cette instruction : pile capturee avant le depilement.
+                // Error raised by this statement: stack captured before unwinding.
                 e.Stack = Snapshot();
                 e.Stmt = st;
                 if (_debugger.BreakOnError) _debugger.Pause(PauseReason.Exception, st, e.Message, ct);
@@ -352,7 +352,7 @@ sealed class EchoExecution : IProgramExecution
                 case EchoOp.Add:
                 {
                     var cur = Lookup(st.Name);
-                    int value = cur switch { int i => i, string s when int.TryParse(s, out var p) => p, null => 0, _ => throw new EchoRuntimeException($"« {st.Name} » n'est pas un entier") };
+                    int value = cur switch { int i => i, string s when int.TryParse(s, out var p) => p, null => 0, _ => throw new EchoRuntimeException($"'{st.Name}' is not an integer") };
                     SetVar(st.Name, value + st.Number);
                     break;
                 }
@@ -362,7 +362,7 @@ sealed class EchoExecution : IProgramExecution
                 case EchoOp.Call:
                 {
                     var proc = _program.Procs[st.Name];
-                    if (Frames.Count > 200) throw new EchoRuntimeException("débordement de pile (récursion trop profonde)");
+                    if (Frames.Count > 200) throw new EchoRuntimeException("stack overflow (recursion too deep)");
                     Frames.Add(new EchoFrame(proc.Name) { File = proc.File, Line = proc.Line, Column = proc.Column });
                     try { ExecBlock(proc.Body, ct, ref last); }
                     finally { Frames.RemoveAt(Frames.Count - 1); }
@@ -536,16 +536,16 @@ sealed class EchoDebugger : IDebugger
 
     static VariableInfo Describe(string name, object value) => value switch
     {
-        int i => new VariableInfo(name, "entier", i.ToString()),
-        string s => new VariableInfo(name, "texte", "\"" + s + "\""),
-        List<string> l => new VariableInfo(name, $"liste[{l.Count}]", "(" + string.Join(", ", l) + ")", l.Count > 0, l),
+        int i => new VariableInfo(name, "integer", i.ToString()),
+        string s => new VariableInfo(name, "text", "\"" + s + "\""),
+        List<string> l => new VariableInfo(name, $"list[{l.Count}]", "(" + string.Join(", ", l) + ")", l.Count > 0, l),
         _ => new VariableInfo(name, value.GetType().Name, value.ToString() ?? ""),
     };
 
     public IReadOnlyList<VariableInfo> GetChildren(VariableInfo variable)
     {
         if (variable.Handle is List<string> l)
-            lock (_gate) return l.Select((s, i) => new VariableInfo($"[{i}]", "texte", "\"" + s + "\"")).ToList();
+            lock (_gate) return l.Select((s, i) => new VariableInfo($"[{i}]", "text", "\"" + s + "\"")).ToList();
         return Array.Empty<VariableInfo>();
     }
 }

@@ -6,8 +6,8 @@ using Studio.Tooling;
 
 namespace Studio.Ide.Services;
 
-/// <summary>Entrees/sorties du programme vers la console integree de l'IDE.
-/// Write/ReadLine sont appeles sur le thread d'execution ; l'affichage est marshale vers le Dispatcher.</summary>
+/// <summary>Program input/output to the IDE integrated console.
+/// Write/ReadLine are called on the execution thread; display is marshalled to the Dispatcher.</summary>
 public sealed class IdeProgramIO : IProgramIO
 {
     const int MaxPending = 512 * 1024;
@@ -47,11 +47,11 @@ public sealed class IdeProgramIO : IProgramIO
             }
             if (_pending.Length > MaxPending) { _drained.Reset(); wait = true; }
         }
-        // Contre-pression : un programme qui ecrit sans fin ne doit pas saturer la memoire.
+        // Back-pressure: a program that writes endlessly must not exhaust memory.
         if (wait) WaitHandle.WaitAny(new[] { _drained.WaitHandle, _token.WaitHandle }, 2000);
     }
 
-    /// <summary>Affiche la sortie en attente (thread de l'interface).</summary>
+    /// <summary>Displays the pending output (UI thread).</summary>
     public void Flush()
     {
         string s;
@@ -85,11 +85,11 @@ public sealed class IdeProgramIO : IProgramIO
         }
     }
 
-    /// <summary>Ligne saisie dans la console (null = fin de fichier).</summary>
+    /// <summary>Line typed in the console (null = end of file).</summary>
     public void Submit(string? line) => _input.Add(line);
 }
 
-/// <summary>Une execution en cours (normale ou sous le debogueur).</summary>
+/// <summary>A running execution (normal or under the debugger).</summary>
 public sealed class RunSession
 {
     public RunSession(ICompiledProgram program, IdeProgramIO io, CancellationTokenSource cts, bool debug, EditorRef main)
@@ -120,12 +120,12 @@ public sealed class RunSession
         var thread = new Thread(() => tcs.SetResult(ProgramHost.SafeRun(Execution, Cts.Token)), ProgramHost.StackSize)
         {
             IsBackground = true,
-            Name = "Programme",
+            Name = "Program",
         };
         thread.Start();
         return tcs.Task;
     }
 }
 
-/// <summary>Fichier principal d'une execution (nom affiche, chemin de compilation).</summary>
+/// <summary>Main file of an execution (display name, compile path).</summary>
 public sealed record EditorRef(string DisplayName, string CompilePath, string LanguageName);
