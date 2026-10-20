@@ -249,9 +249,39 @@ public partial class MainWindow
         {
             var dir = System.IO.Path.Combine(root, sub);
             if (System.IO.Directory.Exists(dir))
-                list.AddRange(System.IO.Directory.GetFiles(dir, ext).OrderBy(f => f, StringComparer.OrdinalIgnoreCase));
+                list.AddRange(System.IO.Directory.GetFiles(dir, ext, System.IO.SearchOption.AllDirectories)
+                    .Where(f => !IsNonSampleDir(System.IO.Path.GetRelativePath(dir, f)))
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase));
         }
         return list;
+    }
+
+    /// <summary>Sous-dossiers qui ne contiennent pas d'exemples compilables (fichiers inclus, erreurs volontaires).</summary>
+    static bool IsNonSampleDir(string relPath)
+    {
+        var parts = relPath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        return parts.Take(parts.Length - 1).Any(p => p.Equals("include", StringComparison.OrdinalIgnoreCase) || p.Equals("erreurs", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Ajoute au menu les exemples d'un dossier, avec un sous-menu par sous-dossier.</summary>
+    int FillSamplesMenu(MenuItem group, string dir, string ext)
+    {
+        int count = 0;
+        foreach (var sub in System.IO.Directory.GetDirectories(dir).OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+        {
+            if (System.IO.Path.GetFileName(sub).Equals("include", StringComparison.OrdinalIgnoreCase)) continue;
+            var subMenu = new MenuItem { Header = System.IO.Path.GetFileName(sub).Replace("_", "__") };
+            int n = FillSamplesMenu(subMenu, sub, ext);
+            if (n > 0) { group.Items.Add(subMenu); count += n; }
+        }
+        foreach (var f in System.IO.Directory.GetFiles(dir, ext).OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+        {
+            var mi = new MenuItem { Header = System.IO.Path.GetFileName(f).Replace("_", "__"), ToolTip = FirstCommentLine(f) ?? f };
+            mi.Click += (_, _) => OpenFile(f);
+            group.Items.Add(mi);
+            count++;
+        }
+        return count;
     }
 
     void OnExamplesMenuOpened(object sender, RoutedEventArgs e)
@@ -268,14 +298,8 @@ public partial class MainWindow
         {
             var group = new MenuItem { Header = title };
             var dir = System.IO.Path.Combine(root, sub);
-            var files = System.IO.Directory.Exists(dir) ? System.IO.Directory.GetFiles(dir, ext).OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList() : new List<string>();
-            foreach (var f in files)
-            {
-                var mi = new MenuItem { Header = System.IO.Path.GetFileName(f).Replace("_", "__"), ToolTip = FirstCommentLine(f) ?? f };
-                mi.Click += (_, _) => OpenFile(f);
-                group.Items.Add(mi);
-            }
-            if (files.Count == 0) group.Items.Add(new MenuItem { Header = "(aucun exemple)", IsEnabled = false });
+            int count = System.IO.Directory.Exists(dir) ? FillSamplesMenu(group, dir, ext) : 0;
+            if (count == 0) group.Items.Add(new MenuItem { Header = "(aucun exemple)", IsEnabled = false });
             ExamplesMenu.Items.Add(group);
         }
         ExamplesMenu.Items.Add(new Separator());

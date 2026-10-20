@@ -477,7 +477,7 @@ public static class SelfTest
             await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Somme :", 5, "n");
 
             // ---- 12b. Exemples (information)
-            foreach (var sample in MainWindow.ListSamples().Take(40))
+            foreach (var sample in MainWindow.ListSamples().Take(300))
             {
                 var d = w.OpenFile(sample);
                 if (d == null) continue;

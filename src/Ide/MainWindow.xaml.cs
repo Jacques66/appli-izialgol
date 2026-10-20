@@ -304,7 +304,8 @@ public partial class MainWindow : Window
             var recent = _settings.RecentFiles.Where(File.Exists).Take(8).ToList();
             WelcomeRecent.ItemsSource = recent;
             WelcomeNoRecent.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            var samples = ListSamples();
+            // page d'accueil : exemples principaux seulement (le menu Exemples les liste tous)
+            var samples = ListSamples().Where(f => !f.Contains("fonctionnalites") && !f.Contains("execution")).ToList();
             WelcomeSamples.ItemsSource = samples;
             WelcomeNoSamples.Visibility = samples.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             UpdateOutline();
