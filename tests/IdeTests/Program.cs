@@ -58,11 +58,12 @@ static class Program
 
     static void Test(string name, Action body)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             body();
             _passed++;
-            Console.WriteLine("  ok    " + name);
+            Console.WriteLine($"  ok    {name} ({sw.ElapsedMilliseconds} ms)");
         }
         catch (Exception ex)
         {
@@ -642,7 +643,7 @@ static class Program
             {
                 var src = new SourceFile(f, File.ReadAllText(f));
                 string status;
-                try
+        try
                 {
                     var r = lang.Compile(src, new CompileOptions
                     {

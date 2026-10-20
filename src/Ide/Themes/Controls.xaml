@@ -441,7 +441,7 @@
                     <DockPanel>
                         <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}"
                                 BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="0,0,0,2">
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                                           x:Name="TabScroll">
                                 <StackPanel Orientation="Horizontal" IsItemsHost="True" Margin="2,2,2,0"/>
                             </ScrollViewer>

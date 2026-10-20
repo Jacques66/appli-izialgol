@@ -282,6 +282,7 @@ public partial class MainWindow : Window
     void OnDocTabChanged(object sender, SelectionChangedEventArgs e)
     {
         if (e.OriginalSource != DocTabs) return;
+        (DocTabs.SelectedItem as TabItem)?.BringIntoView();
         UpdateOutline();
         UpdateStatusBar();
         UpdateTitle();

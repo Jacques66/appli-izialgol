@@ -95,7 +95,7 @@ public static class SelfTest
             foreach (var e in App.ErrorMessages) Lines.Add("EXCEPTION " + e);
             _failures += App.UnhandledErrors;
         }
-        Lines.Add($"{(_failures == 0 ? "SUCCÈS" : "ÉCHEC")} : {_failures} échec(s)");
+        Lines.Add($"{(_failures == 0 ? "SUCCÈS" : "ÉCHEC")} : {_failures} échec(s), {_realWarnings} avertissement(s) sur les compilateurs réels");
         var log = Path.Combine(OutDir, name + ".log");
         File.WriteAllText(log, string.Join(Environment.NewLine, Lines) + Environment.NewLine, new UTF8Encoding(false));
         int code = _failures == 0 ? 0 : 1;
@@ -383,7 +383,11 @@ public static class SelfTest
             Capture(w, Path.Combine(dir, "4-theme-sombre.png"));
             w.SetTheme(false);
 
-            // ---- 12. Vrais compilateurs (information)
+            // ---- 12a. Vrais compilateurs : execution et debogueur (avertissements, non bloquants)
+            await RealCompilerScenario(w, LanguageDefinitions.Simula, RealSimula, "Somme :", 5, "n");
+            await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Somme :", 4, "n");
+
+            // ---- 12b. Exemples (information)
             foreach (var sample in MainWindow.ListSamples().Take(40))
             {
                 var d = w.OpenFile(sample);
@@ -403,6 +407,102 @@ public static class SelfTest
             Check(false, "exception : " + ex);
         }
         Finish(w, "self-test");
+    }
+
+    const string RealSimula =
+        "begin\r\n" +                                        // 1
+        "   integer i, s;\r\n" +                             // 2
+        "   procedure ajoute(n); integer n;\r\n" +           // 3
+        "   begin\r\n" +                                     // 4
+        "      s := s + n\r\n" +                             // 5
+        "   end;\r\n" +                                      // 6
+        "   for i := 1 step 1 until 3 do\r\n" +              // 7
+        "      ajoute(i);\r\n" +                             // 8
+        "   OutText(\"Somme :\"); OutInt(s, 3); OutImage\r\n" + // 9
+        "end\r\n";                                           // 10
+
+    const string RealAlgol =
+        "BEGIN\r\n" +                                                // 1
+        "   INT s := 0;\r\n" +                                       // 2
+        "   PROC ajoute = (INT n) VOID:\r\n" +                       // 3
+        "      s +:= n;\r\n" +                                       // 4
+        "   FOR i TO 3 DO ajoute(i) OD;\r\n" +                       // 5
+        "   print((\"Somme :\", whole(s, 3), newline))\r\n" +        // 6
+        "END\r\n";                                                   // 7
+
+    static int _realWarnings;
+
+    /// <summary>Avertissement « compilateur reel » : consigne, mais ne fait pas echouer l'auto-test.</summary>
+    static void Real(bool condition, string message)
+    {
+        Lines.Add((condition ? "ok     " : "ATTENTION ") + "[compilateur réel] " + message);
+        if (!condition) _realWarnings++;
+    }
+
+    static async Task<bool> RealWait(Func<bool> cond, string what, int timeoutMs = 15000)
+    {
+        var sw = Stopwatch.StartNew();
+        while (!cond())
+        {
+            if (sw.ElapsedMilliseconds > timeoutMs) { Real(false, "délai dépassé : " + what); return false; }
+            await Task.Delay(25);
+        }
+        return true;
+    }
+
+    static async Task RealCompilerScenario(MainWindow w, LanguageDefinition lang, string source, string expected, int bpLine, string localVar)
+    {
+        var doc = w.NewDocument(lang, source);
+        var path = Path.Combine(OutDir, "reel" + lang.DefaultExtension);
+        w.SaveDocumentAs(doc, path);
+        var outcome = await w.BuildAsync(showSuccess: false);
+        if (outcome == null)
+        {
+            Real(false, $"{lang.DisplayName} : compilation impossible — " +
+                string.Join(" | ", w.ErrorItems.Take(3).Select(e => $"({e.Line},{e.Column}) {e.Message}")));
+            w.CloseDocument(doc, force: true);
+            return;
+        }
+        Real(true, $"{lang.DisplayName} : compilation réussie");
+        // Execution dans la console integree
+        await w.RunAsync(false);
+        if (await RealWait(() => w.State == IdeState.Idle, $"{lang.DisplayName} : fin de l'exécution"))
+            Real(w.LastResult is { Error: null, ExitCode: 0 } && w.ConsoleView.Text.Contains(expected),
+                $"{lang.DisplayName} : exécution, sortie « {Flat(w.ConsoleView.Text)} »");
+        else { w.StopExecution(); await RealWait(() => w.State == IdeState.Idle, "arrêt"); }
+        // Debogueur
+        doc.ToggleBreakpoint(bpLine);
+        await w.RunAsync(true);
+        if (await RealWait(() => w.State is IdeState.Paused or IdeState.Idle, $"{lang.DisplayName} : arrêt sur le point d'arrêt") && w.State == IdeState.Paused)
+        {
+            Real(doc.ExecutionLine == bpLine, $"{lang.DisplayName} : ligne courante {doc.ExecutionLine} (attendue {bpLine})");
+            Real(w.StackItems.Count >= 2, $"{lang.DisplayName} : pile ({string.Join(" ← ", w.StackItems.Select(s => $"{s.Name}:{s.LineText}"))})");
+            Real(w.VariableNodes.Any(v => v.Name.Equals(localVar, StringComparison.OrdinalIgnoreCase)),
+                $"{lang.DisplayName} : variables ({string.Join(", ", w.VariableNodes.Select(v => $"{v.Name}={v.Value}"))})");
+            Capture(w, Path.Combine(OutDir, $"5-debogueur-{lang.Id}.png"));
+            await w.StepAsync(StepKind.Over);
+            if (await RealWait(() => w.State is IdeState.Paused or IdeState.Idle, $"{lang.DisplayName} : pas à pas principal"))
+                Real(w.State == IdeState.Paused, $"{lang.DisplayName} : pas à pas principal → ligne {doc.ExecutionLine}");
+            doc.ToggleBreakpoint(bpLine); // retire le point d'arret pendant l'execution
+            w.CmdDebug.Execute(null);
+            if (await RealWait(() => w.State == IdeState.Idle, $"{lang.DisplayName} : fin après continuer"))
+                Real(w.ConsoleView.Text.Contains(expected), $"{lang.DisplayName} : sortie après débogage");
+        }
+        else Real(false, $"{lang.DisplayName} : le débogueur ne s'est pas arrêté sur la ligne {bpLine}");
+        if (w.State != IdeState.Idle) { w.StopExecution(); await RealWait(() => w.State == IdeState.Idle, "arrêt"); }
+        if (doc.BreakpointLines.Count > 0) doc.SetBreakpoints(Array.Empty<int>());
+        // Exe autonome
+        var exe = Path.Combine(OutDir, "reel-" + lang.Id + ".exe");
+        if (await w.GenerateExeAsync(exe) != null)
+        {
+            var psi = new ProcessStartInfo(exe) { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true, StandardOutputEncoding = Encoding.UTF8 };
+            using var p = Process.Start(psi)!;
+            var output = await p.StandardOutput.ReadToEndAsync();
+            await Task.Run(() => p.WaitForExit(20000));
+            Real(output.Contains(expected) && p.ExitCode == 0, $"{lang.DisplayName} : exe autonome, sortie « {Flat(output)} »");
+        }
+        else Real(false, $"{lang.DisplayName} : génération de l'exe");
+        w.CloseDocument(doc, force: true);
     }
 
     static string Flat(string s) => s.Replace("\r", "").Replace("\n", " ⏎ ").Trim();

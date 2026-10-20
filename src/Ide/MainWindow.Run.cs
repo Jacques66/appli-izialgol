@@ -180,7 +180,7 @@ public partial class MainWindow
                     "Examinez la pile d'appels et les variables, puis continuez (F5) ou arrêtez (Maj+F5).",
                     "Erreur d'exécution", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        else if (BottomTabs.SelectedItem != ConsoleTab || !ConsoleView.IsKeyboardFocusWithin)
+        else if (!ConsoleView.IsWaiting)
             ShowBottomPanel("variables");
         if (!App.Options.Automated)
         {
@@ -327,8 +327,13 @@ public partial class MainWindow
         ClearExecutionLine();
         var doc = FindDocument(file);
         if (doc == null && !string.IsNullOrEmpty(file) && System.IO.File.Exists(file)) doc = OpenFile(file);
-        if (doc == null && _session != null) doc = FindDocument(_session.Main.CompilePath);
-        if (doc == null || line <= 0) return;
+        if (doc == null && string.IsNullOrEmpty(file) && _session != null) doc = FindDocument(_session.Main.CompilePath);
+        if (doc == null || line <= 0)
+        {
+            // Frame sans source disponible (bibliotheque standard, prelude…)
+            if (!string.IsNullOrEmpty(file)) SetStatusMessage($"Source non disponible : {file}, ligne {line}");
+            return;
+        }
         Activate(doc);
         doc.SetExecutionLine(line, top);
         doc.GoTo(line, Math.Max(1, column));

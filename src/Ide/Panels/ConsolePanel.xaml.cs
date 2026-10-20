@@ -115,9 +115,12 @@ public partial class ConsolePanel : UserControl
         StatusText.Text = running ? "Programme en cours d'exécution" : "";
     }
 
+    public bool IsWaiting { get; private set; }
+
     public void SetWaiting(bool waiting)
     {
         if (!_running) waiting = false;
+        IsWaiting = waiting;
         StatusText.Text = waiting ? "En attente d'une saisie…" : _running ? "Programme en cours d'exécution" : "";
         Prompt.Foreground = waiting ? (Brush)FindResource("Brush.Accent") : (Brush)FindResource("Brush.TextDim");
         if (waiting && IsVisible) Input.Focus();
