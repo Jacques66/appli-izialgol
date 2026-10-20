@@ -1,4 +1,4 @@
-# Valeurs et noms : copies lors des liaisons et affectations, relations d'identite #
+# Values and names: copies on binding and assignment, identity relations #
 [3] INT a := (1, 2, 3);
 [] INT x = a;
 a[1] := 9;

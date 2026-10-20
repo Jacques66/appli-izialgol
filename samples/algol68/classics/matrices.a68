@@ -1,4 +1,4 @@
-# Produit de matrices [,] REAL, transposee, operateurs sur des rangees #
+# Matrix product with [,] REAL, transpose, operators on rows #
 BEGIN
    PRIO X = 7;
    OP X = ([,] REAL a, b) [,] REAL:
@@ -19,16 +19,16 @@ BEGIN
       FOR i TO 1 UPB a DO FOR j TO 2 UPB a DO t[j, i] := a[i, j] OD OD;
       t
    END;
-   PROC afficher = ([,] REAL m) VOID:
+   PROC display = ([,] REAL m) VOID:
       FOR i TO 1 UPB m DO
          FOR j TO 2 UPB m DO printf(($-2zd.d$, m[i, j])) OD;
          print(newline)
       OD;
    [,] REAL a = ((1, 2, 3), (4, 5, 6));
    [,] REAL b = ((7, 8), (9, 10), (11, 12));
-   afficher(a X b);
+   display(a X b);
    print(newline);
-   afficher(T a);
+   display(T a);
    print(newline);
-   afficher(T a X T T a)
+   display(T a X T T a)
 END

@@ -7,13 +7,13 @@ public sealed class ChannelV
 {
     public string Name = "";
     public bool Reset, Set, Get, Put, Bin, Compress, Reidf, Draw;
-    public int Kind;   // 0 stand in, 1 stand out, 2 stand back, 3 stand error, 4 disque
+    public int Kind;   // 0 stand in, 1 stand out, 2 stand back, 3 stand error, 4 disk
     public override string ToString() => $"canal {Name}";
 }
 
 public enum FileKind { StandIn, StandOut, StandError, Disk, Assoc }
 
-/// <summary>Fichier (RR 10.3.1.3) : livre, position courante, routines d'evenement, format.</summary>
+/// <summary>File (RR 10.3.1.3): book, current position, event routines, format.</summary>
 public sealed class FileV
 {
     public ChannelV Channel = null!;
@@ -22,22 +22,22 @@ public sealed class FileV
     public string? FullPath;
     public bool Opened;
     public bool ReadMood, WriteMood, CharMood = true, BinMood;
-    // livre en memoire (disque, chaine associee)
+    // in-memory book (disk, associated string)
     public StringBuilder Book = new();
     public int Pos;
     public bool Modified;
     public bool TruncateOnWrite;
     public RefV? AssocRef;
-    // position (RR) : page, ligne, caractere
+    // position (RR): page, line, character
     public int Page = 1, Line = 1, Char = 1;
-    // entree standard
+    // standard input
     public string? InLine; public int InPos; public bool InEof;
-    // evenements
+    // events
     public ProcV? OnLogicalEnd, OnPhysicalEnd, OnLineEnd, OnPageEnd, OnFormatEnd, OnValueError, OnCharError, OnFormatError, OnOpenError, OnTransputError;
     public string Term = "";
     public FormatState? Fmt;
     public readonly object Lock = new();
-    public override string ToString() => Opened ? $"fichier « {Idf} »" : "fichier fermé";
+    public override string ToString() => Opened ? $"file '{Idf}'" : "closed file";
 }
 
 public sealed partial class Transput
@@ -49,7 +49,7 @@ public sealed partial class Transput
     public readonly ChannelV StandErrorChannel = new() { Name = "stand error channel", Put = true, Kind = 3 };
     public readonly FileV StandIn, StandOut, StandError, StandBack;
     public readonly RefV StandInRef, StandOutRef, StandErrorRef, StandBackRef;
-    public int Column;   // colonne de la console (pour newline implicite eventuel)
+    public int Column;   // console column (for an eventual implicit newline)
 
     public Transput(ExecContext ctx)
     {
@@ -64,7 +64,7 @@ public sealed partial class Transput
         StandBackRef = RefV.NewCell(Value.Obj(StandBack), 0);
     }
 
-    /// <summary>Vide les fichiers disque encore ouverts en fin d'execution.</summary>
+    /// <summary>Flushes the disk files still open at the end of the execution.</summary>
     public void FlushAll()
     {
         lock (openFiles)
@@ -75,14 +75,14 @@ public sealed partial class Transput
 
     public static FileV GetFile(Value refFile, Node at)
     {
-        var r = refFile.O as RefV ?? throw RT.Err("REF FILE attendu", at);
-        if (r.A == null) throw RT.Err("fichier NIL", at);
+        var r = refFile.O as RefV ?? throw RT.Err("REF FILE expected", at);
+        if (r.A == null) throw RT.Err("NIL file", at);
         var v = r.A[r.I];
         if (v.O is FileV f) return f;
-        throw RT.Err("fichier non initialisé (utilisez open, establish, create ou associate)", at);
+        throw RT.Err("uninitialised file (use open, establish, create or associate)", at);
     }
 
-    // ------------------------------------------------------------------ ouverture / fermeture
+    // ------------------------------------------------------------------ opening / closing
 
     string Resolve(string idf) => Path.IsPathRooted(idf) ? idf : Path.Combine(ctx.IO.WorkingDirectory, idf);
 
@@ -92,16 +92,16 @@ public sealed partial class Transput
         return f;
     }
 
-    static ChannelV GetChannel(Value v, Node at) => v.O as ChannelV ?? throw RT.Err("canal non initialisé", at);
+    static ChannelV GetChannel(Value v, Node at) => v.O as ChannelV ?? throw RT.Err("uninitialised channel", at);
 
     void StoreFile(Value refFile, FileV f, Node at)
     {
-        var r = refFile.O as RefV ?? throw RT.Err("REF FILE attendu", at);
-        if (r.A == null) throw RT.Err("fichier NIL", at);
+        var r = refFile.O as RefV ?? throw RT.Err("REF FILE expected", at);
+        if (r.A == null) throw RT.Err("NIL file", at);
         r.A[r.I] = Value.Obj(f);
     }
 
-    /// <summary>open : livre existant (0 en cas de succes, comme a68g).</summary>
+    /// <summary>open: existing book (0 on success, as in a68g).</summary>
     public int Open(Frame fr, Value refFile, string idf, Value channel, Node at)
     {
         var ch = GetChannel(channel, at);
@@ -121,7 +121,7 @@ public sealed partial class Transput
         {
             StoreFile(refFile, f, at);
             f.Opened = false;
-            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"impossible d'ouvrir le fichier « {idf} » : {e.Message}", at);
+            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"cannot open file '{idf}': {e.Message}", at);
             return 1;
         }
         StoreFile(refFile, f, at);
@@ -129,7 +129,7 @@ public sealed partial class Transput
         return 0;
     }
 
-    /// <summary>establish : nouveau livre (vide).</summary>
+    /// <summary>establish: new (empty) book.</summary>
     public int Establish(Frame fr, Value refFile, string idf, Value channel, Node at)
     {
         var ch = GetChannel(channel, at);
@@ -144,7 +144,7 @@ public sealed partial class Transput
         {
             StoreFile(refFile, f, at);
             f.Opened = false;
-            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"impossible de créer le fichier « {idf} » : {e.Message}", at);
+            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"cannot create file '{idf}': {e.Message}", at);
             return 1;
         }
         f.Modified = true;
@@ -161,11 +161,11 @@ public sealed partial class Transput
 
     public void Associate(Value refFile, Value refString, Node at)
     {
-        var rs = refString.O as RefV ?? throw RT.Err("REF STRING attendu", at);
-        if (rs.A == null) throw RT.Err("associate : chaîne NIL", at);
+        var rs = refString.O as RefV ?? throw RT.Err("REF STRING expected", at);
+        if (rs.A == null) throw RT.Err("associate: NIL string", at);
         var f = new FileV
         {
-            Channel = new ChannelV { Name = "chaîne associée", Get = true, Put = true, Reset = true, Set = true, Kind = 4 },
+            Channel = new ChannelV { Name = "associated string", Get = true, Put = true, Reset = true, Set = true, Kind = 4 },
             Kind = FileKind.Assoc, Idf = "", Opened = true, AssocRef = rs,
         };
         var cur = rs.A[rs.I];
@@ -192,46 +192,46 @@ public sealed partial class Transput
     {
         var f = GetFile(refFile, at);
         if (f.Kind is FileKind.StandIn or FileKind.StandOut or FileKind.StandError) return;
-        if (!f.Opened) throw RT.Err("close : fichier non ouvert", at);
+        if (!f.Opened) throw RT.Err("close: file not open", at);
         try
         {
             if (scratch) { if (f.FullPath != null && File.Exists(f.FullPath)) File.Delete(f.FullPath); }
             else Flush(f);
         }
-        catch (Exception e) { throw RT.Err($"erreur à la fermeture de « {f.Idf} » : {e.Message}", at); }
+        catch (Exception e) { throw RT.Err($"error while closing '{f.Idf}': {e.Message}", at); }
         f.Opened = false;
         lock (openFiles) openFiles.Remove(f);
     }
 
-    // ------------------------------------------------------------------ evenements
+    // ------------------------------------------------------------------ events
 
-    /// <summary>Appelle une routine d'evenement PROC (REF FILE) BOOL.</summary>
+    /// <summary>Calls an event routine PROC (REF FILE) BOOL.</summary>
     public bool CallEvent(Frame fr, ProcV p, Value refFile, Node at)
     {
         var v = Calls.Invoke(p, new[] { refFile }, fr, at, fr.Depth + 1000);
         return v.N != 0;
     }
 
-    /// <summary>Fin de fichier logique en lecture : evenement ou erreur.</summary>
+    /// <summary>Logical end of file while reading: event or error.</summary>
     public void LogicalFileEnd(Frame fr, Value refFile, FileV f, Node at)
     {
         var p = f.OnLogicalEnd ?? f.OnPhysicalEnd;
         if (p != null && CallEvent(fr, p, refFile, at)) return;
-        throw RT.Err($"fin de fichier atteinte en lecture ({f.Idf})", at);
+        throw RT.Err($"end of file reached while reading ({f.Idf})", at);
     }
 
     void CheckOpen(FileV f, Node at)
     {
-        if (!f.Opened) throw RT.Err($"fichier « {f.Idf} » non ouvert", at);
+        if (!f.Opened) throw RT.Err($"file '{f.Idf}' is not open", at);
     }
 
     void SetWriteMood(FileV f, Node at)
     {
         CheckOpen(f, at);
-        if (!f.Channel.Put) throw RT.Err($"le canal de « {f.Idf} » ne permet pas l'écriture", at);
+        if (!f.Channel.Put) throw RT.Err($"the channel of '{f.Idf}' does not allow writing", at);
         if (f.ReadMood && f.Kind == FileKind.Disk && !f.WriteMood)
         {
-            // passage en ecriture
+            // switch to writing
         }
         if (!f.WriteMood)
         {
@@ -243,7 +243,7 @@ public sealed partial class Transput
     void SetReadMood(FileV f, Node at)
     {
         CheckOpen(f, at);
-        if (!f.Channel.Get) throw RT.Err($"le canal de « {f.Idf} » ne permet pas la lecture", at);
+        if (!f.Channel.Get) throw RT.Err($"the channel of '{f.Idf}' does not allow reading", at);
         if (!f.ReadMood)
         {
             if (f.WriteMood && f.Kind == FileKind.Disk) Flush(f);
@@ -251,7 +251,7 @@ public sealed partial class Transput
         }
     }
 
-    // ------------------------------------------------------------------ ecriture
+    // ------------------------------------------------------------------ writing
 
     public void WriteString(FileV f, string s, Node at)
     {
@@ -280,7 +280,7 @@ public sealed partial class Transput
                 f.AssocRef!.A![f.AssocRef.I] = RT.StrValue(f.Book.ToString());
                 break;
             default:
-                throw RT.Err($"écriture impossible sur « {f.Idf} »", at);
+                throw RT.Err($"cannot write to '{f.Idf}'", at);
         }
         foreach (char c in s)
         {
@@ -300,9 +300,9 @@ public sealed partial class Transput
         }
     }
 
-    // ------------------------------------------------------------------ lecture caractere par caractere
+    // ------------------------------------------------------------------ reading character by character
 
-    /// <summary>Caractere suivant (-1 en fin de fichier) sans le consommer.</summary>
+    /// <summary>Next character (-1 at end of file) without consuming it.</summary>
     public int PeekChar(FileV f)
     {
         switch (f.Kind)
@@ -337,7 +337,7 @@ public sealed partial class Transput
 
     public bool AtEof(FileV f) => PeekChar(f) < 0;
 
-    // ------------------------------------------------------------------ mise en page
+    // ------------------------------------------------------------------ layout
 
     public void Newline(Frame fr, Value refFile, Node at)
     {
@@ -423,13 +423,13 @@ public sealed partial class Transput
         lock (f.Lock)
         {
             CheckOpen(f, at);
-            if (n < 1) throw RT.Err($"set char number : position {n} invalide", at);
+            if (n < 1) throw RT.Err($"set char number: invalid position {n}", at);
             if (f.ReadMood)
             {
                 while (f.Char < n)
                 {
                     int c = PeekChar(f);
-                    if (c < 0 || c == '\n') throw RT.Err("set char number : fin de ligne atteinte", at);
+                    if (c < 0 || c == '\n') throw RT.Err("set char number: end of line reached", at);
                     ReadChar(f);
                 }
                 while (f.Char > n) Backspace(fr, refFile, at);
@@ -445,7 +445,7 @@ public sealed partial class Transput
         }
     }
 
-    /// <summary>reset : retour au debut du livre.</summary>
+    /// <summary>reset: back to the start of the book.</summary>
     public void Reset(Value refFile, Node at)
     {
         var f = GetFile(refFile, at);
@@ -453,7 +453,7 @@ public sealed partial class Transput
         {
             if (f.Kind is FileKind.StandIn or FileKind.StandOut or FileKind.StandError)
             {
-                if (!f.Channel.Reset) throw RT.Err($"reset impossible sur « {f.Idf} »", at);
+                if (!f.Channel.Reset) throw RT.Err($"reset is not possible on '{f.Idf}'", at);
                 return;
             }
             if (f.WriteMood) Flush(f);
@@ -467,13 +467,13 @@ public sealed partial class Transput
         }
     }
 
-    /// <summary>set (RR) : positionne sur page p, ligne l, caractere c.</summary>
+    /// <summary>set (RR): moves to page p, line l, character c.</summary>
     public void SetPos(Frame fr, Value refFile, long p, long l, long c, Node at)
     {
         var f = GetFile(refFile, at);
         lock (f.Lock)
         {
-            if (f.Kind is not (FileKind.Disk or FileKind.Assoc) || !f.Channel.Set) throw RT.Err($"set impossible sur « {f.Idf} »", at);
+            if (f.Kind is not (FileKind.Disk or FileKind.Assoc) || !f.Channel.Set) throw RT.Err($"set is not possible on '{f.Idf}'", at);
             bool write = f.WriteMood;
             int pos = 0, page = 1, line = 1, ch = 1;
             var b = f.Book;
@@ -483,24 +483,24 @@ public sealed partial class Transput
                 if (x == '\n') { line++; }
                 else if (x == '\f') { page++; line = 1; }
             }
-            if (page != p || line != l) throw RT.Err($"set : position ({p}, {l}, {c}) hors du livre", at);
+            if (page != p || line != l) throw RT.Err($"set: position ({p}, {l}, {c}) is outside the book", at);
             while (ch < c && pos < b.Length && b[pos] != '\n' && b[pos] != '\f') { pos++; ch++; }
-            if (ch < c) throw RT.Err($"set : position ({p}, {l}, {c}) hors du livre", at);
+            if (ch < c) throw RT.Err($"set: position ({p}, {l}, {c}) is outside the book", at);
             f.Pos = pos; f.Page = page; f.Line = line; f.Char = ch;
             _ = write;
         }
     }
 
-    /// <summary>seek (a68g) : positionne au caractere n (depuis le debut), rend la position.</summary>
+    /// <summary>seek (a68g): moves to character n (from the start), returns the old position.</summary>
     public int Seek(Value refFile, long n, Node at)
     {
         var f = GetFile(refFile, at);
         lock (f.Lock)
         {
-            if (f.Kind is not (FileKind.Disk or FileKind.Assoc)) throw RT.Err($"seek impossible sur « {f.Idf} »", at);
+            if (f.Kind is not (FileKind.Disk or FileKind.Assoc)) throw RT.Err($"seek is not possible on '{f.Idf}'", at);
             int old = f.Pos;
             f.Pos = (int)Math.Clamp(n, 0, f.Book.Length);
-            // recalcul de la position RR
+            // recompute the RR position
             f.Page = 1; f.Line = 1; f.Char = 1;
             for (int i = 0; i < f.Pos; i++)
             {

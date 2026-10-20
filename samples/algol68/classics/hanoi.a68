@@ -1,4 +1,4 @@
-COMMENT Tours de Hanoi COMMENT
+COMMENT Towers of Hanoi COMMENT
 BEGIN
    INT moves := 0;
    BOOL show := TRUE;
@@ -6,12 +6,12 @@ BEGIN
       IF n > 0 THEN
          hanoi(n - 1, from, via, to);
          moves +:= 1;
-         IF show THEN print(("disque ", whole(n, 0), " : ", from, " -> ", to, newline)) FI;
+         IF show THEN print(("disk ", whole(n, 0), ": ", from, " -> ", to, newline)) FI;
          hanoi(n - 1, via, to, from)
       FI;
    hanoi(3, "A", "C", "B");
-   print(("coups : ", whole(moves, 0), newline));
+   print(("moves: ", whole(moves, 0), newline));
    show := FALSE; moves := 0;
    hanoi(10, "A", "C", "B");
-   print(("coups pour 10 disques : ", whole(moves, 0), newline))
+   print(("moves for 10 disks: ", whole(moves, 0), newline))
 END

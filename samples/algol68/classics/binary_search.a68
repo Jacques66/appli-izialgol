@@ -1,20 +1,20 @@
-# Recherche dichotomique dans une rangee triee #
+# Binary search in a sorted row #
 BEGIN
-   PROC chercher = ([] INT t, INT x) INT:
+   PROC search = ([] INT t, INT x) INT:
    BEGIN
-      INT bas := LWB t, haut := UPB t, trouve := 0;
-      WHILE bas <= haut AND trouve = 0 DO
-         INT milieu = (bas + haut) % 2;
-         IF t[milieu] = x THEN trouve := milieu
-         ELIF t[milieu] < x THEN bas := milieu + 1
-         ELSE haut := milieu - 1
+      INT low := LWB t, high := UPB t, found := 0;
+      WHILE low <= high AND found = 0 DO
+         INT middle = (low + high) % 2;
+         IF t[middle] = x THEN found := middle
+         ELIF t[middle] < x THEN low := middle + 1
+         ELSE high := middle - 1
          FI
       OD;
-      trouve
+      found
    END;
-   [] INT premiers = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37);
+   [] INT primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37);
    FOR x FROM 1 BY 6 TO 37 DO
-      print((whole(x, -3), " -> ", whole(chercher(premiers, x), 0), newline))
+      print((whole(x, -3), " -> ", whole(search(primes, x), 0), newline))
    OD;
-   print(chercher(premiers[@0], 37)); print(newline)
+   print(search(primes[@0], 37)); print(newline)
 END

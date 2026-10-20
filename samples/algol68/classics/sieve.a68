@@ -1,4 +1,4 @@
-CO Crible d'Eratosthene CO
+CO Sieve of Eratosthenes CO
 BEGIN
    INT n = 100;
    [2:n] BOOL prime;
@@ -12,5 +12,5 @@ BEGIN
    FOR i FROM 2 TO n DO
       IF prime[i] THEN print(whole(i, -4)); count +:= 1 FI
    OD;
-   print((newline, "nombre de premiers : ", whole(count, 0), newline))
+   print((newline, "number of primes: ", whole(count, 0), newline))
 END

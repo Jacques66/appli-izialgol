@@ -1,4 +1,4 @@
-# Chaines de caracteres (STRING = FLEX [1:0] CHAR) #
+# Character strings (STRING = FLEX [1:0] CHAR) #
 BEGIN
    STRING s := "Algol";
    s +:= " 68";
@@ -13,7 +13,7 @@ BEGIN
    IF last char in string("l", pos, "hello") THEN print((pos, newline)) FI;
    STRING t = "a""b";
    print((t, UPB t, newline));
-   STRING m := "Bonjour";
+   STRING m := "Hello";
    FOR i TO UPB m DO m[i] := to upper(m[i]) OD;
    print((m, newline));
    print((REPR (ABS "a" + 1), newline));
@@ -21,21 +21,21 @@ BEGIN
    FOR c FROM ABS "a" TO ABS "e" DO v +:= REPR c OD;
    print((v, UPB "", newline));
    print(("a" + "b", newline));
-   [] STRING mots = ("poire", "abricot", "pomme", "banane");
-   [UPB mots] STRING tri := mots;
-   FOR i TO UPB tri DO
-      FOR j FROM i + 1 TO UPB tri DO
-         IF tri[j] < tri[i] THEN STRING x = tri[i]; tri[i] := tri[j]; tri[j] := x FI
+   [] STRING words = ("pear", "apricot", "apple", "banana");
+   [UPB words] STRING sorted := words;
+   FOR i TO UPB sorted DO
+      FOR j FROM i + 1 TO UPB sorted DO
+         IF sorted[j] < sorted[i] THEN STRING x = sorted[i]; sorted[i] := sorted[j]; sorted[j] := x FI
       OD
    OD;
-   FOR i TO UPB tri DO print((tri[i], " ")) OD; print(newline);
-   print((mots[1], newline));
+   FOR i TO UPB sorted DO print((sorted[i], " ")) OD; print(newline);
+   print((words[1], newline));
    STRING sub = s[3:5];
    print((LWB sub, UPB sub, sub, newline));
    print(("con" "caten" "ation", newline));
-   STRING ligne := "  espaces  ";
-   INT d := 1, f := UPB ligne;
-   WHILE d <= f ANDF ligne[d] = " " DO d +:= 1 OD;
-   WHILE f >= d ANDF ligne[f] = " " DO f -:= 1 OD;
-   print(("[", ligne[d:f], "]", newline))
+   STRING line := "  spaces  ";
+   INT d := 1, f := UPB line;
+   WHILE d <= f ANDF line[d] = " " DO d +:= 1 OD;
+   WHILE f >= d ANDF line[f] = " " DO f -:= 1 OD;
+   print(("[", line[d:f], "]", newline))
 END

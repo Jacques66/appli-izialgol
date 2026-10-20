@@ -5,7 +5,7 @@ using Studio.Algol68.Syntax;
 
 namespace Studio.Algol68;
 
-/// <summary>Service de langage Algol 68 (Revised Report, syntaxe compatible Algol 68 Genie).</summary>
+/// <summary>Algol 68 language service (Revised Report, syntax compatible with Algol 68 Genie).</summary>
 public sealed class Algol68Language : ILanguageService
 {
     public string Id => "algol68";
@@ -20,7 +20,7 @@ public sealed class Algol68Language : ILanguageService
         var diags = new List<Diagnostic>();
         try
         {
-            lock (compileLock) // le prelude partage la precision LONG LONG
+            lock (compileLock) // the prelude shares the LONG LONG precision
             {
                 var lexer = new Lexer(diags, options);
                 var toks = lexer.Run(main);
@@ -35,14 +35,14 @@ public sealed class Algol68Language : ILanguageService
         }
         catch (Exception e)
         {
-            diags.Add(new Diagnostic(Severity.Error, main.Path, 0, 0, $"erreur interne du compilateur : {e.GetType().Name} : {e.Message}"));
+            diags.Add(new Diagnostic(Severity.Error, main.Path, 0, 0, $"internal compiler error: {e.GetType().Name}: {e.Message}"));
             return Done(diags, null);
         }
     }
 
     static CompilationResult Done(List<Diagnostic> diags, ICompiledProgram? p)
     {
-        // dedoublonnage et limitation du nombre de messages
+        // remove duplicates and limit the number of messages
         var seen = new HashSet<(string, int, int, string)>();
         var list = new List<Diagnostic>();
         foreach (var d in diags.OrderBy(d => d.File).ThenBy(d => d.Line).ThenBy(d => d.Column))
@@ -51,7 +51,7 @@ public sealed class Algol68Language : ILanguageService
             list.Add(d);
             if (list.Count >= MaxDiagnostics)
             {
-                list.Add(new Diagnostic(Severity.Info, d.File, d.Line, d.Column, "trop d'erreurs : analyse arrêtée"));
+                list.Add(new Diagnostic(Severity.Info, d.File, d.Line, d.Column, "too many errors: compilation stopped"));
                 break;
             }
         }
@@ -73,7 +73,7 @@ public sealed class Algol68Language : ILanguageService
         };
         var res = Compile(main, opts);
         if (res.Program == null)
-            throw new InvalidOperationException("programme Algol 68 embarque invalide : " + string.Join("; ", res.Diagnostics.Select(d => d.ToString())));
+            throw new InvalidOperationException("invalid embedded Algol 68 program: " + string.Join("; ", res.Diagnostics.Select(d => d.ToString())));
         return res.Program;
     }
 }

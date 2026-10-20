@@ -4,18 +4,18 @@ namespace Studio.Algol68.Semantics;
 
 public enum Prim { Int, Real, Bool, Char, Bits, Bytes, Void, Format, File, Channel, Sema }
 
-/// <summary>Mode Algol 68. Les modes sont internes (canoniques) : l'egalite de reference vaut equivalence.</summary>
+/// <summary>Algol 68 mode. Modes are interned (canonical): reference equality means equivalence.</summary>
 public abstract class Mode
 {
     public bool Canonical;
-    public string? Name;            // indicant ayant servi a le declarer (pour l'affichage)
+    public string? Name;            // indicant used to declare it (for display)
     internal int Id;
     public override string ToString() => ModeTable.Show(this);
 
     bool? hasNames, needsCopy;
-    /// <summary>Le mode contient des noms ou des procedures (controle de portee necessaire).</summary>
+    /// <summary>The mode contains names or procedures (scope check needed).</summary>
     public bool HasNames => hasNames ??= ComputeHasNames(new HashSet<Mode>());
-    /// <summary>Valeur composite (copie a faire lors d'une liaison).</summary>
+    /// <summary>Composite value (copy needed when bound).</summary>
     public bool NeedsCopy => needsCopy ??= ComputeNeedsCopy(new HashSet<Mode>());
 
     bool ComputeHasNames(HashSet<Mode> seen)
@@ -25,7 +25,7 @@ public abstract class Mode
         {
             RefMode => true,
             ProcMode => true,
-            PrimMode p => p.Kind is Prim.Format or Prim.File, // un format contient des procedures (replicateurs)
+            PrimMode p => p.Kind is Prim.Format or Prim.File, // a format contains procedures (replicators)
             StructMode s => s.Fields.Any(f => f.Mode.ComputeHasNames(seen)),
             UnionMode u => u.Members.Any(m => m.ComputeHasNames(seen)),
             RowMode r => r.Elem.ComputeHasNames(seen),
@@ -82,15 +82,15 @@ public sealed class RowMode : Mode
     public RowMode(int d, Mode e) { Dims = d; Elem = e; }
 }
 public sealed class FlexMode : Mode { public RowMode Row; public FlexMode(RowMode r) { Row = r; } }
-/// <summary>Indicant en cours de resolution.</summary>
+/// <summary>Indicant being resolved.</summary>
 public sealed class IndicantMode : Mode { public Mode? Target; public string Ind; public IndicantMode(string n) { Ind = n; } }
 
 public enum SpecialKind
 {
-    Skip, Nil, Jump, Vacuum,  // modes "flexibles" (sans mode a priori)
-    Rows,                     // tout mode rangee (operandes de LWB, UPB...)
-    OutType, InType,          // unions etendues de print/read
-    Any,                      // erreur deja signalee
+    Skip, Nil, Jump, Vacuum,  // "flexible" modes (no a priori mode)
+    Rows,                     // any row mode (operands of LWB, UPB...)
+    OutType, InType,          // extended unions of print/read
+    Any,                      // error already reported
     Label,
 }
 public sealed class SpecialMode : Mode { public SpecialKind Kind; public SpecialMode(SpecialKind k) { Kind = k; } }
@@ -147,7 +147,7 @@ public sealed class ModeTable
     public Mode RealOf(int size) => size == 0 ? Real : P(Prim.Real, size);
     public Mode BitsOf(int size) => size == 0 ? Bits : P(Prim.Bits, size);
 
-    /// <summary>Union aplatie et sans doublons ; une union d'un seul membre est ce membre.</summary>
+    /// <summary>Flattened union without duplicates; a union of a single member is that member.</summary>
     public Mode Union(IEnumerable<Mode> members)
     {
         var list = new List<Mode>();
@@ -161,17 +161,17 @@ public sealed class ModeTable
         return Intern(new UnionMode(list.ToArray()));
     }
 
-    // ------------------------------------------------------------- normalisation (deflexage)
+    // ------------------------------------------------------------- normalisation (deflexing)
 
     readonly Dictionary<(Mode, bool), Mode> normCache = new();
 
     /// <summary>
-    /// Mode d'une valeur : FLEX n'est conserve que sous REF (dans les champs/elements atteints depuis un nom).
+    /// Mode of a value: FLEX is only kept under REF (in fields/elements reached from a name).
     /// </summary>
     public Mode Normalize(Mode m, bool underRef = false)
     {
         if (normCache.TryGetValue((m, underRef), out var r)) return r;
-        // les modes recursifs sont deja internes : on construit un graphe parallele
+        // recursive modes are already interned: build a parallel graph
         var map = new Dictionary<(Mode, bool), Mode>();
         r = NormBuild(m, underRef, map);
         r = Intern(r);
@@ -242,10 +242,10 @@ public sealed class ModeTable
         };
     }
 
-    /// <summary>Mode obtenu en dereferencant un nom de mode REF m.</summary>
+    /// <summary>Mode obtained by dereferencing a name of mode REF m.</summary>
     public Mode DerefValue(Mode refSub) => Normalize(refSub, false);
 
-    // ------------------------------------------------------------- internement
+    // ------------------------------------------------------------- interning
 
     static int ShallowHash(Mode m) => m switch
     {
@@ -262,8 +262,8 @@ public sealed class ModeTable
     public Mode Intern(Mode root)
     {
         if (root.Canonical) return root;
-        if (root is IndicantMode im) return im.Target != null ? Intern(im.Target) : throw new InvalidOperationException("indicant non résolu");
-        // noeuds non canoniques atteignables
+        if (root is IndicantMode im) return im.Target != null ? Intern(im.Target) : throw new InvalidOperationException("unresolved indicant");
+        // reachable non-canonical nodes
         var nodes = new List<Mode>();
         var seen = new HashSet<Mode>(ReferenceEqualityComparer.Instance);
         void Walk(Mode m)
@@ -274,10 +274,10 @@ public sealed class ModeTable
             foreach (var c in Children(m)) Walk(c);
         }
         Walk(root);
-        // remplacer les indicants dans les composantes
+        // replace the indicants in the components
         foreach (var n in nodes) ReplaceChildren(n, Strip);
         var map = new Dictionary<Mode, Mode>(ReferenceEqualityComparer.Instance);
-        // aplatir les unions (apres resolution des indicants)
+        // flatten the unions (after resolving the indicants)
         foreach (var n in nodes)
             if (n is UnionMode u) u.Members = FlattenUnionMembers(u);
         var fresh = new List<Mode>();
@@ -301,7 +301,7 @@ public sealed class ModeTable
             if (!buckets.TryGetValue(h, out var b)) buckets[h] = b = new List<Mode>();
             b.Add(n);
         }
-        // apres remplacement, les unions peuvent contenir des doublons
+        // after replacement, unions may contain duplicates
         foreach (var n in fresh)
             if (n is UnionMode u)
             {
@@ -361,7 +361,7 @@ public sealed class ModeTable
         }
     }
 
-    /// <summary>Equivalence structurelle (RR 7.3.1), coinductive pour les modes recursifs.</summary>
+    /// <summary>Structural equivalence (RR 7.3.1), coinductive for recursive modes.</summary>
     public static bool Equivalent(Mode a, Mode b) => Eq(a, b, new HashSet<(Mode, Mode)>());
 
     static bool Eq(Mode a, Mode b, HashSet<(Mode, Mode)> assumed)
@@ -402,7 +402,7 @@ public sealed class ModeTable
         return false;
     }
 
-    // ------------------------------------------------------------- affichage
+    // ------------------------------------------------------------- display
 
     public static string Show(Mode m) { var sb = new StringBuilder(); ShowInto(sb, m, 0, new HashSet<Mode>(ReferenceEqualityComparer.Instance)); return sb.ToString(); }
 
@@ -455,8 +455,8 @@ public sealed class ModeTable
                 case SpecialMode s:
                     sb.Append(s.Kind switch
                     {
-                        SpecialKind.Skip => "SKIP", SpecialKind.Nil => "NIL", SpecialKind.Jump => "saut", SpecialKind.Vacuum => "()",
-                        SpecialKind.Rows => "ROWS", SpecialKind.OutType => "SIMPLOUT", SpecialKind.InType => "SIMPLIN", SpecialKind.Label => "étiquette", _ => "?"
+                        SpecialKind.Skip => "SKIP", SpecialKind.Nil => "NIL", SpecialKind.Jump => "jump", SpecialKind.Vacuum => "()",
+                        SpecialKind.Rows => "ROWS", SpecialKind.OutType => "SIMPLOUT", SpecialKind.InType => "SIMPLIN", SpecialKind.Label => "label", _ => "?"
                     });
                     break;
                 case IndicantMode im: sb.Append(im.Ind); break;

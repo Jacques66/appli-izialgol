@@ -1,4 +1,4 @@
-# Prelude standard : enquetes d'environnement, fonctions mathematiques, aleatoire #
+# Standard prelude: environment enquiries, mathematical functions, random numbers #
 BEGIN
    print((max int, int width, real width, exp width, newline));
    print((max real > 1e300, small real > 0, small real < 1e-15, 1 + small real > 1, newline));

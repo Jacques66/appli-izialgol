@@ -4,14 +4,14 @@ using Studio.Algol68.Semantics;
 
 namespace Studio.Algol68.Exec;
 
-/// <summary>Noeud executable (arbre compile). Les modes sont statiques : chaque noeud sait ce qu'il produit.</summary>
+/// <summary>Executable node (compiled tree). Modes are static: each node knows what it yields.</summary>
 public abstract class Node
 {
     public string File = "";
     public int Line, Col;
     public Mode? Mode;
-    public bool Fresh;   // produit une valeur nouvellement allouee (pas de copie a la liaison)
-    public bool Transient; // nom transitoire (tranche ou selection d'un nom FLEX) : ne peut etre ni stocke ni lie
+    public bool Fresh;   // yields a freshly allocated value (no copy needed when bound)
+    public bool Transient; // transient name (slice or selection of a FLEX name): may be neither stored nor bound
     public virtual Node? Wrapped => null;
 
     public abstract Value Eval(Frame f);
@@ -34,7 +34,7 @@ public abstract class Node
     }
 }
 
-/// <summary>Informations sur une routine (ou le programme principal).</summary>
+/// <summary>Information about a routine (or the main program).</summary>
 public sealed class RoutineInfo
 {
     public string Name = "";
@@ -52,11 +52,11 @@ public sealed class RoutineInfo
 public sealed class DebugVar
 {
     public string Name = ""; public int Slot; public Mode Mode = null!;
-    public int FromLine, ToLine;   // portee textuelle
+    public int FromLine, ToLine;   // textual extent
     public string File = "";
 }
 
-// ---------------------------------------------------------------- constantes et identificateurs
+// ---------------------------------------------------------------- constants and identifiers
 
 public sealed class ConstNode : Node
 {
@@ -71,7 +71,7 @@ public sealed class ConstNode : Node
     public override void Exec(Frame f) { }
 }
 
-/// <summary>Valeur calculee a l'execution (objets globaux du prelude : stand out...).</summary>
+/// <summary>Value computed at run time (global prelude objects: stand out...).</summary>
 public sealed class CtxValueNode : Node
 {
     readonly Func<ExecContext, Value> get;
@@ -87,7 +87,7 @@ public sealed class SlotNode : Node
     public override Value Eval(Frame f)
     {
         var v = Up(f, Hops).S[Slot];
-        if (v.O == null && NeedsObj) throw RT.Err($"« {Name} » utilisé avant d'être défini", this);
+        if (v.O == null && NeedsObj) throw RT.Err($"'{Name}' used before being defined", this);
         return v;
     }
     public bool NeedsObj;
@@ -97,7 +97,7 @@ public sealed class SlotNode : Node
     public override object? EvalObj(Frame f) => Eval(f).O;
 }
 
-/// <summary>Dereferencement d'un nom.</summary>
+/// <summary>Dereferencing of a name.</summary>
 public sealed class DerefNode : Node
 {
     readonly Node r;
@@ -108,9 +108,9 @@ public sealed class DerefNode : Node
     Value Get(Frame f)
     {
         var rf = Unsafe.As<RefV>(r.EvalObj(f));
-        if (rf == null || rf.A == null) throw RT.Err("déréférencement de NIL", this);
+        if (rf == null || rf.A == null) throw RT.Err("dereferencing NIL", this);
         var v = rf.A[rf.I];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("valeur non initialisée", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uninitialised value", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, valMode) : v; }
@@ -120,7 +120,7 @@ public sealed class DerefNode : Node
     public override object? EvalObj(Frame f) => Eval(f).O;
 }
 
-/// <summary>Dereferencement direct d'une variable locale (cas le plus frequent).</summary>
+/// <summary>Direct dereferencing of a local variable (the most frequent case).</summary>
 public sealed class DerefSlotNode : Node
 {
     readonly int hops, slot;
@@ -132,11 +132,11 @@ public sealed class DerefSlotNode : Node
     Value Get(Frame f)
     {
         var o = Up(f, hops).S[slot].O;
-        if (o == null) throw RT.Err($"« {Name} » utilisé avant sa déclaration", this);
+        if (o == null) throw RT.Err($"'{Name}' used before its declaration", this);
         var rf = Unsafe.As<RefV>(o);
-        if (rf.A == null) throw RT.Err("déréférencement de NIL", this);
+        if (rf.A == null) throw RT.Err("dereferencing NIL", this);
         var v = rf.A[rf.I];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"valeur non initialisée (« {Name} »)", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"uninitialised value ('{Name}')", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, valMode) : v; }
@@ -146,7 +146,7 @@ public sealed class DerefSlotNode : Node
     public override object? EvalObj(Frame f) => Eval(f).O;
 }
 
-// ---------------------------------------------------------------- affectation
+// ---------------------------------------------------------------- assignment
 
 public sealed class AssignNode : Node
 {
@@ -164,20 +164,20 @@ public sealed class AssignNode : Node
     RefV Do(Frame f)
     {
         var r = Unsafe.As<RefV>(dest.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("affectation à NIL", this);
+        if (r == null || r.A == null) throw RT.Err("assignment to NIL", this);
         var v = src.Eval(f);
-        if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portée dans une affectation", this);
+        if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("scope violation in an assignment", this);
         if (composite) RT.AssignInto(r.A, r.I, v, valMode, this);
         else
         {
-            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisée", this);
+            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("assignment of an uninitialised value", this);
             r.A[r.I] = v;
         }
         return r;
     }
 }
 
-/// <summary>Affectation INT/REAL... a une variable locale directe (rapide).</summary>
+/// <summary>Assignment of INT/REAL... to a local variable (fast path).</summary>
 public sealed class AssignSlotNode : Node
 {
     readonly int hops, slot;
@@ -189,18 +189,18 @@ public sealed class AssignSlotNode : Node
     RefV Do(Frame f)
     {
         var r = Unsafe.As<RefV>(Up(f, hops).S[slot].O);
-        if (r == null) throw RT.Err("variable utilisée avant sa déclaration", this);
-        if (r.A == null) throw RT.Err("affectation à NIL", this);
+        if (r == null) throw RT.Err("variable used before its declaration", this);
+        if (r.A == null) throw RT.Err("assignment to NIL", this);
         var v = src.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisée", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("assignment of an uninitialised value", this);
         r.A[r.I] = v;
         return r;
     }
 }
 
-// ---------------------------------------------------------------- generateurs
+// ---------------------------------------------------------------- generators
 
-/// <summary>Description de la creation d'une valeur initiale (bornes effectives).</summary>
+/// <summary>Describes how an initial value is created (actual bounds).</summary>
 public abstract class GenSpec
 {
     public abstract Value Create(Frame f, Node at);
@@ -248,7 +248,7 @@ public sealed class RowGen : GenSpec
         return Value.Obj(row);
     }
 }
-/// <summary>Mode declare avec bornes effectives : evaluation dans l'environnement de la declaration.</summary>
+/// <summary>Mode declared with actual bounds: evaluated in the environ of the declaration.</summary>
 public sealed class IndicantGen : GenSpec
 {
     public GenSpec? Inner;
@@ -272,7 +272,7 @@ public sealed class GeneratorNode : Node
     RefV Make(Frame f) => RefV.NewCell(gen.Create(f, this), heap ? 0 : f.Depth + rangeLevel);
 }
 
-/// <summary>Declaration de variable : slot := nom genere, puis affectation initiale eventuelle.</summary>
+/// <summary>Variable declaration: slot := generated name, then optional initial assignment.</summary>
 public sealed class VarDeclNode : Node
 {
     readonly int slot;
@@ -292,11 +292,11 @@ public sealed class VarDeclNode : Node
         if (init != null)
         {
             var v = init.Eval(f);
-            if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portée dans l'initialisation", this);
+            if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("scope violation in the initialisation", this);
             if (composite) RT.AssignInto(r.A!, 0, v, valMode, this);
             else
             {
-                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("initialisation avec une valeur non initialisée", this);
+                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("initialisation with an uninitialised value", this);
                 r.A![0] = v;
             }
         }
@@ -314,14 +314,14 @@ public sealed class IdentityDeclNode : Node
     public override void Exec(Frame f)
     {
         var v = value.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("déclaration d'identite avec une valeur non initialisée", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("identity declaration with an uninitialised value", this);
         f.S[slot] = copy ? RT.DeepCopy(v, mode) : v;
     }
 }
 
 // ---------------------------------------------------------------- clauses
 
-/// <summary>Instruction d'une suite : met a jour la position courante et gere la mise au point.</summary>
+/// <summary>Statement of a series: updates the current position and handles debugging.</summary>
 public sealed class StmtNode : Node
 {
     readonly Node inner;
@@ -360,10 +360,10 @@ public sealed class JumpException : Exception
 public sealed class SerialNode : Node
 {
     public Node[] Stmts = Array.Empty<Node>();
-    public bool[] Completes = Array.Empty<bool>();   // la suite se termine apres cette instruction (EXIT ou derniere)
+    public bool[] Completes = Array.Empty<bool>();   // the series completes after this statement (EXIT or last one)
     public bool[] Yields = Array.Empty<bool>();
     public bool HasLabels;
-    public int ScopeLimitLevel = -1;   // >= 0 : controle de portee du resultat (niveau de portee de la clause)
+    public int ScopeLimitLevel = -1;   // >= 0: scope check of the yield (scope level of the clause)
     public Mode? YieldMode;
 
     public override Value Eval(Frame f)
@@ -395,7 +395,7 @@ public sealed class SerialNode : Node
         if (ScopeLimitLevel >= 0 && YieldMode != null)
         {
             int lim = f.Depth + ScopeLimitLevel;
-            if (RT.ScopeOf(v, YieldMode) >= lim) throw RT.Err("violation de portée : le résultat de la clause designe une valeur locale", this);
+            if (RT.ScopeOf(v, YieldMode) >= lim) throw RT.Err("scope violation: the yield of the clause refers to a local value", this);
         }
         return v;
     }
@@ -435,9 +435,9 @@ public sealed class CaseNode : Node
 public sealed class ConformityNode : Node
 {
     public Node Sel = null!;
-    public Mode[][] Accept = Array.Empty<Mode[]>();   // modes concrets acceptes par chaque cas
-    public bool[] RewrapUnion = Array.Empty<bool>();   // le cas declare une union : la valeur reste unie
-    public int[] Slots = Array.Empty<int>();           // -1 : pas d'identificateur
+    public Mode[][] Accept = Array.Empty<Mode[]>();   // concrete modes accepted by each case
+    public bool[] RewrapUnion = Array.Empty<bool>();   // the case declares a union: the value stays united
+    public int[] Slots = Array.Empty<int>();           // -1: no identifier
     public Node[] Cases = Array.Empty<Node>();
     public Node? Out;
     public override Value Eval(Frame f) => Run(f, true);
@@ -445,7 +445,7 @@ public sealed class ConformityNode : Node
     Value Run(Frame f, bool want)
     {
         var sv = Sel.Eval(f);
-        if (sv.O is not UnionV u) throw RT.Err("clause de conformite sur une valeur unie non initialisée", this);
+        if (sv.O is not UnionV u) throw RT.Err("conformity clause on an uninitialised united value", this);
         for (int c = 0; c < Cases.Length; c++)
         {
             foreach (var m in Accept[c])
@@ -483,7 +483,7 @@ public sealed class LoopNode : Node
         for (long i = from; ; i += by)
         {
             if (hasTo && (by >= 0 ? i > to : i < to)) break;
-            if (i > int.MaxValue || i < int.MinValue) throw RT.Err("débordement du compteur de boucle", this);
+            if (i > int.MaxValue || i < int.MinValue) throw RT.Err("loop counter overflow", this);
             if (ctx.Attention) ctx.OnAttention(f, this);
             if (slot >= 0) s[slot].N = i;
             if (w != null && !w.EvalBool(f)) break;
@@ -512,8 +512,8 @@ public sealed class VoidNode : Node
 public sealed class RowDisplayNode : Node
 {
     readonly Node[] elems;
-    readonly int dims;          // dimensions du resultat
-    readonly Mode elemMode;     // mode des elements (dims == 1) ou des sous-rangees
+    readonly int dims;          // dimensions of the result
+    readonly Mode elemMode;     // mode of the elements (dims == 1) or of the sub-rows
     public RowDisplayNode(Node[] e, int dims, Mode elemMode) { elems = e; this.dims = dims; this.elemMode = elemMode; }
     public override Value Eval(Frame f)
     {
@@ -528,7 +528,7 @@ public sealed class RowDisplayNode : Node
             }
             return Value.Obj(RowV.Make1(data));
         }
-        // rangee de rangees -> une dimension de plus ; toutes les sous-rangees doivent avoir les memes bornes
+        // row of rows -> one more dimension; all sub-rows must have the same bounds
         var subs = new RowV[elems.Length];
         for (int i = 0; i < elems.Length; i++) subs[i] = (RowV)RT.CheckInit(elems[i].Eval(f), this).O!;
         int sd = dims - 1;
@@ -538,7 +538,7 @@ public sealed class RowDisplayNode : Node
         {
             for (int d = 0; d < sd; d++) { lwb[d + 1] = subs[0].Lwb[d]; upb[d + 1] = subs[0].Upb[d]; }
             foreach (var s in subs)
-                if (!s.SameBounds(subs[0])) throw RT.Err("affichage de rangée : les sous-rangées n'ont pas les mêmes bornes", this);
+                if (!s.SameBounds(subs[0])) throw RT.Err("row display: the sub-rows do not have the same bounds", this);
         }
         else for (int d = 0; d < sd; d++) { lwb[d + 1] = 1; upb[d + 1] = 0; }
         var row = RowV.Make(lwb, upb, default);
@@ -587,7 +587,7 @@ public sealed class JumpNode : Node
     public override Value Eval(Frame f) => throw new JumpException(target, Up(f, hops));
 }
 
-/// <summary>Etiquette utilisee comme PROC VOID (RR : saut en contexte PROC VOID).</summary>
+/// <summary>Label used as a PROC VOID (RR: jump in a PROC VOID context).</summary>
 public sealed class JumpProcNode : Node
 {
     readonly JumpTarget target; readonly int hops;
@@ -613,7 +613,7 @@ public sealed class AssertNode : Node
     public AssertNode(Node c) { this.c = c; }
     public override Value Eval(Frame f)
     {
-        if (!c.EvalBool(f)) throw RT.Err("assertion fausse (ASSERT)", this);
+        if (!c.EvalBool(f)) throw RT.Err("assertion failed (ASSERT)", this);
         return default;
     }
 }
@@ -624,7 +624,7 @@ public sealed class NilNode : Node
     public override object? EvalObj(Frame f) => RefV.Nil;
 }
 
-/// <summary>Valeur indefinie (SKIP) du mode demande.</summary>
+/// <summary>Undefined value (SKIP) of the required mode.</summary>
 public sealed class SkipNode : Node
 {
     readonly Func<Value> make;
@@ -633,7 +633,7 @@ public sealed class SkipNode : Node
     public override void Exec(Frame f) { }
 }
 
-// ---------------------------------------------------------------- coercitions
+// ---------------------------------------------------------------- coercions
 
 public sealed class WidenIntRealNode : Node
 {
@@ -658,12 +658,12 @@ public sealed class UniteNode : Node
     public override Value Eval(Frame f)
     {
         var v = a.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("union d'une valeur non initialisée", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uniting an uninitialised value", this);
         return Value.Obj(new UnionV(member, v));
     }
 }
 
-/// <summary>Valeur deja unie placee dans une union plus large : rien a faire.</summary>
+/// <summary>Already united value placed in a wider union: nothing to do.</summary>
 public sealed class ReuniteNode : Node
 {
     readonly Node a;
@@ -672,7 +672,7 @@ public sealed class ReuniteNode : Node
     public override Value Eval(Frame f) => a.Eval(f);
 }
 
-/// <summary>Rowing d'une valeur : X -> [1:1] X (ou ajout de dimensions).</summary>
+/// <summary>Rowing of a value: X -> [1:1] X (or adding dimensions).</summary>
 public sealed class RowValueNode : Node
 {
     readonly Node a; readonly int addDims; readonly bool fromRow; readonly Mode elemMode;
@@ -696,7 +696,7 @@ public sealed class RowValueNode : Node
     }
 }
 
-/// <summary>Rowing d'un nom : REF X -> REF [1:1] X (la case est partagee).</summary>
+/// <summary>Rowing of a name: REF X -> REF [1:1] X (the cell is shared).</summary>
 public sealed class RowNameNode : Node
 {
     readonly Node a; readonly int addDims; readonly bool fromRow;

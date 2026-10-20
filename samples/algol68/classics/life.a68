@@ -1,11 +1,11 @@
-# Jeu de la vie de Conway : oscillateur "clignotant" sur une grille torique 5 x 5 #
+# Conway's game of life: a "blinker" oscillator on a 5 x 5 toroidal grid #
 BEGIN
    INT n = 5;
-   MODE GRILLE = [0:n - 1, 0:n - 1] BOOL;
-   GRILLE g;
+   MODE GRID = [0:n - 1, 0:n - 1] BOOL;
+   GRID g;
    FOR i FROM 0 TO n - 1 DO FOR j FROM 0 TO n - 1 DO g[i, j] := FALSE OD OD;
    g[1, 2] := g[2, 2] := g[3, 2] := TRUE;
-   PROC voisins = (GRILLE h, INT i, j) INT:
+   PROC neighbours = (GRID h, INT i, j) INT:
    BEGIN
       INT c := 0;
       FOR di FROM -1 TO 1 DO
@@ -15,7 +15,7 @@ BEGIN
       OD;
       c
    END;
-   PROC afficher = (GRILLE h, INT gen) VOID:
+   PROC display = (GRID h, INT gen) VOID:
    BEGIN
       print(("generation ", whole(gen, 0), newline));
       FOR i FROM 0 TO n - 1 DO
@@ -24,11 +24,11 @@ BEGIN
       OD
    END;
    FOR gen FROM 0 TO 2 DO
-      afficher(g, gen);
-      GRILLE s;
+      display(g, gen);
+      GRID s;
       FOR i FROM 0 TO n - 1 DO
          FOR j FROM 0 TO n - 1 DO
-            INT v = voisins(g, i, j);
+            INT v = neighbours(g, i, j);
             s[i, j] := (g[i, j] | v = 2 OR v = 3 | v = 3)
          OD
       OD;

@@ -6,10 +6,10 @@ using Studio.Algol68.Semantics;
 
 namespace Studio.Algol68.Runtime;
 
-/// <summary>Transput sans format (RR 10.3.3) et conversions de valeurs.</summary>
+/// <summary>Formatless transput (RR 10.3.3) and value conversions.</summary>
 public sealed partial class Transput
 {
-    // ------------------------------------------------------------------ valeurs -> texte (print)
+    // ------------------------------------------------------------------ values -> text (print)
 
     public static string StandardString(Mode m, Value v, Node at)
     {
@@ -40,22 +40,22 @@ public sealed partial class Transput
                 }
                 break;
         }
-        throw RT.Err($"valeur de mode {m} non imprimable", at);
+        throw RT.Err($"value of mode {m} cannot be printed", at);
     }
 
-    /// <summary>Ecrit une valeur deja "unie" (mode reel + valeur) sans format.</summary>
+    /// <summary>Writes an already "united" value (actual mode + value) without format.</summary>
     public void PutValue(Frame fr, Value refFile, FileV f, Mode m, Value v, Node at)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"impression d'une valeur non initialisée (mode {m})", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"output of an uninitialised value (mode {m})", at);
         switch (m)
         {
             case PrimMode p:
-                if (p.Kind == Prim.Format) throw RT.Err("un FORMAT n'est pas imprimable sans format (utilisez printf/putf)", at);
+                if (p.Kind == Prim.Format) throw RT.Err("a FORMAT cannot be printed without a format (use printf/putf)", at);
                 WriteString(f, StandardString(m, v, at), at);
                 return;
             case UnionMode:
                 if (v.O is UnionV u) { PutValue(fr, refFile, f, u.M, u.V, at); return; }
-                throw RT.Err("valeur unie non initialisée", at);
+                throw RT.Err("uninitialised united value", at);
             case StructMode sm:
                 {
                     var fields = (Value[])v.O!;
@@ -72,14 +72,14 @@ public sealed partial class Transput
                 }
             case ProcMode:
                 {
-                    var proc = v.O as ProcV ?? throw RT.Err("procédure de mise en page non initialisée", at);
+                    var proc = v.O as ProcV ?? throw RT.Err("uninitialised layout procedure", at);
                     Monitor.Exit(f.Lock);
                     try { Calls.Invoke(proc, new[] { refFile }, fr, at, fr.Depth + 1000); }
                     finally { Monitor.Enter(f.Lock); }
                     return;
                 }
         }
-        throw RT.Err($"valeur de mode {m} non imprimable", at);
+        throw RT.Err($"value of mode {m} cannot be printed", at);
     }
 
     public void PutList(Frame fr, Value refFile, Value row, Node at)
@@ -91,29 +91,29 @@ public sealed partial class Transput
             SetWriteMood(f, at);
             foreach (var it in items)
             {
-                if (it.O is not UnionV u) throw RT.Err("élément d'impression non initialisé", at);
+                if (it.O is not UnionV u) throw RT.Err("uninitialised output item", at);
                 PutValue(fr, refFile, f, u.M, u.V, at);
             }
         }
     }
 
-    // ------------------------------------------------------------------ lecture sans format
+    // ------------------------------------------------------------------ formatless input
 
     bool IsNlFf(int c) => c == '\n' || c == '\f';
 
-    /// <summary>Saute fins de ligne et de page (evenements on line end / on page end).</summary>
+    /// <summary>Skips line and page ends (events on line end / on page end).</summary>
     int SkipNlFf(Frame fr, Value refFile, FileV f, int ch, Node at)
     {
         while (ch >= 0 && IsNlFf(ch))
         {
-            // ch a deja ete consomme : on le "remet" puis on traite l'evenement
+            // ch has already been consumed: put it back, then handle the event
             UnreadLast(f, ch);
             bool mended = false;
             var p = ch == '\n' ? f.OnLineEnd : f.OnPageEnd;
             if (p != null) { Monitor.Exit(f.Lock); try { mended = CallEvent(fr, p, refFile, at); } finally { Monitor.Enter(f.Lock); } }
             if (!mended)
             {
-                // newline / newpage : consomme jusqu'au terminateur
+                // newline / newpage: consume up to the terminator
                 int c;
                 do { c = ReadChar(f); } while (c >= 0 && c != ch);
             }
@@ -206,7 +206,7 @@ public sealed partial class Transput
             try { ok = CallEvent(fr, f.OnValueError, refFile, at); } finally { Monitor.Enter(f.Lock); }
             if (ok) return;
         }
-        throw RT.Err($"erreur de valeur en transput : « {text} » ne convient pas pour le mode {m}", at);
+        throw RT.Err($"value error in transput: '{text}' is not suitable for mode {m}", at);
     }
 
     void CheckEof(Frame fr, Value refFile, FileV f, Node at)
@@ -244,20 +244,20 @@ public sealed partial class Transput
         catch { return false; }
     }
 
-    /// <summary>Lit une valeur dans le nom r (mode REF X).</summary>
+    /// <summary>Reads a value into the name r (mode REF X).</summary>
     public void GetValue(Frame fr, Value refFile, FileV f, Mode refMode, Value target, Node at)
     {
         if (refMode is ProcMode)
         {
-            var proc = target.O as ProcV ?? throw RT.Err("procédure de mise en page non initialisée", at);
+            var proc = target.O as ProcV ?? throw RT.Err("uninitialised layout procedure", at);
             Monitor.Exit(f.Lock);
             try { Calls.Invoke(proc, new[] { refFile }, fr, at, fr.Depth + 1000); }
             finally { Monitor.Enter(f.Lock); }
             return;
         }
-        if (refMode is not RefMode rm) throw RT.Err($"lecture dans une valeur de mode {refMode} (un nom est attendu)", at);
-        var r = target.O as RefV ?? throw RT.Err("nom attendu en lecture", at);
-        if (r.A == null) throw RT.Err("lecture dans NIL", at);
+        if (refMode is not RefMode rm) throw RT.Err($"input into a value of mode {refMode} (a name is expected)", at);
+        var r = target.O as RefV ?? throw RT.Err("name expected for input", at);
+        if (r.A == null) throw RT.Err("input into NIL", at);
         try { ReadInto(fr, refFile, f, rm.Sub, r.A, r.I, at); }
         catch (EofMended) { }
     }
@@ -329,14 +329,14 @@ public sealed partial class Transput
                 }
             case StructMode sm:
                 {
-                    var fields = arr[idx].O as Value[] ?? throw RT.Err("structure non initialisée en lecture", at);
+                    var fields = arr[idx].O as Value[] ?? throw RT.Err("uninitialised structure in input", at);
                     for (int i = 0; i < sm.Fields.Length; i++) ReadInto(fr, refFile, f, sm.Fields[i].Mode, fields, i, at);
                     return;
                 }
             case RowMode or FlexMode:
                 {
                     var rmode = m.AsRow!;
-                    var row = arr[idx].O as RowV ?? throw RT.Err("rangée non initialisée en lecture", at);
+                    var row = arr[idx].O as RowV ?? throw RT.Err("uninitialised row in input", at);
                     foreach (int k in row.Indices())
                     {
                         var (a2, i2) = row.SlotAt(k);
@@ -353,10 +353,10 @@ public sealed partial class Transput
                         arr[idx] = Value.Obj(new UnionV(u.M, tmp[0]));
                         return;
                     }
-                    throw RT.Err("lecture dans une union non initialisée", at);
+                    throw RT.Err("input into an uninitialised union", at);
                 }
         }
-        throw RT.Err($"lecture impossible pour le mode {m}", at);
+        throw RT.Err($"input is not possible for mode {m}", at);
     }
 
     string ScanString(Frame fr, Value refFile, FileV f, Node at)
@@ -387,13 +387,13 @@ public sealed partial class Transput
             SetReadMood(f, at);
             foreach (var it in items)
             {
-                if (it.O is not UnionV u) throw RT.Err("élément de lecture non initialisé", at);
+                if (it.O is not UnionV u) throw RT.Err("uninitialised input item", at);
                 GetValue(fr, refFile, f, u.M, u.V, at);
             }
         }
     }
 
-    // ------------------------------------------------------------------ transput binaire
+    // ------------------------------------------------------------------ binary transput
 
     public void PutBin(Frame fr, Value refFile, Value row, Node at)
     {
@@ -401,11 +401,11 @@ public sealed partial class Transput
         lock (f.Lock)
         {
             CheckOpen(f, at);
-            if (!f.Channel.Bin && f.Kind != FileKind.Disk) throw RT.Err($"le canal de « {f.Idf} » ne permet pas le transput binaire", at);
+            if (!f.Channel.Bin && f.Kind != FileKind.Disk) throw RT.Err($"the channel of '{f.Idf}' does not allow binary transput", at);
             SetWriteMood(f, at);
             foreach (var it in RowOps.GetRow(row, at).Elements())
             {
-                if (it.O is not UnionV u) throw RT.Err("élément non initialisé", at);
+                if (it.O is not UnionV u) throw RT.Err("uninitialised element", at);
                 var sb = new StringBuilder();
                 ToBin(u.M, u.V, sb, at);
                 WriteString(f, sb.ToString(), at);
@@ -413,10 +413,10 @@ public sealed partial class Transput
         }
     }
 
-    // representation binaire : texte compact delimite (un "enregistrement" par valeur simple)
+    // binary representation: compact delimited text (one "record" per simple value)
     static void ToBin(Mode m, Value v, StringBuilder sb, Node at)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("transput binaire d'une valeur non initialisée", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("binary transput of an uninitialised value", at);
         switch (m)
         {
             case PrimMode p:
@@ -428,7 +428,7 @@ public sealed partial class Transput
                     case Prim.Char: sb.Append(((int)v.N).ToString(CultureInfo.InvariantCulture)); break;
                     case Prim.Bits: sb.Append(p.Size == 0 ? ((uint)v.N).ToString(CultureInfo.InvariantCulture) : ((BigInteger)v.O!).ToString(CultureInfo.InvariantCulture)); break;
                     case Prim.Bytes: sb.Append(Convert.ToBase64String(Encoding.Unicode.GetBytes((string)v.O!))); break;
-                    default: throw RT.Err($"transput binaire impossible pour {m}", at);
+                    default: throw RT.Err($"binary transput is not possible for {m}", at);
                 }
                 sb.Append('\u001e');
                 return;
@@ -442,7 +442,7 @@ public sealed partial class Transput
                     return;
                 }
         }
-        throw RT.Err($"transput binaire impossible pour {m}", at);
+        throw RT.Err($"binary transput is not possible for {m}", at);
     }
 
     public void GetBin(Frame fr, Value refFile, Value row, Node at)
@@ -454,9 +454,9 @@ public sealed partial class Transput
             SetReadMood(f, at);
             foreach (var it in RowOps.GetRow(row, at).Elements())
             {
-                if (it.O is not UnionV u) throw RT.Err("élément non initialisé", at);
+                if (it.O is not UnionV u) throw RT.Err("uninitialised element", at);
                 if (u.M is ProcMode) { GetValue(fr, refFile, f, u.M, u.V, at); continue; }
-                var r = u.V.O as RefV ?? throw RT.Err("nom attendu", at);
+                var r = u.V.O as RefV ?? throw RT.Err("name expected", at);
                 FromBin(fr, refFile, f, ((RefMode)u.M).Sub, r.A!, r.I, at);
             }
         }
@@ -499,12 +499,12 @@ public sealed partial class Transput
                             _ => throw new FormatException(),
                         };
                     }
-                    catch (FormatException) { throw RT.Err($"donnée binaire invalide pour le mode {m}", at); }
+                    catch (FormatException) { throw RT.Err($"invalid binary data for mode {m}", at); }
                     return;
                 }
             case StructMode sm:
                 {
-                    var fl = arr[idx].O as Value[] ?? throw RT.Err("structure non initialisée", at);
+                    var fl = arr[idx].O as Value[] ?? throw RT.Err("uninitialised structure", at);
                     for (int i = 0; i < sm.Fields.Length; i++) FromBin(fr, refFile, f, sm.Fields[i].Mode, fl, i, at);
                     return;
                 }
@@ -518,13 +518,13 @@ public sealed partial class Transput
                 }
             case RowMode rm:
                 {
-                    var row = arr[idx].O as RowV ?? throw RT.Err("rangée non initialisée", at);
+                    var row = arr[idx].O as RowV ?? throw RT.Err("uninitialised row", at);
                     var cnt = int.Parse(NextRecord(fr, refFile, f, at), CultureInfo.InvariantCulture);
-                    if (cnt != row.Count) throw RT.Err($"lecture binaire : {cnt} éléments enregistrés pour une rangée de {row.Count}", at);
+                    if (cnt != row.Count) throw RT.Err($"binary input: {cnt} elements recorded for a row of {row.Count}", at);
                     foreach (int k in row.Indices()) { var (a2, i2) = row.SlotAt(k); FromBin(fr, refFile, f, rm.Elem, a2, i2, at); }
                     return;
                 }
         }
-        throw RT.Err($"transput binaire impossible pour {m}", at);
+        throw RT.Err($"binary transput is not possible for {m}", at);
     }
 }

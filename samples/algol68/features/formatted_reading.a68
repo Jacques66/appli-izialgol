@@ -1,14 +1,14 @@
-# Lecture formatee : readf avec motifs entiers, reels, chaines, choix et insertions #
+# Formatted input: readf with integral, real, string, choice patterns and insertions #
 BEGIN
-   INT jour, mois, annee;
-   readf(($2d"/", 2d"/", 4d l$, jour, mois, annee));
-   print((annee * 10000 + mois * 100 + jour, newline));
-   REAL prix; STRING code;
-   readf(($3a, x d.2d l$, code, prix));
-   print((code, " ", fixed(prix * 2, 0, 2), newline));
-   INT choix; BOOL ok;
-   readf(($c("non","oui","peut-etre"), x b("V","F") l$, choix, ok));
-   print((choix, ok, newline));
+   INT day, month, year;
+   readf(($2d"/", 2d"/", 4d l$, day, month, year));
+   print((year * 10000 + month * 100 + day, newline));
+   REAL price; STRING code;
+   readf(($3a, x d.2d l$, code, price));
+   print((code, " ", fixed(price * 2, 0, 2), newline));
+   INT choice; BOOL ok;
+   readf(($c("no","yes","maybe"), x b("T","F") l$, choice, ok));
+   print((choice, ok, newline));
    INT a, b;
    readf(($g, x, g$, a, b));
    print((a - b, newline))

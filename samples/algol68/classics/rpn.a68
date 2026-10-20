@@ -1,27 +1,27 @@
-# Calculatrice en notation polonaise inverse : analyse de chaine, pile dans une rangee #
+# Reverse Polish notation calculator: string parsing, stack held in a row #
 BEGIN
-   PROC evaluer = (STRING expr) INT:
+   PROC evaluate = (STRING expr) INT:
    BEGIN
-      [1:100] INT pile; INT sommet := 0;
-      PROC empiler = (INT v) VOID: pile[sommet +:= 1] := v;
-      PROC depiler = INT: (sommet -:= 1; pile[sommet + 1]);
+      [1:100] INT stack; INT top := 0;
+      PROC push = (INT v) VOID: stack[top +:= 1] := v;
+      PROC pop = INT: (top -:= 1; stack[top + 1]);
       INT i := LWB expr;
       WHILE i <= UPB expr DO
          CHAR c = expr[i];
          IF is digit(c) THEN
             INT v := 0;
             WHILE i <= UPB expr ANDF is digit(expr[i]) DO v := v * 10 + ABS expr[i] - ABS "0"; i +:= 1 OD;
-            empiler(v)
+            push(v)
          ELSE
             IF c /= " " THEN
-               INT b = depiler, a = depiler;
-               empiler(CASE INT k; (char in string(c, k, "+-*/") | k | 0) IN a + b, a - b, a * b, a % b OUT 0 ESAC)
+               INT b = pop, a = pop;
+               push(CASE INT k; (char in string(c, k, "+-*/") | k | 0) IN a + b, a - b, a * b, a % b OUT 0 ESAC)
             FI;
             i +:= 1
          FI
       OD;
-      depiler
+      pop
    END;
    []STRING tests = ("3 4 + 2 *", "5 1 2 + 4 * + 3 -", "100 7 /", "2 3 4 * -");
-   FOR t TO UPB tests DO print((tests[t], " = ", whole(evaluer(tests[t]), 0), newline)) OD
+   FOR t TO UPB tests DO print((tests[t], " = ", whole(evaluate(tests[t]), 0), newline)) OD
 END

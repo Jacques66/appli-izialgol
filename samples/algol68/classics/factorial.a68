@@ -1,4 +1,4 @@
-# Factorielles : recursion, whole, LONG LONG INT #
+# Factorials: recursion, whole, LONG LONG INT #
 BEGIN
    PROC fact = (INT n) INT: (n <= 1 | 1 | n * fact(n - 1));
    FOR i FROM 0 TO 12 DO

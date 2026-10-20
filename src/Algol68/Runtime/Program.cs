@@ -5,7 +5,7 @@ using Studio.Algol68.Exec;
 
 namespace Studio.Algol68.Runtime;
 
-/// <summary>Programme compile : arbre executable + sources (la serialisation embarque les sources).</summary>
+/// <summary>Compiled program: executable tree + sources (serialisation embeds the sources).</summary>
 public sealed class CompiledProgram : ICompiledProgram
 {
     public string LanguageId => "algol68";
@@ -13,7 +13,7 @@ public sealed class CompiledProgram : ICompiledProgram
     public SourceFile MainSource { get; }
     public IReadOnlyList<SourceFile> Includes { get; }
     public string MainFile => MainSource.Path;
-    /// <summary>Precision de LONG LONG (PR precision PR) a retablir avant l'execution.</summary>
+    /// <summary>LONG LONG precision (PR precision PR) to restore before execution.</summary>
     public int LongLongDigits { get; init; } = Prelude.DefaultLongLongDigits;
 
     public CompiledProgram(RoutineInfo main, SourceFile src, IReadOnlyList<SourceFile> includes)
@@ -31,7 +31,7 @@ public sealed class CompiledProgram : ICompiledProgram
 
     public const string Magic = "A68SRC1\n";
 
-    /// <summary>Forme serialisee : les sources (le programme est recompile au chargement).</summary>
+    /// <summary>Serialised form: the sources (the program is recompiled when loaded).</summary>
     public byte[] Serialize()
     {
         var p = new Payload { MainPath = MainSource.Path, MainText = MainSource.Text };
@@ -42,8 +42,8 @@ public sealed class CompiledProgram : ICompiledProgram
     public static (SourceFile main, Dictionary<string, SourceFile> includes) Parse(byte[] payload)
     {
         var text = Encoding.UTF8.GetString(payload);
-        if (!text.StartsWith(Magic)) throw new InvalidDataException("charge utile Algol 68 invalide");
-        var p = JsonSerializer.Deserialize<Payload>(text[Magic.Length..]) ?? throw new InvalidDataException("charge utile Algol 68 vide");
+        if (!text.StartsWith(Magic)) throw new InvalidDataException("invalid Algol 68 payload");
+        var p = JsonSerializer.Deserialize<Payload>(text[Magic.Length..]) ?? throw new InvalidDataException("empty Algol 68 payload");
         var incs = new Dictionary<string, SourceFile>(StringComparer.OrdinalIgnoreCase);
         foreach (var i in p.Includes) if (i.Length == 2) incs[i[0]] = new SourceFile(i[0], i[1]);
         return (new SourceFile(p.MainPath, p.MainText), incs);
@@ -79,11 +79,11 @@ public sealed class Execution : IProgramExecution
             lock (ctx.SchedLock) Monitor.PulseAll(ctx.SchedLock);
         });
         ctx.RefreshAttention();
-        // grande pile : recursions profondes (man or boy, Ackermann...)
-        var t = new Thread(() => result = Body(), 512 * 1024 * 1024) { Name = "Algol68 principal", IsBackground = true };
+        // large stack: deep recursion (man or boy, Ackermann...)
+        var t = new Thread(() => result = Body(), 512 * 1024 * 1024) { Name = "Algol68 main", IsBackground = true };
         t.Start();
         t.Join();
-        return result ?? new ExecutionResult(1, new RuntimeErrorInfo("erreur interne : exécution interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>()));
+        return result ?? new ExecutionResult(1, new RuntimeErrorInfo("internal error: execution interrupted", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>()));
     }
 
     ExecutionResult Body()
@@ -106,8 +106,8 @@ public sealed class Execution : IProgramExecution
         }
         catch (CancelledException) { return new ExecutionResult(130, null, true); }
         catch (StopException s) { return new ExecutionResult(s.Code, null); }
-        catch (ParAbortException) { return new ExecutionResult(1, new RuntimeErrorInfo("exécution parallèle interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
-        catch (JumpException j) { return new ExecutionResult(1, new RuntimeErrorInfo($"saut vers l'étiquette « {j.Target.Label} » qui n'est plus accessible", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
+        catch (ParAbortException) { return new ExecutionResult(1, new RuntimeErrorInfo("parallel execution interrupted", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
+        catch (JumpException j) { return new ExecutionResult(1, new RuntimeErrorInfo($"jump to label '{j.Target.Label}' which is no longer accessible", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
         catch (Exception e) when (e is not ThreadAbortException)
         {
             var err = new A68Error(InternalMessage(e));
@@ -121,11 +121,11 @@ public sealed class Execution : IProgramExecution
 
     static string InternalMessage(Exception e) => e switch
     {
-        StackOverflowException or InsufficientExecutionStackException => "débordement de pile (récursion trop profonde)",
-        OutOfMemoryException => "mémoire insuffisante",
-        IOException io => "erreur d'entrée-sortie : " + io.Message,
-        UnauthorizedAccessException ua => "accès refusé : " + ua.Message,
-        _ => $"erreur interne de l'environnement d'exécution ({e.GetType().Name} : {e.Message})",
+        StackOverflowException or InsufficientExecutionStackException => "stack overflow (recursion too deep)",
+        OutOfMemoryException => "out of memory",
+        IOException io => "input/output error: " + io.Message,
+        UnauthorizedAccessException ua => "access denied: " + ua.Message,
+        _ => $"internal runtime error ({e.GetType().Name}: {e.Message})",
     };
 
     bool Filter(A68Error e, ThreadCtx ts)
@@ -147,7 +147,7 @@ public sealed class Execution : IProgramExecution
         return new RuntimeErrorInfo(e.Message, file, line, col, stack);
     }
 
-    /// <summary>Pile d'appels au moment de l'erreur (frame 0 = la plus recente).</summary>
+    /// <summary>Call stack at the time of the error (frame 0 = most recent).</summary>
     public static IReadOnlyList<StackFrameInfo> CaptureStack(A68Error e, ThreadCtx ts)
     {
         var list = new List<StackFrameInfo>();

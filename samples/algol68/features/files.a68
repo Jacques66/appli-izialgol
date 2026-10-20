@@ -1,52 +1,52 @@
-# Fichiers : establish, put, close, open, get, getf, fin de fichier, associate, positions, make term #
+# Files: establish, put, close, open, get, getf, end of file, associate, positions, make term #
 BEGIN
    FILE f;
-   IF establish(f, "essai.txt", stand back channel) /= 0 THEN print("echec") FI;
-   put(f, ("ligne un", newline));
+   IF establish(f, "test.txt", stand back channel) /= 0 THEN print("failure") FI;
+   put(f, ("line one", newline));
    put(f, (12, 3.5, newline));
-   putf(f, ($"valeur "g(0)l$, 99));
+   putf(f, ($"value "g(0)l$, 99));
    close(f);
-   open(f, "essai.txt", stand back channel);
+   open(f, "test.txt", stand back channel);
    STRING s; INT i; REAL r;
    get(f, (s, newline));
    get(f, (i, r, newline));
    print((s, "|", i, "|", r, newline));
    INT v;
-   getf(f, ($"valeur "g$, v));
+   getf(f, ($"value "g$, v));
    print((v, newline));
-   INT lus := 0;
+   INT count := 0;
    BEGIN
-      on logical file end(f, (REF FILE ff) BOOL: GOTO fin);
-      DO get(f, (s, newline)); lus +:= 1 OD;
-   fin:
-      print(("lignes restantes : ", whole(lus, 0), newline))
+      on logical file end(f, (REF FILE ff) BOOL: GOTO done);
+      DO get(f, (s, newline)); count +:= 1 OD;
+   done:
+      print(("remaining lines: ", whole(count, 0), newline))
    END;
    close(f);
-   STRING tampon := "";
+   STRING buffer := "";
    FILE g;
-   associate(g, tampon);
+   associate(g, buffer);
    put(g, ("abc", 42));
-   print((tampon, newline));
-   FILE h; STRING source := "17 23 bonjour";
+   print((buffer, newline));
+   FILE h; STRING source := "17 23 hello";
    associate(h, source);
-   INT a, b; STRING mot;
-   get(h, (a, b, mot));
-   print((a + b, "[", mot, "]", newline));
+   INT a, b; STRING word;
+   get(h, (a, b, word));
+   print((a + b, "[", word, "]", newline));
    FILE p; STRING buf := "";
    associate(p, buf);
    put(p, ("12345", newline, "ab"));
    print((line number(p), char number(p), newline));
-   FILE q; STRING src := "un,deux;trois";
+   FILE q; STRING src := "one,two;three";
    associate(q, src);
    make term(q, ",;");
    STRING m1, m2, m3; CHAR sep;
    get(q, (m1, sep, m2, sep, m3));
    print((m1, "/", m2, "/", m3, newline));
    FILE e;
-   IF open(e, "essai.txt", stand back channel) = 0 THEN
-      STRING premiere;
-      get(e, premiere);
-      print((premiere, newline));
+   IF open(e, "test.txt", stand back channel) = 0 THEN
+      STRING first;
+      get(e, first);
+      print((first, newline));
       scratch(e)
    FI;
    print((put possible(stand out), get possible(stand out), get possible(stand in), newline))

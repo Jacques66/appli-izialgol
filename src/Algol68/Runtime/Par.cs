@@ -2,7 +2,7 @@ using Studio.Algol68.Exec;
 
 namespace Studio.Algol68.Runtime;
 
-/// <summary>Clause parallele : chaque unite s'execute dans un vrai fil ; le parent attend la fin de toutes.</summary>
+/// <summary>Parallel clause: each unit runs in a real thread; the parent waits for all of them.</summary>
 public sealed class ParNode : Node
 {
     readonly Node[] units; readonly int level;
@@ -56,7 +56,7 @@ public sealed class ParNode : Node
         foreach (var t in threads) t.Start();
         lock (ctx.SchedLock)
         {
-            ctx.RunnableThreads--;   // le parent attend
+            ctx.RunnableThreads--;   // the parent is waiting
             try
             {
                 while (remaining > 0)
@@ -65,9 +65,9 @@ public sealed class ParNode : Node
                     Monitor.Wait(ctx.SchedLock, 50);
                     if (first == null && Par.Persists(ctx, () => remaining > 0 && ctx.RunnableThreads <= 0 && ctx.BlockedOnSema > 0 && epoch == ctx.SemaEpoch))
                     {
-                        // toutes les branches sont bloquees sur des semaphores
+                        // all branches are blocked on semaphores
                         group.Aborted = true; ctx.AbortedGroups++; ctx.RefreshAttention();
-                        first ??= RT.Err("interblocage : toutes les branches parallèles attendent un sémaphore (DOWN)", this);
+                        first ??= RT.Err("deadlock: all parallel branches are waiting on a semaphore (DOWN)", this);
                         Monitor.PulseAll(ctx.SchedLock);
                     }
                 }
@@ -95,7 +95,7 @@ public sealed class ParNode : Node
 
 public static class Par
 {
-    /// <summary>Vrai si la condition (verrou tenu) reste vraie pendant 150 ms (filtre les reveils en cours).</summary>
+    /// <summary>True if the condition (lock held) stays true for 150 ms (filters out wake-ups in progress).</summary>
     public static bool Persists(ExecContext ctx, Func<bool> cond)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -109,7 +109,7 @@ public static class Par
 
     public static void Down(Frame f, Value s, Node at)
     {
-        var sema = s.O as SemaV ?? throw RT.Err("DOWN : sémaphore non initialisé", at);
+        var sema = s.O as SemaV ?? throw RT.Err("DOWN: uninitialised semaphore", at);
         var ctx = f.Ctx;
         var g = ThreadCtx.Current.Group;
         lock (ctx.SchedLock)
@@ -122,10 +122,10 @@ public static class Par
                 {
                     long epoch = ctx.SemaEpoch;
                     Monitor.Wait(ctx.SchedLock, 50);
-                    // interblocage : aucun fil executable et aucun UP pendant l'attente
+                    // deadlock: no runnable thread and no UP during the wait
                     if (Par.Persists(ctx, () => ctx.RunnableThreads <= 0 && epoch == ctx.SemaEpoch && sema.Level <= 0))
                     {
-                            throw RT.Err("interblocage : tous les processus attendent un sémaphore (DOWN)", at);
+                            throw RT.Err("deadlock: all processes are waiting on a semaphore (DOWN)", at);
                     }
                 }
                 finally { ctx.RunnableThreads++; ctx.BlockedOnSema--; }
@@ -138,7 +138,7 @@ public static class Par
 
     public static void Up(Frame f, Value s, Node at)
     {
-        var sema = s.O as SemaV ?? throw RT.Err("UP : sémaphore non initialisé", at);
+        var sema = s.O as SemaV ?? throw RT.Err("UP: uninitialised semaphore", at);
         var ctx = f.Ctx;
         lock (ctx.SchedLock)
         {

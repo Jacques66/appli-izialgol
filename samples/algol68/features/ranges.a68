@@ -1,28 +1,28 @@
-# Portees : masquage d'identificateurs, de modes, d'operateurs et de priorites ; blocs imbriques #
+# Ranges: hiding identifiers, modes, operators and priorities; nested blocks #
 BEGIN
    INT x = 1;
    MODE T = INT;
    PRIO >> = 6;
    OP >> = (INT a, b) INT: a + b + 100;
    BEGIN
-      REAL x = 2.5;                  # masque l'identite INT x #
-      MODE T = STRING;               # masque le mode T #
-      T t := "mode local";
-      PRIO >> = 7;                   # priorite locale : >> lie plus fort que + #
+      REAL x = 2.5;                  # hides the identity INT x #
+      MODE T = STRING;               # hides the mode T #
+      T t := "local mode";
+      PRIO >> = 7;                   # local priority: >> binds more tightly than + #
       OP >> = (INT a, b) INT: a * b;
       print((x, " ", t, " ", 1 + 2 >> 3, newline))
    END;
    T t := 41;
    print((x, t + 1, 1 + 2 >> 3, newline));
-   # identificateur visible dans toute sa portee : appel avant la declaration textuelle #
+   # an identifier is visible in its whole range: call before the textual declaration #
    PROC a = INT: b * 2;
    PROC b = INT: 21;
    print((a, newline));
-   # boucle : le compteur est local a chaque tour #
-   INT somme := 0;
-   FOR x TO 3 DO somme +:= x OD;
-   print((somme, x, newline));
-   # declaration dans une clause de choix #
+   # loop: the counter is local to each iteration #
+   INT sum := 0;
+   FOR x TO 3 DO sum +:= x OD;
+   print((sum, x, newline));
+   # declaration inside a choice clause #
    IF INT y = x + 1; y > 1 THEN print((y, newline)) FI;
-   CASE INT z = 2; z IN print("un"), print(("deux", newline)) ESAC
+   CASE INT z = 2; z IN print("one"), print(("two", newline)) ESAC
 END

@@ -5,7 +5,7 @@ using Studio.Algol68.Semantics;
 
 namespace Studio.Algol68.Runtime;
 
-/// <summary>Services d'execution communs (copies, affectations, portees, controles).</summary>
+/// <summary>Common runtime services (copies, assignments, scopes, checks).</summary>
 public static class RT
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -14,31 +14,31 @@ public static class RT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value CheckInit(Value v, Node at)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("valeur non initialisée", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("uninitialised value", at);
         return v;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RefV CheckNil(RefV? r, Node at)
     {
-        if (r == null || r.A == null) throw Err("déréférencement de NIL", at);
+        if (r == null || r.A == null) throw Err("dereferencing NIL", at);
         return r;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long CheckInt(long v, Node at)
     {
-        if (v > int.MaxValue || v < int.MinValue) throw Err("débordement d'entier (INT)", at);
+        if (v > int.MaxValue || v < int.MinValue) throw Err("integer overflow (INT)", at);
         return v;
     }
 
     public static double CheckReal(double d, Node at)
     {
-        if (double.IsNaN(d) || double.IsInfinity(d)) throw Err("débordement ou résultat indéfini (REAL)", at);
+        if (double.IsNaN(d) || double.IsInfinity(d)) throw Err("overflow or undefined result (REAL)", at);
         return d;
     }
 
-    /// <summary>Copie profonde d'une valeur composite (rangees, structures, unions).</summary>
+    /// <summary>Deep copy of a composite value (rows, structures, unions).</summary>
     public static Value DeepCopy(Value v, Mode m)
     {
         if (v.O == null || ReferenceEquals(v.O, Value.Uninit)) return v;
@@ -85,7 +85,7 @@ public static class RT
         return new RowV(elems, 0, lwb, upb, stride);
     }
 
-    /// <summary>Affectation dans une case : en place pour les structures et les rangees non flexibles.</summary>
+    /// <summary>Assignment into a cell: in place for structures and non-flexible rows.</summary>
     public static void AssignInto(Value[] a, int i, Value v, Mode m, Node at)
     {
         switch (m)
@@ -111,7 +111,7 @@ public static class RT
                     var src = (RowV)CheckInit(v, at).O!;
                     if (a[i].O is not RowV cur) { a[i] = Value.Obj(CopyRow(src, rm.Elem)); return; }
                     if (!cur.SameBounds(src))
-                        throw Err($"affectation de rangées de bornes différentes ({BoundsText(src)} dans {BoundsText(cur)})", at);
+                        throw Err($"assignment of rows with different bounds ({BoundsText(src)} into {BoundsText(cur)})", at);
                     AssignRowElements(cur, src, rm.Elem, at);
                     return;
                 }
@@ -125,7 +125,7 @@ public static class RT
 
     public static void AssignRowElements(RowV dst, RowV src, Mode elem, Node at)
     {
-        var vals = src.Elements(); // copie prealable : gere le recouvrement (a[2:5] := a[1:4])
+        var vals = src.Elements(); // copy first: handles overlap (a[2:5] := a[1:4])
         int k = 0;
         bool composite = elem.NeedsCopy;
         foreach (int idx in dst.Indices())
@@ -144,7 +144,7 @@ public static class RT
         return "[" + string.Join(", ", parts) + "]";
     }
 
-    /// <summary>Portee (profondeur dynamique, plus grand = plus recent) d'une valeur.</summary>
+    /// <summary>Scope (dynamic depth, larger = younger) of a value.</summary>
     public static int ScopeOf(Value v, Mode m)
     {
         if (v.O == null || ReferenceEquals(v.O, Value.Uninit)) return 0;
@@ -180,10 +180,10 @@ public static class RT
     public static void CheckScope(Value v, Mode m, int limit, Node at)
     {
         int s = ScopeOf(v, m);
-        if (s > limit) throw Err("violation de portée : la valeur ne vit pas assez longtemps pour cette affectation ou ce résultat", at);
+        if (s > limit) throw Err("scope violation: the value does not live long enough for this assignment or yield", at);
     }
 
-    /// <summary>Valeur produite par SKIP pour un mode.</summary>
+    /// <summary>Value yielded by SKIP for a mode.</summary>
     public static Value SkipValue(Mode m, ModeTable mt)
     {
         switch (m)
@@ -219,13 +219,13 @@ public static class RT
         return Value.UninitValue;
     }
 
-    // ------------------------------------------------------------- chaines
+    // ------------------------------------------------------------- strings
 
     public static string Str(Value v, Node? at = null)
     {
         if (v.O is RowV r) return r.AsString();
         if (v.O == null) return ((char)v.N).ToString();
-        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("chaîne non initialisée", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("uninitialised string", at);
         return v.O.ToString() ?? "";
     }
 

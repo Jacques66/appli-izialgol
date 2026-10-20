@@ -1,16 +1,16 @@
-# Clauses de choix : IF ELIF ELSE, CASE IN OUSE OUT, formes abregees, collaterales, ANDF ORF, ASSERT #
+# Choice clauses: IF ELIF ELSE, CASE IN OUSE OUT, brief forms, collaterals, ANDF ORF, ASSERT #
 BEGIN
-   PROC classer = (INT n) STRING:
-      IF n < 0 THEN "negatif" ELIF n = 0 THEN "nul" ELIF n < 10 THEN "petit" ELSE "grand" FI;
-   FOR i FROM -1 BY 6 TO 11 DO print((classer(i), " ")) OD; print(newline);
-   print((classer(0), newline));
-   PROC jour = (INT j) STRING:
-      CASE j IN "lundi", "mardi", "mercredi" OUSE j - 3 IN "jeudi", "vendredi" OUT "week-end" ESAC;
-   FOR j TO 7 DO print((jour(j), " ")) OD; print(newline);
+   PROC classify = (INT n) STRING:
+      IF n < 0 THEN "negative" ELIF n = 0 THEN "zero" ELIF n < 10 THEN "small" ELSE "large" FI;
+   FOR i FROM -1 BY 6 TO 11 DO print((classify(i), " ")) OD; print(newline);
+   print((classify(0), newline));
+   PROC day = (INT j) STRING:
+      CASE j IN "monday", "tuesday", "wednesday" OUSE j - 3 IN "thursday", "friday" OUT "weekend" ESAC;
+   FOR j TO 7 DO print((day(j), " ")) OD; print(newline);
    INT x = 7;
-   print(((x > 5 | "oui" | "non"), (x | "un", "deux" | "beaucoup"), (x < 0 | "a" |: x < 10 | "b" | "c"), newline));
+   print(((x > 5 | "yes" | "no"), (x | "one", "two" | "many"), (x < 0 | "a" |: x < 10 | "b" | "c"), newline));
    print(((2 | 10, 20, 30), newline));
-   IF INT carre = x * x; carre > 40 THEN print(("carre ", whole(carre, 0), newline)) FI;
+   IF INT square = x * x; square > 40 THEN print(("square ", whole(square, 0), newline)) FI;
    INT y = (INT a := 3, b := 4; a * b);
    print((y, newline));
    INT p := 0, q := 0;
@@ -20,5 +20,5 @@ BEGIN
    INT k := 4;
    print((k <= 3 ANDF t[k] = 3, k > 3 ORF t[k] = 0, newline));
    ASSERT (x = 7);
-   print(("fin", newline))
+   print(("end", newline))
 END

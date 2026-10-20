@@ -61,15 +61,15 @@ public sealed partial class Compiler
         if (p.GeneralParams.Count > 0)
         {
             fmtDynamic = true;
-            if (p.GeneralParams.Count > 4) Error(p, "le motif général accepte au plus 3 paramètres (4 pour h)");
+            if (p.GeneralParams.Count > 4) Error(p, "the general pattern accepts at most 3 parameters (4 for h)");
             cp.GParams = p.GeneralParams.Select(u => Gen(u, M.Int, Strength.Meek)).ToArray();
         }
         if (p.Kind == PatternKind.Complex)
         {
             int i = cp.Frames.ToList().FindIndex(x => x.Marker == 'i');
-            if (i <= 0 || i == cp.Frames.Length - 1) Error(p, "motif complexe mal formé : un motif réel de chaque côté de « i » est requis");
+            if (i <= 0 || i == cp.Frames.Length - 1) Error(p, "ill-formed complex pattern: a real pattern is required on each side of 'i'");
         }
-        if (p.Kind == PatternKind.Real && !cp.Frames.Any(x => x.Marker is 'd' or 'z')) Error(p, "motif réel sans chiffre");
+        if (p.Kind == PatternKind.Real && !cp.Frames.Any(x => x.Marker is 'd' or 'z')) Error(p, "real pattern without digits");
         return cp;
     }
 }

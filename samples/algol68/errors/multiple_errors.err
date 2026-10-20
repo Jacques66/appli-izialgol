@@ -1,4 +1,4 @@
-3: identificateur « inconnu » non déclaré
-4: opérateur « * » non défini
-5: ne peut pas être converti en INT
-6: identificateur « autre » non déclaré
+3: identifier 'unknown' not declared
+4: operator '*' not defined
+5: cannot be coerced to INT
+6: identifier 'other' not declared

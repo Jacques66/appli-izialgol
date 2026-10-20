@@ -5,8 +5,8 @@ using System.Text;
 namespace Studio.Algol68.Runtime;
 
 /// <summary>
-/// Reel multiprecision decimal (LONG REAL, LONG LONG REAL) : valeur = M x 10^E, |M| < 10^Digits.
-/// Les fonctions transcendantes sont calculees en virgule fixe avec chiffres de garde.
+/// Multiprecision decimal real (LONG REAL, LONG LONG REAL): value = M x 10^E, |M| < 10^Digits.
+/// Transcendental functions are computed in fixed point with guard digits.
 /// </summary>
 public sealed class MpReal : IComparable<MpReal>
 {
@@ -43,7 +43,7 @@ public sealed class MpReal : IComparable<MpReal>
         m = BigInteger.Abs(m);
         int d = (int)Math.Floor(BigInteger.Log10(m)) + 1;
         if (d < 1) d = 1;
-        // correction des erreurs d'arrondi de Log10
+        // correct the rounding errors of Log10
         while (d > 1 && m < Pow10(d - 1)) d--;
         while (m >= Pow10(d)) d++;
         return d;
@@ -67,9 +67,9 @@ public sealed class MpReal : IComparable<MpReal>
             e += k;
             if (DigitCount(m) > digits) { m = DivRound(m, 10); e++; }
         }
-        // retirer les zeros de fin (forme canonique)
+        // remove trailing zeros (canonical form)
         while (!m.IsZero && m % 10 == 0) { m /= 10; e++; }
-        if (e + DigitCount(m) > MaxExponent) throw new OverflowException("depassement de capacite (LONG REAL)");
+        if (e + DigitCount(m) > MaxExponent) throw new OverflowException("overflow (LONG REAL)");
         if (e + DigitCount(m) < -MaxExponent) return new MpReal(BigInteger.Zero, 0, digits);
         return new MpReal(m, e, digits);
     }
@@ -82,7 +82,7 @@ public sealed class MpReal : IComparable<MpReal>
     public static MpReal FromDouble(double d, int digits)
     {
         if (d == 0) return Zero(digits);
-        // conversion exacte de la valeur binaire
+        // exact conversion of the binary value
         long bits = BitConverter.DoubleToInt64Bits(d);
         bool neg = bits < 0;
         int exp = (int)((bits >> 52) & 0x7FF);
@@ -125,7 +125,7 @@ public sealed class MpReal : IComparable<MpReal>
         int d = Math.Max(a.Digits, b.Digits);
         if (a.IsZero) return b.WithDigits(d);
         if (b.IsZero) return a.WithDigits(d);
-        // eviter des alignements enormes : si les ordres de grandeur sont tres eloignes
+        // avoid huge alignments when the magnitudes are very far apart
         int ma = a.E + DigitCount(a.M), mb = b.E + DigitCount(b.M);
         if (ma - mb > d + 2) return a.WithDigits(d);
         if (mb - ma > d + 2) return b.WithDigits(d);
@@ -156,7 +156,7 @@ public sealed class MpReal : IComparable<MpReal>
         return (M * Pow10(E - e)).CompareTo(o.M * Pow10(o.E - e));
     }
 
-    /// <summary>Partie entière par defaut (ENTIER).</summary>
+    /// <summary>Floor (ENTIER).</summary>
     public BigInteger Floor()
     {
         if (E >= 0) return M * Pow10(E);
@@ -164,7 +164,7 @@ public sealed class MpReal : IComparable<MpReal>
         if (r.Sign < 0) q -= 1;
         return q;
     }
-    /// <summary>Arrondi au plus proche (ROUND).</summary>
+    /// <summary>Round to nearest (ROUND).</summary>
     public BigInteger Round()
     {
         if (E >= 0) return M * Pow10(E);
@@ -174,9 +174,9 @@ public sealed class MpReal : IComparable<MpReal>
         return M.Sign < 0 ? -q : q;
     }
 
-    // ------------------------------------------------------------- virgule fixe
+    // ------------------------------------------------------------- fixed point
 
-    /// <summary>Valeur * 10^p, arrondie a l'entier.</summary>
+    /// <summary>Value * 10^p, rounded to an integer.</summary>
     BigInteger ToFixed(int p)
     {
         int s = E + p;
@@ -206,10 +206,10 @@ public sealed class MpReal : IComparable<MpReal>
 
     public static MpReal Sqrt(MpReal a)
     {
-        if (a.M.Sign < 0) throw new ArithmeticException("racine carree d'un nombre négatif");
+        if (a.M.Sign < 0) throw new ArithmeticException("square root of a negative number");
         if (a.IsZero) return a;
         int p = a.Digits + 6;
-        // n = M * 10^t avec (E - t) pair et au moins 2p chiffres
+        // n = M * 10^t with (E - t) even and at least 2p digits
         int t = 2 * p - DigitCount(a.M);
         if (t < 0) t = 0;
         if (((a.E - t) & 1) != 0) t++;
@@ -247,10 +247,10 @@ public sealed class MpReal : IComparable<MpReal>
 
     static readonly Dictionary<int, BigInteger> ln10Cache = new();
 
-    /// <summary>exp en virgule fixe : x*10^p -> exp(x)*10^p, |x| raisonnable.</summary>
+    /// <summary>exp in fixed point: x*10^p -> exp(x)*10^p, for reasonable |x|.</summary>
     static BigInteger ExpFixed(BigInteger x, int p)
     {
-        // reduction : x / 2^k
+        // reduction: x / 2^k
         var one = Pow10(p);
         int k = 0;
         var xr = x;
@@ -271,9 +271,9 @@ public sealed class MpReal : IComparable<MpReal>
     {
         int d = a.Digits;
         double approx = a.ToDouble();
-        if (approx > 2302585.0) throw new OverflowException("depassement de capacite dans exp");
+        if (approx > 2302585.0) throw new OverflowException("overflow in exp");
         if (approx < -2302585.0) return Zero(d);
-        // exp(x) = exp(r) * 10^q  avec x = q ln10 + r
+        // exp(x) = exp(r) * 10^q  with x = q ln10 + r
         int g = 12;
         int p = d + g + Math.Max(0, (int)Math.Abs(approx / 2.302585) .ToString().Length);
         var ln10 = Ln10Fixed(p);
@@ -314,14 +314,14 @@ public sealed class MpReal : IComparable<MpReal>
 
     public static MpReal Ln(MpReal a)
     {
-        if (a.M.Sign <= 0) throw new ArithmeticException("logarithme d'un nombre non positif");
+        if (a.M.Sign <= 0) throw new ArithmeticException("logarithm of a non-positive number");
         int d = a.Digits;
         int p = d + 12;
-        // a = m * 10^k avec m dans [1,10)
+        // a = m * 10^k with m in [1,10)
         int k = a.E + DigitCount(a.M) - 1;
         var m = Make(a.M, a.E - k, d + 12);
         double y0 = Math.Log(m.ToDouble());
-        // Newton : y = y + 2 (m - e^y)/(m + e^y)
+        // Newton: y = y + 2 (m - e^y)/(m + e^y)
         var mf = m.ToFixed(p);
         BigInteger y = new BigInteger(y0 * 1e15) * Pow10(p) / Pow10(15);
         var one = Pow10(p);
@@ -336,7 +336,7 @@ public sealed class MpReal : IComparable<MpReal>
         return Make(res, -p, d);
     }
 
-    /// <summary>sin et cos en virgule fixe pour |x| <= pi/4.</summary>
+    /// <summary>sin and cos in fixed point for |x| <= pi/4.</summary>
     static (BigInteger sin, BigInteger cos) SinCosFixed(BigInteger x, int p)
     {
         var one = Pow10(p);
@@ -378,7 +378,7 @@ public sealed class MpReal : IComparable<MpReal>
     public static MpReal Tan(MpReal a)
     {
         int p = a.Digits + 10; var (s, c) = SinCosReduced(a, p);
-        if (c.IsZero) throw new ArithmeticException("tangente infinie");
+        if (c.IsZero) throw new ArithmeticException("infinite tangent");
         return Make(s * Pow10(p) / c, -p, a.Digits);
     }
 
@@ -388,7 +388,7 @@ public sealed class MpReal : IComparable<MpReal>
         bool inv = false; int sign = x.Sign;
         x = BigInteger.Abs(x);
         if (x > one) { x = one * one / x; inv = true; }
-        // demi-angles : atan(x) = 2 atan(x / (1 + sqrt(1 + x^2)))
+        // half angles: atan(x) = 2 atan(x / (1 + sqrt(1 + x^2)))
         int halvings = 0;
         var lim = one / 10;
         while (x > lim)
@@ -416,7 +416,7 @@ public sealed class MpReal : IComparable<MpReal>
         int p = a.Digits + 10;
         var one = Pow10(p);
         var x = a.ToFixed(p);
-        if (BigInteger.Abs(x) > one) throw new ArithmeticException("arcsin hors du domaine [-1, 1]");
+        if (BigInteger.Abs(x) > one) throw new ArithmeticException("arcsin outside the domain [-1, 1]");
         if (BigInteger.Abs(x) == one) return Make(x.Sign * PiFixed(p) / 2, -p, a.Digits);
         var c = ISqrt(one * one - x * x);
         return Make(AtanFixed(x * one / c, p), -p, a.Digits);
@@ -435,7 +435,7 @@ public sealed class MpReal : IComparable<MpReal>
         int d = Math.Max(x.Digits, y.Digits);
         if (x.IsZero)
         {
-            if (y.IsZero) throw new ArithmeticException("arctan2(0, 0) indéfini");
+            if (y.IsZero) throw new ArithmeticException("arctan2(0, 0) is undefined");
             var hp = Div(Pi(d), FromInt(2, d));
             return y.Sign > 0 ? hp : -hp;
         }
@@ -462,14 +462,14 @@ public sealed class MpReal : IComparable<MpReal>
 
     public static MpReal Pow(MpReal a, MpReal b)
     {
-        if (a.IsZero) return b.Sign > 0 ? a : throw new ArithmeticException("0 ** x avec x <= 0");
-        if (a.Sign < 0) throw new ArithmeticException("puissance réelle d'un nombre négatif");
+        if (a.IsZero) return b.Sign > 0 ? a : throw new ArithmeticException("0 ** x with x <= 0");
+        if (a.Sign < 0) throw new ArithmeticException("real power of a negative number");
         return Exp(Mul(b.WithDigits(b.Digits + 5), Ln(a.WithDigits(a.Digits + 5)))).WithDigits(Math.Max(a.Digits, b.Digits));
     }
 
-    // ------------------------------------------------------------- conversions en chiffres
+    // ------------------------------------------------------------- conversion to digits
 
-    /// <summary>Chiffres decimaux exacts : (chaine de chiffres, exposant decimal du premier chiffre).</summary>
+    /// <summary>Exact decimal digits: (digit string, decimal exponent of the first digit).</summary>
     public (string digits, int exp10) DecimalDigits()
     {
         if (M.IsZero) return ("0", 0);

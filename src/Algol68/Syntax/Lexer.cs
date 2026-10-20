@@ -13,26 +13,26 @@ public enum TK
 public sealed class Token
 {
     public TK Kind;
-    public string Text = "";          // identificateur (sans espaces), mot gras (majuscules), operateur, chaine
+    public string Text = "";          // identifier (without spaces), bold word (upper case), operator, string
     public string File = "";
     public int Line, Col;
     public BigInteger IntValue;       // IntDen / BitsDen
     public int Radix;                 // BitsDen
-    public int FormatLine, FormatCol; // FormatText : position du premier caractere apres '$'
+    public int FormatLine, FormatCol; // FormatText: position of the first character after '$'
     public override string ToString() => Kind switch
     {
-        TK.EOF => "fin de texte",
-        TK.Ident => $"« {Text} »",
-        TK.Bold => $"« {Text} »",
-        TK.StringDen => $"« \"{Text}\" »",
-        TK.FormatText => "texte de format",
-        _ => $"« {Text} »",
+        TK.EOF => "end of text",
+        TK.Ident => $"'{Text}'",
+        TK.Bold => $"'{Text}'",
+        TK.StringDen => $"'\"{Text}\"'",
+        TK.FormatText => "format text",
+        _ => $"'{Text}'",
     };
 }
 
 public enum Stropping { Upper, Quote }
 
-/// <summary>Analyse lexicale : stropping UPPER ou QUOTE, commentaires, pragmats, inclusions.</summary>
+/// <summary>Lexical analysis: UPPER or QUOTE stropping, comments, pragmats, inclusions.</summary>
 public sealed class Lexer
 {
     readonly List<Diagnostic> diags;
@@ -46,7 +46,7 @@ public sealed class Lexer
 
     public Stropping MainStropping { get; private set; }
 
-    /// <summary>Analyse lexicale d'un fragment (unite contenue dans un format), positions decalees.</summary>
+    /// <summary>Lexical analysis of a fragment (unit inside a format), with shifted positions.</summary>
     public static List<Token> LexFragment(string text, string file, int line, int col, Stropping strop, List<Diagnostic> diags, CompileOptions opt)
     {
         var lx = new Lexer(diags, opt);
@@ -73,7 +73,7 @@ public sealed class Lexer
 
     public static Stropping DetectStropping(string text)
     {
-        // Ignore le contenu des chaines ; cherche 'MOTCLE'.
+        // Ignores the contents of strings; looks for 'KEYWORD'.
         bool inStr = false;
         for (int i = 0; i < text.Length; i++)
         {
@@ -117,7 +117,7 @@ public sealed class Lexer
     {
         if (!includeStack.Add(file.Path))
         {
-            Error(file.Path, 1, 1, $"inclusion récursive du fichier « {file.Path} »");
+            Error(file.Path, 1, 1, $"recursive inclusion of file '{file.Path}'");
             return;
         }
         var s = new Src { Text = file.Text, File = file.Path };
@@ -131,23 +131,23 @@ public sealed class Lexer
     {
         while (true)
         {
-            // espaces
+            // spaces
             while (!s.AtEnd && char.IsWhiteSpace(s.Peek())) s.Next();
             if (s.AtEnd) return;
             int line = s.Line, col = s.Col;
             char c = s.Peek();
             Token Tok(TK k, string text) => new Token { Kind = k, Text = text, File = s.File, Line = line, Col = col };
 
-            // commentaires #...# et ¢...¢
+            // comments #...# and ¢...¢
             if (c == '#' || c == '¢')
             {
                 s.Next();
                 while (!s.AtEnd && s.Peek() != c) s.Next();
-                if (s.AtEnd) Error(s.File, line, col, "commentaire non termine");
+                if (s.AtEnd) Error(s.File, line, col, "unterminated comment");
                 else s.Next();
                 continue;
             }
-            // mots gras
+            // bold words
             string? bold = null;
             if (strop == Stropping.Upper && c >= 'A' && c <= 'Z')
             {
@@ -160,27 +160,27 @@ public sealed class Lexer
                 s.Next();
                 var sb = new StringBuilder();
                 while (!s.AtEnd && s.Peek() != '\'' && s.Peek() != '\n') sb.Append(s.Next());
-                if (s.Peek() == '\'') s.Next(); else Error(s.File, line, col, "mot gras non termine (apostrophe manquante)");
+                if (s.Peek() == '\'') s.Next(); else Error(s.File, line, col, "unterminated bold word (missing apostrophe)");
                 bold = sb.ToString().Replace(" ", "").ToUpperInvariant();
             }
             if (bold != null)
             {
                 if (bold == "CO" || bold == "COMMENT")
                 {
-                    if (!SkipUntilBold(s, bold, strop)) Error(s.File, line, col, $"commentaire {bold} non termine");
+                    if (!SkipUntilBold(s, bold, strop)) Error(s.File, line, col, $"unterminated {bold} comment");
                     continue;
                 }
                 if (bold == "PR" || bold == "PRAGMAT")
                 {
                     string? body = ReadUntilBold(s, bold, strop);
-                    if (body == null) { Error(s.File, line, col, $"pragmat {bold} non termine"); continue; }
+                    if (body == null) { Error(s.File, line, col, $"unterminated {bold} pragmat"); continue; }
                     HandlePragmat(body, s, line, col, ref strop);
                     continue;
                 }
                 Add(Tok(TK.Bold, bold));
                 continue;
             }
-            // identificateurs
+            // identifiers
             if (char.IsLetter(c) && (strop == Stropping.Quote || char.IsLower(c)))
             {
                 var sb = new StringBuilder();
@@ -188,7 +188,7 @@ public sealed class Lexer
                 {
                     while (!s.AtEnd && (char.IsLetterOrDigit(s.Peek()) || s.Peek() == '_') && (strop == Stropping.Quote || !(s.Peek() >= 'A' && s.Peek() <= 'Z')))
                         sb.Append(s.Next());
-                    // espaces internes : continue si le caractere suivant non blanc est une lettre minuscule/chiffre
+                    // inner spaces: continue if the next non-blank character is a lower-case letter/digit
                     int k = 0;
                     while (s.Peek(k) == ' ' || s.Peek(k) == '\t') k++;
                     if (k > 0)
@@ -204,13 +204,13 @@ public sealed class Lexer
                 Add(Tok(TK.Ident, id));
                 continue;
             }
-            // denotations numeriques
+            // numeric denotations
             if (char.IsDigit(c) || (c == '.' && char.IsDigit(s.Peek(1))))
             {
                 LexNumber(s, line, col);
                 continue;
             }
-            // chaines
+            // strings
             if (c == '"')
             {
                 s.Next();
@@ -224,16 +224,16 @@ public sealed class Lexer
                     if (d == '"')
                     {
                         if (s.Peek() == '"') { s.Next(); sb.Append('"'); continue; }
-                        // concatenation de denotations adjacentes : "abc" "def" (extension a68g)
+                        // concatenation of adjacent denotations: "abc" "def" (a68g extension)
                         ok = true; break;
                     }
                     sb.Append(d);
                 }
-                if (!ok) Error(s.File, line, col, "chaîne non terminee");
+                if (!ok) Error(s.File, line, col, "unterminated string");
                 Add(Tok(TK.StringDen, sb.ToString()));
                 continue;
             }
-            // texte de format
+            // format text
             if (c == '$')
             {
                 s.Next();
@@ -247,7 +247,7 @@ public sealed class Lexer
                     if (d == '$' && !inStr) { ok = true; break; }
                     sb.Append(d);
                 }
-                if (!ok) Error(s.File, line, col, "texte de format non termine (« $ » manquant)");
+                if (!ok) Error(s.File, line, col, "unterminated format text (missing '$')");
                 var t = Tok(TK.FormatText, sb.ToString());
                 t.FormatLine = fl; t.FormatCol = fc;
                 Add(t);
@@ -259,7 +259,7 @@ public sealed class Lexer
                 case ')': s.Next(); Add(Tok(TK.RParen, ")")); continue;
                 case '[': s.Next(); Add(Tok(TK.LBrack, "[")); continue;
                 case ']': s.Next(); Add(Tok(TK.RBrack, "]")); continue;
-                case '{': s.Next(); Add(Tok(TK.LParen, "(")); continue; // representation alternative
+                case '{': s.Next(); Add(Tok(TK.LParen, "(")); continue; // alternative representation
                 case '}': s.Next(); Add(Tok(TK.RParen, ")")); continue;
                 case ',': s.Next(); Add(Tok(TK.Comma, ",")); continue;
                 case ';': s.Next(); Add(Tok(TK.Semi, ";")); continue;
@@ -280,7 +280,7 @@ public sealed class Lexer
             }
             if (c == '!' && !IsOpNomad(s.Peek(1)))
             {
-                // representation alternative de |
+                // alternative representation of |
                 s.Next();
                 if (s.Peek() == ':') { s.Next(); Add(Tok(TK.BarColon, "|:")); } else Add(Tok(TK.Bar, "|"));
                 continue;
@@ -295,7 +295,7 @@ public sealed class Lexer
                 Add(Tok(TK.Op, sb.ToString()));
                 continue;
             }
-            // caracteres unicode usuels
+            // common Unicode characters
             string? uni = c switch { '×' => "*", '÷' => "%", '≤' => "<=", '≥' => ">=", '≠' => "/=", '¬' => "~", '∧' => "&", '∨' => "OR", '↑' => "**", _ => null };
             if (uni != null)
             {
@@ -303,7 +303,7 @@ public sealed class Lexer
                 Add(uni == "OR" ? Tok(TK.Bold, "OR") : Tok(TK.Op, uni));
                 continue;
             }
-            Error(s.File, line, col, $"caractère inattendu « {c} »");
+            Error(s.File, line, col, $"unexpected character '{c}'");
             s.Next();
         }
     }
@@ -354,10 +354,10 @@ public sealed class Lexer
         if (lower.StartsWith("include") || lower.StartsWith("read"))
         {
             int q1 = b.IndexOf('"'), q2 = q1 >= 0 ? b.IndexOf('"', q1 + 1) : -1;
-            if (q1 < 0 || q2 < 0) { Error(s.File, line, col, "pragmat include : nom de fichier attendu entre guillemets"); return; }
+            if (q1 < 0 || q2 < 0) { Error(s.File, line, col, "include pragmat: quoted file name expected"); return; }
             string name = b.Substring(q1 + 1, q2 - q1 - 1);
             var resolved = options.IncludeResolver?.Invoke(name, s.File);
-            if (resolved == null) { Error(s.File, line, col, $"fichier inclus « {name} » introuvable"); return; }
+            if (resolved == null) { Error(s.File, line, col, $"included file '{name}' not found"); return; }
             Included.Add(resolved);
             LexFile(resolved, strop);
             return;
@@ -366,11 +366,11 @@ public sealed class Lexer
         if (m.Success)
         {
             int digits = int.Parse(m.Groups[1].Value);
-            if (digits < 1 || digits > 10000) Error(s.File, line, col, "precision invalide (1..10000)");
+            if (digits < 1 || digits > 10000) Error(s.File, line, col, "invalid precision (1..10000)");
             else PrecisionPragmat = digits;
             return;
         }
-        // autres pragmats : ignores
+        // other pragmats: ignored
     }
 
     void LexNumber(Src s, int line, int col)
@@ -381,7 +381,7 @@ public sealed class Lexer
             while (true)
             {
                 while (char.IsDigit(s.Peek())) into.Append(s.Next());
-                // espaces entre chiffres (RR) : seulement si suivis d'un chiffre
+                // spaces between digits (RR): only if followed by a digit
                 int k = 0;
                 while (s.Peek(k) == ' ') k++;
                 if (k > 0 && char.IsDigit(s.Peek(k)) && into.Length > 0) { for (int i = 0; i < k; i++) s.Next(); continue; }
@@ -389,7 +389,7 @@ public sealed class Lexer
             }
         }
         ReadDigits(digits);
-        // denotation de bits : NrDIGITS
+        // bits denotation: NrDIGITS
         if (s.Peek() == 'r' && digits.Length > 0 && IsRadixDigit(s.Peek(1), int.Parse(digits.ToString())))
         {
             int radix = int.Parse(digits.ToString());
@@ -397,12 +397,12 @@ public sealed class Lexer
             var sb = new StringBuilder();
             while (IsRadixDigit(s.Peek(), 16)) sb.Append(s.Next());
             if (radix != 2 && radix != 4 && radix != 8 && radix != 16)
-                Error(s.File, line, col, $"base {radix} invalide pour une dénotation de bits (2, 4, 8 ou 16)");
+                Error(s.File, line, col, $"invalid radix {radix} for a bits denotation (2, 4, 8 or 16)");
             BigInteger v = BigInteger.Zero;
             foreach (char ch in sb.ToString())
             {
                 int d = Convert.ToInt32(ch.ToString(), 16);
-                if (d >= radix) Error(s.File, line, col, $"chiffre « {ch} » invalide en base {radix}");
+                if (d >= radix) Error(s.File, line, col, $"invalid digit '{ch}' in radix {radix}");
                 v = v * radix + d;
             }
             Add(new Token { Kind = TK.BitsDen, Text = digits + "r" + sb, IntValue = v, Radix = radix, File = s.File, Line = line, Col = col });
@@ -418,7 +418,7 @@ public sealed class Lexer
             ReadDigits(frac);
             text.Append(frac);
         }
-        // exposant : e E \ \e ⏨
+        // exponent: e E \ \e ⏨
         int save = s.Pos;
         char p0 = s.Peek();
         int expLen = 0;

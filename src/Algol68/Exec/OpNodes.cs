@@ -3,7 +3,7 @@ using Studio.Algol68.Runtime;
 
 namespace Studio.Algol68.Exec;
 
-// Noeuds specialises des operateurs standard les plus frequents (INT, REAL, BOOL).
+// Specialised nodes for the most frequent standard operators (INT, REAL, BOOL).
 
 public abstract class Bin : Node
 {
@@ -19,7 +19,7 @@ public abstract class IntBin : Bin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected long Chk(long r)
     {
-        if (r > int.MaxValue || r < int.MinValue) throw RT.Err("débordement d'entier (INT)", this);
+        if (r > int.MaxValue || r < int.MinValue) throw RT.Err("integer overflow (INT)", this);
         return r;
     }
 }
@@ -32,7 +32,7 @@ public sealed class IntOver : IntBin
     public override long EvalInt(Frame f)
     {
         long x = A.EvalInt(f), y = B.EvalInt(f);
-        if (y == 0) throw RT.Err("division entière par zéro", this);
+        if (y == 0) throw RT.Err("integer division by zero", this);
         return Chk(x / y);
     }
 }
@@ -42,7 +42,7 @@ public sealed class IntMod : IntBin
     public override long EvalInt(Frame f)
     {
         long x = A.EvalInt(f), y = B.EvalInt(f);
-        if (y == 0) throw RT.Err("MOD par zéro", this);
+        if (y == 0) throw RT.Err("MOD by zero", this);
         long r = x % y;
         if (r < 0) r += Math.Abs(y);
         return r;
@@ -54,7 +54,7 @@ public sealed class IntPow : IntBin
     public override long EvalInt(Frame f)
     {
         long x = A.EvalInt(f), n = B.EvalInt(f);
-        if (n < 0) throw RT.Err("exposant négatif dans INT ** INT", this);
+        if (n < 0) throw RT.Err("negative exponent in INT ** INT", this);
         long r = 1;
         while (n > 0)
         {
@@ -99,7 +99,7 @@ public abstract class RealBin : Bin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected double Chk(double r)
     {
-        if (double.IsInfinity(r) || double.IsNaN(r)) throw RT.Err("débordement réel (REAL)", this);
+        if (double.IsInfinity(r) || double.IsNaN(r)) throw RT.Err("real overflow (REAL)", this);
         return r;
     }
 }
@@ -112,7 +112,7 @@ public sealed class RealDiv : RealBin
     public override double EvalReal(Frame f)
     {
         double x = A.EvalReal(f), y = B.EvalReal(f);
-        if (y == 0) throw RT.Err("division par zéro", this);
+        if (y == 0) throw RT.Err("division by zero", this);
         return Chk(x / y);
     }
 }
@@ -122,7 +122,7 @@ public sealed class IntNeg : Node
     readonly Node a;
     public IntNeg(Node a) { this.a = a; }
     public override Value Eval(Frame f) => Value.I(EvalInt(f));
-    public override long EvalInt(Frame f) { long v = -a.EvalInt(f); if (v > int.MaxValue) throw RT.Err("débordement d'entier (INT)", this); return v; }
+    public override long EvalInt(Frame f) { long v = -a.EvalInt(f); if (v > int.MaxValue) throw RT.Err("integer overflow (INT)", this); return v; }
 }
 public sealed class RealNeg : Node
 {
@@ -152,21 +152,21 @@ public sealed class BoolNot : Node
     public override bool EvalBool(Frame f) => !a.EvalBool(f);
 }
 
-/// <summary>Operateur dyadique generique.</summary>
+/// <summary>Generic dyadic operator.</summary>
 public sealed class Op2 : Bin
 {
     readonly Func<Value, Value, Node, Value> fn;
     public Op2(Node a, Node b, Func<Value, Value, Node, Value> fn) : base(a, b) { this.fn = fn; Fresh = true; }
     public override Value Eval(Frame f) => fn(A.Eval(f), B.Eval(f), this);
 }
-/// <summary>Operateur monadique generique.</summary>
+/// <summary>Generic monadic operator.</summary>
 public sealed class Op1 : Node
 {
     readonly Node a; readonly Func<Value, Node, Value> fn;
     public Op1(Node a, Func<Value, Node, Value> fn) { this.a = a; this.fn = fn; Fresh = true; }
     public override Value Eval(Frame f) => fn(a.Eval(f), this);
 }
-/// <summary>Operateur generique a contexte (acces au cadre : SEMA, transput...).</summary>
+/// <summary>Generic operator with context (frame access: SEMA, transput...).</summary>
 public sealed class OpF : Node
 {
     readonly Node[] args; readonly Func<Frame, Value[], Node, Value> fn;
@@ -179,7 +179,7 @@ public sealed class OpF : Node
     }
 }
 
-/// <summary>Operateurs d'affectation combinee (PLUSAB...) : a := a OP b, rend a.</summary>
+/// <summary>Combined assignment operators (PLUSAB...): a := a OP b, yields a.</summary>
 public sealed class OpAb : Node
 {
     readonly Node r, v; readonly Func<Value, Value, Node, Value> fn; readonly Semantics.Mode? assignMode;
@@ -198,7 +198,7 @@ public sealed class OpAb : Node
         return rf;
     }
 }
-/// <summary>PLUSTO : a +=: b  (b := a + b), rend b.</summary>
+/// <summary>PLUSTO: a +=: b  (b := a + b), yields b.</summary>
 public sealed class OpTo : Node
 {
     readonly Node a, r; readonly Func<Value, Value, Node, Value> fn; readonly Semantics.Mode assignMode;
@@ -225,22 +225,22 @@ public sealed class IntPlusAb : Node
     RefV Do(Frame f)
     {
         var rf = Unsafe.As<RefV>(r.EvalObj(f));
-        if (rf == null || rf.A == null) throw RT.Err("affectation à NIL", this);
+        if (rf == null || rf.A == null) throw RT.Err("assignment to NIL", this);
         long b = v.EvalInt(f);
         ref Value cell = ref rf.A[rf.I];
-        if (ReferenceEquals(cell.O, Value.Uninit)) throw RT.Err("valeur non initialisée", this);
+        if (ReferenceEquals(cell.O, Value.Uninit)) throw RT.Err("uninitialised value", this);
         long a = cell.N, res;
         switch (kind)
         {
             case 0: res = a + b; break;
             case 1: res = a - b; break;
             case 2: res = a * b; break;
-            case 3: if (b == 0) throw RT.Err("division entière par zéro", this); res = a / b; break;
+            case 3: if (b == 0) throw RT.Err("integer division by zero", this); res = a / b; break;
             default:
-                if (b == 0) throw RT.Err("MOD par zéro", this);
+                if (b == 0) throw RT.Err("MOD by zero", this);
                 res = a % b; if (res < 0) res += Math.Abs(b); break;
         }
-        if (res > int.MaxValue || res < int.MinValue) throw RT.Err("débordement d'entier (INT)", this);
+        if (res > int.MaxValue || res < int.MinValue) throw RT.Err("integer overflow (INT)", this);
         cell.N = res;
         return rf;
     }
@@ -256,25 +256,25 @@ public sealed class RealPlusAb : Node
     RefV Do(Frame f)
     {
         var rf = Unsafe.As<RefV>(r.EvalObj(f));
-        if (rf == null || rf.A == null) throw RT.Err("affectation à NIL", this);
+        if (rf == null || rf.A == null) throw RT.Err("assignment to NIL", this);
         double b = v.EvalReal(f);
         ref Value cell = ref rf.A[rf.I];
-        if (ReferenceEquals(cell.O, Value.Uninit)) throw RT.Err("valeur non initialisée", this);
+        if (ReferenceEquals(cell.O, Value.Uninit)) throw RT.Err("uninitialised value", this);
         double a = cell.Real, res;
         switch (kind)
         {
             case 0: res = a + b; break;
             case 1: res = a - b; break;
             case 2: res = a * b; break;
-            default: if (b == 0) throw RT.Err("division par zéro", this); res = a / b; break;
+            default: if (b == 0) throw RT.Err("division by zero", this); res = a / b; break;
         }
-        if (double.IsInfinity(res) || double.IsNaN(res)) throw RT.Err("débordement réel (REAL)", this);
+        if (double.IsInfinity(res) || double.IsNaN(res)) throw RT.Err("real overflow (REAL)", this);
         cell.N = BitConverter.DoubleToInt64Bits(res);
         return rf;
     }
 }
 
-/// <summary>Bornes d'une rangee (LWB, UPB).</summary>
+/// <summary>Bounds of a row (LWB, UPB).</summary>
 public sealed class BoundNode : Node
 {
     readonly Node? dim; readonly Node row; readonly bool upper;
@@ -284,7 +284,7 @@ public sealed class BoundNode : Node
     {
         long d = dim?.EvalInt(f) ?? 1;
         var r = RowOps.GetRow(row.Eval(f), this);
-        if (d < 1 || d > r.Dims) throw RT.Err($"dimension {d} inexistante (la rangée a {r.Dims} dimension(s))", this);
+        if (d < 1 || d > r.Dims) throw RT.Err($"dimension {d} does not exist (the row has {r.Dims} dimension(s))", this);
         return upper ? r.Upb[d - 1] : r.Lwb[d - 1];
     }
 }

@@ -4,8 +4,8 @@ using System.Text;
 namespace Studio.Algol68.Runtime;
 
 /// <summary>
-/// Conversions whole / fixed / float (RR 10.3.2.1) ; algorithmes alignes sur Algol 68 Genie
-/// pour que les sorties soient identiques caractere par caractere.
+/// Conversions whole / fixed / float (RR 10.3.2.1); algorithms aligned with Algol 68 Genie
+/// so that the output is identical character for character.
 /// </summary>
 public static class Conv
 {
@@ -26,9 +26,9 @@ public static class Conv
         return neg ? 1 / d : d;
     }
 
-    // ------------------------------------------------------------------ entiers
+    // ------------------------------------------------------------------ integers
 
-    /// <summary>Chiffres de n (>= 0) ; si plus de 'width' chiffres : caracteres d'erreur.</summary>
+    /// <summary>Digits of n (>= 0); if more than 'width' digits: error characters.</summary>
     public static string SubWhole(BigInteger n, int width)
     {
         string s = BigInteger.Abs(n).ToString();
@@ -174,15 +174,15 @@ public static class Conv
     {
         int dg = x.Digits + after + 30;
         var y = MpReal.Add(x.WithDigits(dg), Half10(after, dg));
-        // partie entière et chiffres
+        // integral part and digits
         var (ds, e10) = y.DecimalDigits();
         if (y.IsZero) { ds = "0"; e10 = 0; }
-        // representation decimale exacte : chiffres ds, premier chiffre de poids 10^e10
+        // exact decimal representation: digits ds, the first digit has weight 10^e10
         var sb = new StringBuilder();
         int before = e10 >= 0 ? e10 + 1 : 0;
         if (y.IsZero) before = 0;
         int len = 0; bool overflow = false;
-        char DigitAt(int pow) // chiffre de poids 10^pow
+        char DigitAt(int pow) // digit of weight 10^pow
         {
             int idx = e10 - pow;
             if (idx < 0 || idx >= ds.Length) return '0';
@@ -238,7 +238,7 @@ public static class Conv
         var h = MpReal.Make(1, before - 1, dg);
         if (!y.IsZero)
         {
-            // ajustement direct de l'exposant
+            // direct adjustment of the exponent
             var (ds, e10) = y.DecimalDigits();
             int shift = e10 - (before - 1);
             if (shift != 0) { y = MpReal.Make(y.M, y.E - shift, dg); p += shift; }

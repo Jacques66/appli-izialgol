@@ -9,7 +9,7 @@ public sealed class ParseException : Exception
     public ParseException(Token t, string msg) : base(msg) { Tok = t; }
 }
 
-/// <summary>Analyse syntaxique descendante (avec retour arriere local) d'Algol 68.</summary>
+/// <summary>Recursive-descent parser (with local backtracking) for Algol 68.</summary>
 public sealed class Parser
 {
     List<Token> toks;
@@ -67,25 +67,25 @@ public sealed class Parser
 
     void Expect(TK k, string what)
     {
-        if (Cur.Kind != k) throw Err($"{what} attendu, trouvé {Cur}");
+        if (Cur.Kind != k) throw Err($"{what} expected, found {Cur}");
         Next();
     }
     void ExpectBold(string w)
     {
-        if (!IsBold(w)) throw Err($"« {w} » attendu, trouvé {Cur}");
+        if (!IsBold(w)) throw Err($"'{w}' expected, found {Cur}");
         Next();
     }
     Token? lastReported;
     void Report(Token t, string msg)
     {
         if (speculative > 0) return;
-        // une seule erreur par symbole : evite les cascades apres une erreur
+        // a single error per symbol: avoids cascades after an error
         if (lastReported != null && lastReported.Line == t.Line && lastReported.Col == t.Col && lastReported.File == t.File) return;
         lastReported = t;
         diags.Add(new Diagnostic(Severity.Error, t.File, t.Line, t.Col, msg));
     }
 
-    // ------------------------------------------------------------ portees de mots gras
+    // ------------------------------------------------------------ ranges of bold words
 
     bool IsModeIndicant(string w)
     {
@@ -109,7 +109,7 @@ public sealed class Parser
     static bool IsSerialTerminator(Token t) => t.Kind is TK.EOF or TK.RParen or TK.RBrack or TK.Bar or TK.BarColon ||
         (t.Kind == TK.Bold && t.Text is "END" or "FI" or "THEN" or "ELSE" or "ELIF" or "ESAC" or "IN" or "OUT" or "OUSE" or "OD" or "DO" or "UNTIL");
     bool doTerminates;
-    /// <summary>Terminateur de la suite en cours (DO ne termine que la partie WHILE).</summary>
+    /// <summary>Terminator of the current series (DO only terminates the WHILE part).</summary>
     bool IsTerm(Token t) => IsSerialTerminator(t) && (doTerminates || !(t.Kind == TK.Bold && t.Text == "DO"));
 
     void PushScope(int from)
@@ -170,7 +170,7 @@ public sealed class Parser
     }
     void AddOpAt(BoldScope sc, int i)
     {
-        // OP nom = ...   ou   OP (modes) mode nom = ...
+        // OP name = ...   or   OP (modes) mode name = ...
         int depth = 0;
         for (int j = i; j < toks.Count && j < i + 200; j++)
         {
@@ -185,13 +185,13 @@ public sealed class Parser
     }
     void PopScope() => scopes.RemoveAt(scopes.Count - 1);
 
-    // ------------------------------------------------------------ programme
+    // ------------------------------------------------------------ program
 
     public SerialAst ParseProgram()
     {
         var s = ParseSerialBody();
         if (Cur.Kind != TK.EOF)
-            Report(Cur, $"symbole inattendu {Cur} après la fin du programme (parenthese ou END en trop ?)");
+            Report(Cur, $"unexpected symbol {Cur} after the end of the program (extra parenthesis or END?)");
         return s;
     }
 
@@ -216,7 +216,7 @@ public sealed class Parser
         while (true)
         {
             if (IsTerm(Cur) && serial.Phrases.Count > 0) break;
-            if (IsTerm(Cur)) { Report(Cur, $"unité attendue, trouvé {Cur}"); break; }
+            if (IsTerm(Cur)) { Report(Cur, $"unit expected, found {Cur}"); break; }
             int start = pos;
             try
             {
@@ -227,7 +227,7 @@ public sealed class Parser
                 Report(e.Tok, e.Message);
                 Recover(start);
             }
-            if (Cur.Kind == TK.Semi) { Next(); if (IsTerm(Cur)) { Report(Cur, $"unité attendue après « ; », trouvé {Cur}"); break; } continue; }
+            if (Cur.Kind == TK.Semi) { Next(); if (IsTerm(Cur)) { Report(Cur, $"unit expected after ';', found {Cur}"); break; } continue; }
             if (IsBold("EXIT"))
             {
                 serial.ExitAfter.Add(serial.Phrases.Count - 1);
@@ -235,7 +235,7 @@ public sealed class Parser
                 continue;
             }
             if (IsTerm(Cur) || Cur.Kind == TK.Comma) break;
-            Report(Cur, $"« ; » attendu, trouvé {Cur}");
+            Report(Cur, $"';' expected, found {Cur}");
             Recover(pos);
             if (Cur.Kind == TK.Semi) { Next(); continue; }
             break;
@@ -294,7 +294,7 @@ public sealed class Parser
         if (t.Kind == TK.Bold && t.Text is "MODE" or "OP" or "PRIO") return true;
         if (t.Kind == TK.Bold && t.Text is "LOC" or "HEAP" or "NEW")
         {
-            // LOC INT x  (declaration) ou  LOC INT := 3 (generateur dans une unite)
+            // LOC INT x  (declaration) or  LOC INT := 3 (generator inside a unit)
             int save = pos;
             speculative++;
             try { Next(); ParseDeclarer(); return Cur.Kind == TK.Ident; }
@@ -320,7 +320,7 @@ public sealed class Parser
             ParseOneDeclaration(into);
             if (Cur.Kind == TK.Comma && (IsDeclarationStart()))
             {
-                // impossible : la virgule est consommee par ParseOneDeclaration seulement si elle continue
+                // cannot happen: the comma is consumed by ParseOneDeclaration only when the declaration continues
             }
             if (Cur.Kind == TK.Comma)
             {
@@ -339,14 +339,14 @@ public sealed class Parser
         if (t.Kind == TK.Op) { Next(); return (t.Text, t); }
         if (t.Kind == TK.Bold && !Keywords.Contains(t.Text)) { Next(); return (t.Text, t); }
         if (t.Kind == TK.Bold && t.Text is "AND" or "OR") { Next(); return (t.Text, t); }
-        throw Err($"symbole d'opérateur attendu, trouvé {t}");
+        throw Err($"operator symbol expected, found {t}");
     }
 
-    /// <summary>Consomme '=' ; gere les cas ou l'operateur colle au '=' (OP +=, PRIO //=).</summary>
+    /// <summary>Consumes '='; handles operators glued to '=' (OP +=, PRIO //=).</summary>
     void ExpectEqualsAfterOp(ref string name)
     {
         if (Cur.Kind == TK.Op && Cur.Text == "=") { Next(); return; }
-        throw Err($"« = » attendu, trouvé {Cur}");
+        throw Err($"'=' expected, found {Cur}");
     }
 
     void ParseOneDeclaration(List<Ast> into)
@@ -359,9 +359,9 @@ public sealed class Parser
             while (true)
             {
                 var nt = Cur;
-                if (nt.Kind != TK.Bold || Keywords.Contains(nt.Text)) throw Err($"indicant de mode attendu, trouvé {nt}");
+                if (nt.Kind != TK.Bold || Keywords.Contains(nt.Text)) throw Err($"mode indicant expected, found {nt}");
                 Next();
-                if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu après MODE {nt.Text}");
+                if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"'=' expected after MODE {nt.Text}");
                 Next();
                 var decl = ParseDeclarer();
                 d.Items.Add((nt.Text, decl, new SkipAst().At<SkipAst>(nt)));
@@ -384,12 +384,12 @@ public sealed class Parser
                 else
                 {
                     (name, _) = ParseOpName();
-                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err("« = » attendu dans la déclaration de priorité");
+                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err("'=' expected in the priority declaration");
                     Next();
                 }
-                if (Cur.Kind != TK.IntDen) throw Err("priorité (chiffre 1 a 9) attendue");
+                if (Cur.Kind != TK.IntDen) throw Err("priority (digit 1 to 9) expected");
                 int p = (int)Cur.IntValue;
-                if (p < 1 || p > 9) Report(Cur, "la priorité doit être comprise entre 1 et 9");
+                if (p < 1 || p > 9) Report(Cur, "the priority must be between 1 and 9");
                 Next();
                 d.Items.Add((name, p, new SkipAst().At<SkipAst>(nt)));
                 if (Cur.Kind == TK.Comma && (Peek().Kind == TK.Op || (Peek().Kind == TK.Bold && !Keywords.Contains(Peek().Text))) && !IsDeclarerStartAt(pos + 1))
@@ -405,7 +405,7 @@ public sealed class Parser
             var d = new OpDeclAst().At<OpDeclAst>(t);
             if (Cur.Kind == TK.LParen)
             {
-                // OP (INT, INT) INT nom = unite
+                // OP (INT, INT) INT name = unit
                 var pd = new ProcDeclarer().At<ProcDeclarer>(Cur);
                 Next();
                 while (true)
@@ -414,7 +414,7 @@ public sealed class Parser
                     if (Cur.Kind == TK.Comma) { Next(); continue; }
                     break;
                 }
-                Expect(TK.RParen, "« ) »");
+                Expect(TK.RParen, "')'");
                 pd.Result = ParseDeclarer();
                 d.Mode = pd;
             }
@@ -427,7 +427,7 @@ public sealed class Parser
                 else
                 {
                     (name, _) = ParseOpName();
-                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu après OP {name}");
+                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"'=' expected after OP {name}");
                     Next();
                 }
                 var v = ParseUnit();
@@ -450,12 +450,12 @@ public sealed class Parser
             while (true)
             {
                 var nt = Cur;
-                if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouvé {nt}");
+                if (nt.Kind != TK.Ident) throw Err($"identifier expected, found {nt}");
                 Next();
                 bool variable;
                 if (Cur.Kind == TK.Op && Cur.Text == "=") variable = false;
                 else if (Cur.Kind == TK.Becomes) variable = true;
-                else throw Err($"« = » ou « := » attendu après PROC {nt.Text}");
+                else throw Err($"'=' or ':=' expected after PROC {nt.Text}");
                 if (!first && variable != d.Variable)
                 {
                     into.Add(d);
@@ -473,13 +473,13 @@ public sealed class Parser
             into.Add(d);
             return;
         }
-        // declarant suivi d'identificateurs
+        // declarer followed by identifiers
         var declarer = ParseDeclarer();
         DeclarationAst? cur = null;
         while (true)
         {
             var nt = Cur;
-            if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouvé {nt}");
+            if (nt.Kind != TK.Ident) throw Err($"identifier expected, found {nt}");
             Next();
             if (Cur.Kind == TK.Op && Cur.Text == "=" && !hasLoc)
             {
@@ -492,7 +492,7 @@ public sealed class Parser
             {
                 UnitAst? init = null;
                 if (Cur.Kind == TK.Becomes) { Next(); init = ParseUnit(); }
-                else if (Cur.Kind == TK.Op && Cur.Text == "=") throw Err("une déclaration LOC/HEAP ne peut pas être une déclaration d'identite");
+                else if (Cur.Kind == TK.Op && Cur.Text == "=") throw Err("a LOC/HEAP declaration cannot be an identity declaration");
                 if (cur is not VarDeclAst vd) { if (cur != null) into.Add(cur); vd = new VarDeclAst { Declarer = declarer, Heap = heap }.At<VarDeclAst>(nt); cur = vd; }
                 vd.Items.Add((nt.Text, init, new SkipAst().At<SkipAst>(nt)));
             }
@@ -502,7 +502,7 @@ public sealed class Parser
         if (cur != null) into.Add(cur);
     }
 
-    // ------------------------------------------------------------ declarants
+    // ------------------------------------------------------------ declarers
 
     public DeclarerAst ParseDeclarer()
     {
@@ -531,11 +531,11 @@ public sealed class Parser
                 if (Cur.Kind == TK.Comma) { Next(); continue; }
                 break;
             }
-            Expect(TK.RBrack, "« ] »");
+            Expect(TK.RBrack, "']'");
             rd.Elem = ParseDeclarer();
             return rd;
         }
-        if (t.Kind != TK.Bold) throw Err($"déclarant attendu, trouvé {t}");
+        if (t.Kind != TK.Bold) throw Err($"declarer expected, found {t}");
         switch (t.Text)
         {
             case "LONG":
@@ -545,7 +545,7 @@ public sealed class Parser
                     while (IsBold("LONG") || IsBold("SHORT")) { size += Cur.Text == "LONG" ? 1 : -1; Next(); }
                     var bt = Cur;
                     if (bt.Kind != TK.Bold || !(bt.Text is "INT" or "REAL" or "BITS" or "BYTES" or "COMPL" or "COMPLEX"))
-                        throw Err($"INT, REAL, BITS, BYTES ou COMPL attendu après LONG/SHORT, trouvé {bt}");
+                        throw Err($"INT, REAL, BITS, BYTES or COMPL expected after LONG/SHORT, found {bt}");
                     Next();
                     return new PrimDeclarer { Name = bt.Text == "COMPLEX" ? "COMPL" : bt.Text, Size = size }.At<PrimDeclarer>(t);
                 }
@@ -564,7 +564,7 @@ public sealed class Parser
                             if (Cur.Kind == TK.Comma) { Next(); continue; }
                             break;
                         }
-                        Expect(TK.RParen, "« ) »");
+                        Expect(TK.RParen, "')'");
                     }
                     pd.Result = ParseDeclarer();
                     return pd;
@@ -573,32 +573,32 @@ public sealed class Parser
                 {
                     Next();
                     var sd = new StructDeclarer().At<StructDeclarer>(t);
-                    Expect(TK.LParen, "« ( » après STRUCT");
+                    Expect(TK.LParen, "'(' after STRUCT");
                     DeclarerAst? fm = null;
                     while (true)
                     {
                         if (Cur.Kind != TK.Ident || fm == null) fm = ParseDeclarer();
-                        if (Cur.Kind != TK.Ident) throw Err($"nom de champ attendu, trouvé {Cur}");
+                        if (Cur.Kind != TK.Ident) throw Err($"field name expected, found {Cur}");
                         var ft = Next();
                         sd.Fields.Add((fm, ft.Text, new SkipAst().At<SkipAst>(ft)));
                         if (Cur.Kind == TK.Comma) { Next(); continue; }
                         break;
                     }
-                    Expect(TK.RParen, "« ) »");
+                    Expect(TK.RParen, "')'");
                     return sd;
                 }
             case "UNION":
                 {
                     Next();
                     var ud = new UnionDeclarer().At<UnionDeclarer>(t);
-                    Expect(TK.LParen, "« ( » après UNION");
+                    Expect(TK.LParen, "'(' after UNION");
                     while (true)
                     {
                         ud.Members.Add(ParseDeclarer());
                         if (Cur.Kind == TK.Comma) { Next(); continue; }
                         break;
                     }
-                    Expect(TK.RParen, "« ) »");
+                    Expect(TK.RParen, "')'");
                     return ud;
                 }
         }
@@ -612,10 +612,10 @@ public sealed class Parser
             Next();
             return new IndicantDeclarer { Name = t.Text }.At<IndicantDeclarer>(t);
         }
-        throw Err($"déclarant attendu, trouvé {t}");
+        throw Err($"declarer expected, found {t}");
     }
 
-    // ------------------------------------------------------------ unites
+    // ------------------------------------------------------------ units
 
     bool TrySpeculate<T>(Func<T> f, out T result)
     {
@@ -637,7 +637,7 @@ public sealed class Parser
             var c = ParseTertiary();
             return new AssertAst { Cond = c }.At<AssertAst>(t);
         }
-        // texte de routine : (params) declarant : unite   |   declarant : unite
+        // routine text: (params) declarer : unit   |   declarer : unit
         if (t.Kind == TK.LParen && IsDeclarerStartAt(pos + 1))
         {
             if (TrySpeculate(ParseRoutineHeader, out var rt))
@@ -674,7 +674,7 @@ public sealed class Parser
 
     UnitAst ParseJumpTarget(Token t)
     {
-        if (Cur.Kind != TK.Ident) throw Err($"étiquette attendue après GOTO, trouvé {Cur}");
+        if (Cur.Kind != TK.Ident) throw Err($"label expected after GOTO, found {Cur}");
         var l = Next();
         return new JumpAst { Label = l.Text }.At<JumpAst>(t);
     }
@@ -682,20 +682,20 @@ public sealed class Parser
     RoutineTextAst ParseRoutineHeader()
     {
         var rt = new RoutineTextAst().At<RoutineTextAst>(Cur);
-        Expect(TK.LParen, "« ( »");
+        Expect(TK.LParen, "'('");
         DeclarerAst? d = null;
         while (true)
         {
             if (Cur.Kind != TK.Ident || d == null) d = ParseDeclarer();
-            if (Cur.Kind != TK.Ident) throw Err("nom de paramètre attendu");
+            if (Cur.Kind != TK.Ident) throw Err("parameter name expected");
             var nt = Next();
             rt.Params.Add(new ParamAst { Declarer = d, Name = nt.Text }.At<ParamAst>(nt));
             if (Cur.Kind == TK.Comma) { Next(); continue; }
             break;
         }
-        Expect(TK.RParen, "« ) »");
+        Expect(TK.RParen, "')'");
         rt.Result = ParseDeclarer();
-        if (Cur.Kind != TK.Colon) throw Err("« : » attendu");
+        if (Cur.Kind != TK.Colon) throw Err("':' expected");
         Next();
         return rt;
     }
@@ -733,7 +733,7 @@ public sealed class Parser
             int? prio = PrioOf(t.Text);
             if (prio == null)
             {
-                Report(t, $"opérateur dyadique « {t.Text} » sans déclaration de priorité (PRIO)");
+                Report(t, $"dyadic operator '{t.Text}' without priority declaration (PRIO)");
                 prio = 9;
             }
             if (prio.Value < minPrio) break;
@@ -788,7 +788,7 @@ public sealed class Parser
                 var closer = brack ? TK.RBrack : TK.RParen;
                 if (Cur.Kind == closer && !brack)
                 {
-                    throw Err("liste d'arguments vide");
+                    throw Err("empty argument list");
                 }
                 while (true)
                 {
@@ -796,7 +796,7 @@ public sealed class Parser
                     if (Cur.Kind == TK.Comma) { Next(); continue; }
                     break;
                 }
-                Expect(closer, brack ? "« ] »" : "« ) »");
+                Expect(closer, brack ? "']'" : "')'");
                 p = ap;
                 continue;
             }
@@ -827,7 +827,7 @@ public sealed class Parser
             if (IsAt()) { Next(); ix.AtLwb = ParseUnit(); }
             return ix;
         }
-        if (IsAt()) throw Err("« : » attendu avant « @ » dans un trimmer");
+        if (IsAt()) throw Err("':' expected before '@' in a trimmer");
         ix.Unit = u;
         return ix;
     }
@@ -845,7 +845,7 @@ public sealed class Parser
                 {
                     Next();
                     string s = t.Text;
-                    // denotations adjacentes concatenees (extension a68g)
+                    // adjacent denotations are concatenated (a68g extension)
                     while (Cur.Kind == TK.StringDen) { s += Cur.Text; Next(); }
                     return new StringDenot { Value = s }.At<StringDenot>(t);
                 }
@@ -872,7 +872,7 @@ public sealed class Parser
                 case "LONG":
                 case "SHORT":
                     {
-                        // denotation longue ou cast
+                        // long denotation or cast
                         int k = pos, size = 0;
                         while (IsBoldAt(k, "LONG") || IsBoldAt(k, "SHORT")) { size += toks[k].Text == "LONG" ? 1 : -1; k++; }
                         var dt = toks[k];
@@ -892,16 +892,16 @@ public sealed class Parser
         }
         if (IsDeclarerStartAt(pos))
         {
-            // cast : declarant clause-close
+            // cast: declarer enclosed-clause
             var d = ParseDeclarer();
             if (!(Cur.Kind == TK.LParen || IsBold("BEGIN")))
-                throw Err($"clause entre parentheses attendue après le déclarant du cast, trouvé {Cur}");
+                throw Err($"enclosed clause expected after the declarer of a cast, found {Cur}");
             var e = ParsePrimaryBase();
             return new CastAst { Declarer = d, Enclosed = e }.At<CastAst>(t);
         }
         if (t.Kind == TK.Bold && !Keywords.Contains(t.Text))
-            throw Err($"opérande attendu, trouvé l'opérateur {t}");
-        throw Err($"unité attendue, trouvé {t}");
+            throw Err($"operand expected, found the operator {t}");
+        throw Err($"unit expected, found {t}");
     }
 
     UnitAst ParseBeginClause()
@@ -937,7 +937,7 @@ public sealed class Parser
                 var col = new CollateralAst().At<CollateralAst>(t);
                 col.Units.Add(((LabeledUnit)s.Phrases[0]).Unit);
                 while (Cur.Kind == TK.Comma) { Next(); col.Units.Add(ParseUnit()); }
-                Expect(TK.RParen, "« ) »");
+                Expect(TK.RParen, "')'");
                 return col;
             }
             if (Cur.Kind == TK.Bar)
@@ -945,13 +945,13 @@ public sealed class Parser
                 Next();
                 return ParseBriefChoice(t, s);
             }
-            Expect(TK.RParen, "« ) »");
+            Expect(TK.RParen, "')'");
             return new ClosedAst { Serial = s }.At<ClosedAst>(t);
         }
         finally { PopScope(); }
     }
 
-    /// <summary>( s | ... ) : conditionnelle, cas ou conformite abregee ; la portee de s est deja empilee.</summary>
+    /// <summary>( s | ... ): brief conditional, case or conformity clause; the range of s is already pushed.</summary>
     UnitAst ParseBriefChoice(Token t, SerialAst sel)
     {
         if (LooksLikeConformityCase())
@@ -965,9 +965,9 @@ public sealed class Parser
         var first = ParseSerialBody();
         if (Cur.Kind == TK.Comma)
         {
-            // cas abrege
+            // brief case clause
             var cs = new CaseAst { Selector = sel }.At<CaseAst>(t);
-            if (!IsCollateralCandidate(first)) throw Err("unité simple attendue dans la partie IN d'un cas");
+            if (!IsCollateralCandidate(first)) throw Err("single unit expected in the IN part of a case clause");
             cs.In.Add(((LabeledUnit)first.Phrases[0]).Unit);
             while (Cur.Kind == TK.Comma) { Next(); cs.In.Add(ParseUnit()); }
             if (Cur.Kind == TK.Bar) { Next(); cs.Out = ParseSerialBody(); }
@@ -985,18 +985,18 @@ public sealed class Parser
         return Close(cond);
     }
 
-    UnitAst Close(UnitAst u) { Expect(TK.RParen, "« ) »"); return u; }
+    UnitAst Close(UnitAst u) { Expect(TK.RParen, "')'"); return u; }
 
-    /// <summary>Apres |: : nouvelle selection abregee sans parenthese ouvrante ; la parenthese fermante est partagee.</summary>
+    /// <summary>After |: : new brief choice without opening parenthesis; the closing parenthesis is shared.</summary>
     UnitAst ParseBriefOuse(Token t)
     {
         PushScope(pos);
         try
         {
             var s = ParseSerialInner();
-            if (Cur.Kind != TK.Bar) throw Err("« | » attendu après « |: »");
+            if (Cur.Kind != TK.Bar) throw Err("'|' expected after '|:'");
             Next();
-            // meme logique que ParseBriefChoice mais sans fermer
+            // same logic as ParseBriefChoice but without closing
             if (LooksLikeConformityCase())
             {
                 var conf = new ConformityAst { Selector = s }.At<ConformityAst>(t);
@@ -1025,7 +1025,7 @@ public sealed class Parser
 
     UnitAst ParseIf()
     {
-        var t = Next(); // IF ou ELIF
+        var t = Next(); // IF or ELIF
         PushScope(pos);
         try
         {
@@ -1065,20 +1065,20 @@ public sealed class Parser
         while (true)
         {
             var t = Cur;
-            Expect(TK.LParen, "« ( »");
+            Expect(TK.LParen, "'('");
             var cc = new ConformityCase().At<ConformityCase>(t);
             cc.Declarer = ParseDeclarer();
             if (Cur.Kind == TK.Comma)
             {
-                // extension : plusieurs modes (INT, REAL x):  -> union
+                // extension: several modes (INT, REAL x):  -> union
                 var ud = new UnionDeclarer().At<UnionDeclarer>(t);
                 ud.Members.Add(cc.Declarer);
                 while (Cur.Kind == TK.Comma) { Next(); ud.Members.Add(ParseDeclarer()); }
                 cc.Declarer = ud;
             }
             if (Cur.Kind == TK.Ident) cc.Name = Next().Text;
-            Expect(TK.RParen, "« ) »");
-            Expect(TK.Colon, "« : »");
+            Expect(TK.RParen, "')'");
+            Expect(TK.Colon, "':'");
             cc.Unit = ParseUnit();
             cases.Add(cc);
             if (Cur.Kind == TK.Comma) { Next(); continue; }
@@ -1088,7 +1088,7 @@ public sealed class Parser
 
     UnitAst ParseCase()
     {
-        var t = Next(); // CASE ou OUSE
+        var t = Next(); // CASE or OUSE
         PushScope(pos);
         try
         {
@@ -1125,7 +1125,7 @@ public sealed class Parser
         if (IsBold("FOR"))
         {
             Next();
-            if (Cur.Kind != TK.Ident) throw Err("identificateur attendu après FOR");
+            if (Cur.Kind != TK.Ident) throw Err("identifier expected after FOR");
             lp.Var = Next().Text;
         }
         if (IsBold("FROM")) { Next(); lp.From = ParseUnit(); }
@@ -1170,14 +1170,14 @@ public sealed class Parser
             case CollateralAst c: par.Units.AddRange(c.Units); break;
             case ClosedAst cl: par.Units.Add(cl); break;
             case VacuumAst: break;
-            default: throw Err(t, "clause collaterale attendue après PAR");
+            default: throw Err(t, "collateral clause expected after PAR");
         }
         return par;
     }
 
     // ------------------------------------------------------------ fragments (formats)
 
-    /// <summary>Analyse une unite contenue dans un fragment de texte (replicateur dynamique de format...).</summary>
+    /// <summary>Parses a unit contained in a text fragment (dynamic format replicator...).</summary>
     internal UnitAst ParseFragmentUnit(List<Token> fragment)
     {
         var saveToks = toks; int savePos = pos;
@@ -1185,7 +1185,7 @@ public sealed class Parser
         try
         {
             var u = ParseUnit();
-            if (Cur.Kind != TK.EOF) throw Err($"symbole inattendu {Cur} dans le format");
+            if (Cur.Kind != TK.EOF) throw Err($"unexpected symbol {Cur} in the format");
             return u;
         }
         finally { toks = saveToks; pos = savePos; }
@@ -1204,7 +1204,7 @@ public sealed class Parser
                 if (Cur.Kind == TK.Comma) { Next(); continue; }
                 break;
             }
-            if (Cur.Kind != TK.EOF) throw Err($"symbole inattendu {Cur} dans le format");
+            if (Cur.Kind != TK.EOF) throw Err($"unexpected symbol {Cur} in the format");
             return list;
         }
         finally { toks = saveToks; pos = savePos; }

@@ -1,3 +1,3 @@
-MODE N = STRUCT (INT v, REF N suivant);
+MODE N = STRUCT (INT v, REF N next);
 REF N p := NIL;
 print(v OF p)

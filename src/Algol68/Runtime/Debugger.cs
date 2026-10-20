@@ -7,8 +7,8 @@ using Studio.Algol68.Semantics;
 namespace Studio.Algol68.Runtime;
 
 /// <summary>
-/// Mise au point : points d'arret par ligne, pause, pas a pas, pile, variables.
-/// Le fil d'execution qui s'arrete leve Paused puis attend Continue/Step*.
+/// Debugging: line breakpoints, pause, stepping, call stack, variables.
+/// The execution thread that stops raises Paused and then waits for Continue/Step*.
 /// </summary>
 public sealed class Debugger : IDebugger
 {
@@ -23,7 +23,7 @@ public sealed class Debugger : IDebugger
     enum StepMode { None, Into, Over, Out }
     volatile StepMode step = StepMode.None;
     int stepDepth; Frame? stepFrame; int stepLine; string stepFile = "";
-    // dernier arret (evite de s'arreter plusieurs fois sur la meme ligne)
+    // last stop (avoids stopping several times on the same line)
     Frame? lastFrame; int lastLine; string lastFile = "";
 
     readonly object pauseLock = new();
@@ -80,7 +80,7 @@ public sealed class Debugger : IDebugger
         resume.Set();
     }
 
-    /// <summary>Annulation : libere un fil en pause.</summary>
+    /// <summary>Cancellation: releases a paused thread.</summary>
     internal void Release() { step = StepMode.None; resume.Set(); }
 
     internal void OnEnter(Frame f) { }
@@ -192,15 +192,15 @@ public sealed class Debugger : IDebugger
         var fr = pausedFrames[frameIndex];
         int line = frameIndex == 0 ? pausedLine : fr.Line;
         var seen = new HashSet<string>();
-        // les plus internes d'abord (declarees plus tard)
+        // innermost first (declared later)
         foreach (var dv in fr.Info.Vars.OrderByDescending(v => v.FromLine))
         {
             if (dv.Slot >= fr.S.Length) continue;
             if (line != 0 && (line < dv.FromLine || line > dv.ToLine)) continue;
             var v = fr.S[dv.Slot];
-            if (v.O == null && dv.Mode is not PrimMode) continue;   // pas encore elaboree
+            if (v.O == null && dv.Mode is not PrimMode) continue;   // not yet elaborated
             if (!seen.Add(dv.Name)) continue;
-            // une variable (nom) est montree par sa valeur
+            // a variable (name) is shown by its value
             if (dv.Mode is RefMode rm && v.O is RefV r && r.A != null)
                 res.Add(Describe(dv.Name, rm.Sub, r.A[r.I]));
             else res.Add(Describe(dv.Name, dv.Mode, v));
@@ -231,7 +231,7 @@ public sealed class Debugger : IDebugger
                     int k = 0;
                     foreach (int idx in row.Indices())
                     {
-                        if (k++ >= 1000) { res.Add(new VariableInfo("...", "", $"({row.Count - 1000} éléments de plus)")); break; }
+                        if (k++ >= 1000) { res.Add(new VariableInfo("...", "", $"({row.Count - 1000} more elements)")); break; }
                         res.Add(Describe("[" + IndexText(row, idx) + "]", elem, row.GetAt(idx)));
                     }
                 }
@@ -247,7 +247,7 @@ public sealed class Debugger : IDebugger
     {
         int rem = dataIdx - row.Offset;
         var parts = new int[row.Dims];
-        // reconstruction des indices (strides positifs, decroissants)
+        // rebuild the indices (positive, decreasing strides)
         var order = Enumerable.Range(0, row.Dims).OrderByDescending(d => row.Stride[d]).ToArray();
         foreach (int d in order)
         {
@@ -274,7 +274,7 @@ public sealed class Debugger : IDebugger
 
     public static string ValueText(Mode m, Value v, int depth)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) return "<non initialisé>";
+        if (ReferenceEquals(v.O, Value.Uninit)) return "<uninitialised>";
         try
         {
             switch (m)
@@ -296,7 +296,7 @@ public sealed class Debugger : IDebugger
                     }
                     break;
                 case RefMode:
-                    if (v.O is RefV r) return r.A == null ? "NIL" : depth > 1 ? "nom" : "nom → " + ValueText(((RefMode)m).Sub, r.A[r.I], depth + 1);
+                    if (v.O is RefV r) return r.A == null ? "NIL" : depth > 1 ? "name" : "name -> " + ValueText(((RefMode)m).Sub, r.A[r.I], depth + 1);
                     break;
                 case ProcMode: return v.O is ProcV pv ? pv.ToString() : "?";
                 case StructMode sm:
@@ -311,8 +311,8 @@ public sealed class Debugger : IDebugger
                     {
                         if (v.O is not RowV row) return "?";
                         var elem = m.AsRow!.Elem;
-                        if (elem is PrimMode { Kind: Prim.Char }) { try { return "\"" + row.AsString() + "\""; } catch { return "<chaîne partielle>"; } }
-                        return RT.BoundsText(row) + $" ({row.Count} éléments)";
+                        if (elem is PrimMode { Kind: Prim.Char }) { try { return "\"" + row.AsString() + "\""; } catch { return "<partial string>"; } }
+                        return RT.BoundsText(row) + $" ({row.Count} elements)";
                     }
                 case UnionMode:
                     return v.O is UnionV u ? $"({u.M}) " + ValueText(u.M, u.V, depth + 1) : "?";

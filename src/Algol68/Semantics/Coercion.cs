@@ -13,7 +13,7 @@ public sealed partial class Compiler
 {
     static string StrengthName(Strength s) => s switch
     {
-        Strength.Soft => "faible (soft)", Strength.Weak => "weak", Strength.Meek => "meek", Strength.Firm => "ferme (firm)", _ => "fort (strong)"
+        Strength.Soft => "soft", Strength.Weak => "weak", Strength.Meek => "meek", Strength.Firm => "firm", _ => "strong"
     };
 
     public static bool IsFlexible(Mode? m) => m is SpecialMode sm && sm.Kind is SpecialKind.Skip or SpecialKind.Nil or SpecialKind.Jump or SpecialKind.Vacuum;
@@ -74,7 +74,7 @@ public sealed partial class Compiler
     public bool FirmlyRelated(Mode a, Mode b) =>
         FindCoercion(a, b, Strength.Firm) != null || FindCoercion(b, a, Strength.Firm) != null;
 
-    // ------------------------------------------------------------------ recherche de coercitions
+    // ------------------------------------------------------------------ coercion search
 
     public List<Step>? FindCoercion(Mode from, Mode to, Strength s)
     {
@@ -205,7 +205,7 @@ public sealed partial class Compiler
         var steps = FindCoercion(from, to, s);
         if (steps == null)
         {
-            Error(pos, $"mode {from} ne peut pas être converti en {to} dans un contexte {StrengthName(s)}");
+            Error(pos, $"mode {from} cannot be coerced to {to} in a {StrengthName(s)} context");
             n.Mode = to;
             return n;
         }
@@ -293,9 +293,9 @@ public sealed partial class Compiler
         return n;
     }
 
-    // ------------------------------------------------------------------ equilibrage
+    // ------------------------------------------------------------------ balancing
 
-    /// <summary>Choisit un mode vers lequel tous les modes donnes peuvent etre fortement convertis (RR 3.2.1 : balancing).</summary>
+    /// <summary>Chooses a mode to which all the given modes can be strongly coerced (RR 3.2.1: balancing).</summary>
     public Mode? Balance(List<Mode?> modes, Ast pos)
     {
         var real = modes.Where(m => m != null && !IsFlexible(m)).Cast<Mode>().ToList();
@@ -305,7 +305,7 @@ public sealed partial class Compiler
             return null;
         }
         if (real.Any(m => m == M.Any)) return M.Any;
-        // candidats : chaque mode et ses formes deproceduree/dereferencees, par profondeur croissante
+        // candidates: each mode and its deprocedured/dereferenced forms, by increasing depth
         var chains = real.Select(Chain).ToList();
         int maxDepth = chains.Max(c => c.Count);
         for (int d = 0; d < maxDepth; d++)
@@ -321,7 +321,7 @@ public sealed partial class Compiler
                 }
                 if (ok) return cand;
             }
-        Error(pos, "les branches de la clause n'ont pas de mode commun : " + string.Join(", ", real.Distinct().Select(m => m.ToString())));
+        Error(pos, "the branches of the clause have no common mode: " + string.Join(", ", real.Distinct().Select(m => m.ToString())));
         return M.Any;
     }
 
@@ -339,14 +339,14 @@ public sealed partial class Compiler
         return l;
     }
 
-    /// <summary>Mode obtenu par deproceduring complet (contexte soft).</summary>
+    /// <summary>Mode obtained by complete deproceduring (soft context).</summary>
     Mode DeprocAll(Mode m)
     {
         for (int g = 0; g < 32 && m is ProcMode pm && pm.Params.Length == 0; g++) m = pm.Result;
         return m;
     }
 
-    /// <summary>Contexte weak : deproc/deref jusqu'a une rangee/structure, en gardant un REF si possible.</summary>
+    /// <summary>Weak context: deproc/deref down to a row/structure, keeping one REF if possible.</summary>
     Mode? WeakTarget(Mode m, Func<Mode, bool> accept)
     {
         var cur = m;
@@ -361,7 +361,7 @@ public sealed partial class Compiler
         return null;
     }
 
-    /// <summary>Contexte meek : deproc/deref complet.</summary>
+    /// <summary>Meek context: complete deproc/deref.</summary>
     Mode MeekValue(Mode m)
     {
         var cur = m;
@@ -383,10 +383,10 @@ public sealed partial class Compiler
         return false;
     }
 
-    /// <summary>RR 2.1.3.6.c : un nom transitoire ne peut etre ni affecte, ni lie, ni rendu, ni operande.</summary>
+    /// <summary>RR 2.1.3.6.c: a transient name cannot be assigned, bound, yielded or used as an operand.</summary>
     void CheckTransient(Node n, Ast pos, string usage)
     {
         if (IsTransient(n))
-            Error(pos, $"nom transitoire (tranche ou sélection d'un nom FLEX) : il ne peut pas être {usage}");
+            Error(pos, $"transient name (slice or selection of a FLEX name): it cannot be {usage}");
     }
 }

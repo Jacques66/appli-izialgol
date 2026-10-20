@@ -1,5 +1,5 @@
-// Harnais de tests du compilateur Algol 68.
-// Usage : dotnet run --project tests/Algol68Tests [-- --show fichier.a68] [-- --filter texte] [-- -v]
+// Test harness for the Algol 68 compiler.
+// Usage: dotnet run --project tests/Algol68Tests [-- --show file.a68] [-- --filter text] [-- -v]
 using System.Diagnostics;
 using System.Text;
 using Studio.Common;
@@ -62,10 +62,10 @@ static class Program
             if (Path.GetFileName(Path.GetDirectoryName(file)!) == "include") continue;
             RunSample(file, samples);
         }
-        if (filter == null || "internes".Contains(filter)) InternalTests.Run();
+        if (filter == null || "internal".Contains(filter)) InternalTests.Run();
         Console.WriteLine();
-        Console.WriteLine($"Résultat : {passed} réussi(s), {failed} échoué(s) en {sw.Elapsed.TotalSeconds:F1} s");
-        foreach (var f in failures) Console.WriteLine("  ÉCHEC " + f);
+        Console.WriteLine($"Result: {passed} passed, {failed} failed in {sw.Elapsed.TotalSeconds:F1} s");
+        foreach (var f in failures) Console.WriteLine("  FAILED " + f);
         return failed == 0 ? 0 : 1;
     }
 
@@ -80,7 +80,7 @@ static class Program
         failed++;
         failures.Add(name);
         Console.WriteLine();
-        Console.WriteLine($"ÉCHEC  {name}\n{why}");
+        Console.WriteLine($"FAILED {name}\n{why}");
     }
 
     static string Norm(string s) => s.Replace("\r\n", "\n");
@@ -118,16 +118,16 @@ static class Program
         var src = new SourceFile(file, File.ReadAllText(file));
         CompilationResult cr;
         try { cr = lang.Compile(src, OptionsFor(file)); }
-        catch (Exception e) { Fail(name, "exception du compilateur : " + e); return; }
+        catch (Exception e) { Fail(name, "compiler exception: " + e); return; }
         if (expErr != null)
         {
-            if (cr.Success) { Fail(name, "erreur de compilation attendue, compilation reussie"); return; }
+            if (cr.Success) { Fail(name, "compilation error expected, but compilation succeeded"); return; }
             foreach (var line in expErr.Split('\n').Where(l => l.Trim().Length > 0))
             {
                 var (lno, text) = ParseExpect(line);
                 if (!cr.Diagnostics.Any(d => d.Severity == Severity.Error && d.Message.Contains(text, StringComparison.OrdinalIgnoreCase) && (lno == 0 || d.Line == lno)))
                 {
-                    Fail(name, $"diagnostic attendu non trouvé : {line}\nobtenus :\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
+                    Fail(name, $"expected diagnostic not found: {line}\ngot:\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
                     return;
                 }
             }
@@ -136,7 +136,7 @@ static class Program
         }
         if (!cr.Success)
         {
-            Fail(name, "erreurs de compilation :\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
+            Fail(name, "compilation errors:\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
             return;
         }
         var (output, res, work) = Execute(cr.Program!, input);
@@ -144,29 +144,29 @@ static class Program
         output = Norm(output);
         if (expRte != null)
         {
-            if (res.Error == null) { Fail(name, "erreur d'exécution attendue, aucune obtenue\nsortie :\n" + output); return; }
+            if (res.Error == null) { Fail(name, "runtime error expected, none raised\noutput:\n" + output); return; }
             var lines = expRte.Split('\n').Where(l => l.Trim().Length > 0).ToList();
             var (lno, text) = ParseExpect(lines[0]);
             if (!res.Error.Message.Contains(text, StringComparison.OrdinalIgnoreCase) || (lno != 0 && res.Error.Line != lno))
-            { Fail(name, $"erreur d'exécution attendue : {lines[0]}\nobtenue : {res.Error} ({res.Error.Message})"); return; }
+            { Fail(name, $"expected runtime error: {lines[0]}\ngot: {res.Error}"); return; }
             if (expOut != null && output != expOut) { Fail(name, Diff(expOut, output)); return; }
             Pass(name);
             return;
         }
         if (res.Error != null || res.Cancelled)
         {
-            Fail(name, $"erreur d'exécution : {res.Error?.ToString() ?? "annule (delai depasse ?)"}\n" +
-                (res.Error != null ? string.Join("\n", res.Error.Stack.Select(s => $"    a {s.Name} {s.File}({s.Line},{s.Column})")) : "") + "\nsortie :\n" + output);
+            Fail(name, $"runtime error: {res.Error?.ToString() ?? "cancelled (timeout?)"}\n" +
+                (res.Error != null ? string.Join("\n", res.Error.Stack.Select(s => $"    at {s.Name} {s.File}({s.Line},{s.Column})")) : "") + "\noutput:\n" + output);
             return;
         }
-        if (expOut == null) { Fail(name, "fichier .out manquant ; sortie obtenue :\n" + output); return; }
+        if (expOut == null) { Fail(name, "missing .out file; actual output:\n" + output); return; }
         if (output != expOut) { Fail(name, Diff(expOut, output)); return; }
         Pass(name);
     }
 
     static (int line, string text) ParseExpect(string l)
     {
-        // forme "12: message" ou "message"
+        // form "12: message" or "message"
         int c = l.IndexOf(':');
         if (c > 0 && int.TryParse(l[..c].Trim(), out int n)) return (n, l[(c + 1)..].Trim());
         return (0, l.Trim());
@@ -178,16 +178,16 @@ static class Program
         var sb = new StringBuilder();
         for (int i = 0; i < Math.Max(a.Length, b.Length); i++)
         {
-            string x = i < a.Length ? a[i] : "<absent>", y = i < b.Length ? b[i] : "<absent>";
+            string x = i < a.Length ? a[i] : "<missing>", y = i < b.Length ? b[i] : "<missing>";
             if (x != y)
             {
-                sb.AppendLine($"  premiere difference ligne {i + 1} :");
-                sb.AppendLine($"    attendu : [{x}]");
-                sb.AppendLine($"    obtenu  : [{y}]");
+                sb.AppendLine($"  first difference at line {i + 1}:");
+                sb.AppendLine($"    expected: [{x}]");
+                sb.AppendLine($"    actual:   [{y}]");
                 break;
             }
         }
-        sb.AppendLine("  sortie obtenue complete :");
+        sb.AppendLine("  full actual output:");
         foreach (var l in b.Take(60)) sb.AppendLine("    |" + l);
         return sb.ToString();
     }
@@ -203,11 +203,11 @@ static class Program
         var sw = Stopwatch.StartNew();
         var (output, res, work) = Execute(cr.Program!, input);
         Console.Write(output);
-        Console.WriteLine($"\n--- code {res.ExitCode}{(res.Cancelled ? " (annule)" : "")} en {sw.ElapsedMilliseconds} ms ; repertoire {work}");
+        Console.WriteLine($"\n--- exit code {res.ExitCode}{(res.Cancelled ? " (cancelled)" : "")} in {sw.ElapsedMilliseconds} ms; directory {work}");
         if (res.Error != null)
         {
             Console.WriteLine(res.Error);
-            foreach (var s in res.Error.Stack) Console.WriteLine($"    a {s.Name} {s.File}({s.Line},{s.Column})");
+            foreach (var s in res.Error.Stack) Console.WriteLine($"    at {s.Name} {s.File}({s.Line},{s.Column})");
         }
         return res.ExitCode;
     }

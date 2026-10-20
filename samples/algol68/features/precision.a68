@@ -1,5 +1,5 @@
 PR precision = 100 PR
-# Precision de LONG LONG reglee par pragmat : 100 chiffres #
+# LONG LONG precision set by a pragmat: 100 digits #
 BEGIN
    print((long long pi, newline));
    print((long long int width, long long real width, newline));

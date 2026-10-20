@@ -1,4 +1,4 @@
-# Longues precisions : LONG INT (35 chiffres), LONG LONG INT (70 chiffres), LONG REAL, LONG LONG REAL #
+# Long precisions: LONG INT (35 digits), LONG LONG INT (70 digits), LONG REAL, LONG LONG REAL #
 BEGIN
    LONG INT a := LONG 123456789012345678;
    print((a * a, newline));

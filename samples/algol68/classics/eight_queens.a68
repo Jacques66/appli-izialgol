@@ -1,4 +1,4 @@
-# Probleme des huit reines : retour arriere #
+# Eight queens problem: backtracking #
 BEGIN
    INT n = 8;
    [n] INT col;
@@ -25,5 +25,5 @@ BEGIN
          FI
       OD;
    place(1);
-   print(("solutions : ", whole(solutions, 0), newline))
+   print(("solutions: ", whole(solutions, 0), newline))
 END

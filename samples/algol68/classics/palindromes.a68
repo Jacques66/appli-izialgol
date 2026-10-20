@@ -1,6 +1,6 @@
-# Palindromes : traitement de chaines, procedures booleennes #
+# Palindromes: string processing, boolean procedures #
 BEGIN
-   PROC nettoyer = (STRING s) STRING:
+   PROC clean = (STRING s) STRING:
    BEGIN
       STRING r := "";
       FOR i FROM LWB s TO UPB s DO
@@ -11,13 +11,13 @@ BEGIN
    END;
    PROC palindrome = (STRING s) BOOL:
    BEGIN
-      STRING t = nettoyer(s);
+      STRING t = clean(s);
       BOOL ok := TRUE;
       FOR i TO UPB t % 2 WHILE ok DO ok := t[i] = t[UPB t - i + 1] OD;
       ok
    END;
-   [] STRING essais = ("kayak", "Algol", "Esope reste ici et se repose", "Engage le jeu que je le gagne", "abc");
-   FOR k TO UPB essais DO
-      print((essais[k], " : ", (palindrome(essais[k]) | "oui" | "non"), newline))
+   [] STRING tries = ("kayak", "Algol", "A man, a plan, a canal: Panama", "Was it a car or a cat I saw", "abc");
+   FOR k TO UPB tries DO
+      print((tries[k], ": ", (palindrome(tries[k]) | "yes" | "no"), newline))
    OD
 END

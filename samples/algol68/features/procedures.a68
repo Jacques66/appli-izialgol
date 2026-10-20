@@ -1,42 +1,42 @@
-# Procedures : recursion, procedures en parametre et en resultat, variables, fermetures, noms #
+# Procedures: recursion, procedures as parameters and results, variables, closures, names #
 BEGIN
    PROC ack = (INT m, n) INT:
       IF m = 0 THEN n + 1 ELIF n = 0 THEN ack(m - 1, 1) ELSE ack(m - 1, ack(m, n - 1)) FI;
    print((ack(2, 3), ack(3, 3), newline));
-   PROC appliquer = (PROC (INT) INT f, [] INT v) [] INT:
+   PROC apply = (PROC (INT) INT f, [] INT v) [] INT:
       BEGIN [LWB v : UPB v] INT r; FOR i FROM LWB v TO UPB v DO r[i] := f(v[i]) OD; r END;
-   print((appliquer((INT x) INT: x * x, (1, 2, 3, 4)), newline));
+   print((apply((INT x) INT: x * x, (1, 2, 3, 4)), newline));
    PROC (INT) INT g := (INT x) INT: x + 1;
    print((g(1), newline));
    g := (INT x) INT: x * 10;
    print((g(1), newline));
    PROC compose = (PROC (INT) INT f, h, INT x) INT: f(h(x));
    print((compose(g, (INT x) INT: x - 1, 5), newline));
-   INT compteur := 0;
-   PROC tick = VOID: compteur +:= 1;
+   INT counter := 0;
+   PROC tick = VOID: counter +:= 1;
    TO 5 DO tick OD;
-   print((compteur, newline));
-   PROC fabrique = (BOOL double) PROC (INT) INT: (double | (INT x) INT: 2 * x | (INT x) INT: x);
-   PROC (INT) INT d = fabrique(TRUE);
-   print((d(21), fabrique(FALSE)(21), newline));
-   PROC echange = (REF INT a, b) VOID: (INT t = a; a := b; b := t);
+   print((counter, newline));
+   PROC make = (BOOL double) PROC (INT) INT: (double | (INT x) INT: 2 * x | (INT x) INT: x);
+   PROC (INT) INT d = make(TRUE);
+   print((d(21), make(FALSE)(21), newline));
+   PROC swap = (REF INT a, b) VOID: (INT t = a; a := b; b := t);
    INT p := 1, q := 2;
-   echange(p, q);
+   swap(p, q);
    print((p, q, newline));
-   PROC pair = (INT n) BOOL: (n = 0 | TRUE | impair(n - 1)),
-        impair = (INT n) BOOL: (n = 0 | FALSE | pair(n - 1));
-   print((pair(10), impair(7), pair(3), newline));
-   PROC inverse = (STRING s) STRING:
+   PROC even = (INT n) BOOL: (n = 0 | TRUE | odd(n - 1)),
+        odd = (INT n) BOOL: (n = 0 | FALSE | even(n - 1));
+   print((even(10), odd(7), even(3), newline));
+   PROC reverse = (STRING s) STRING:
       (STRING r := ""; FOR i FROM UPB s BY -1 TO LWB s DO r +:= s[i] OD; r);
-   print((inverse("Algol 68"), newline));
-   PROC somme = ([] INT v) INT:
+   print((reverse("Algol 68"), newline));
+   PROC sum = ([] INT v) INT:
    BEGIN
       INT total := 0;
-      PROC ajouter = (INT x) VOID: total +:= x;
-      FOR i FROM LWB v TO UPB v DO ajouter(v[i]) OD;
+      PROC add = (INT x) VOID: total +:= x;
+      FOR i FROM LWB v TO UPB v DO add(v[i]) OD;
       total
    END;
-   print((somme((1, 2, 3, 4, 5)), newline));
-   PROC profondeur = (INT n) INT: (n = 0 | 0 | 1 + profondeur(n - 1));
-   print((profondeur(20000), newline))
+   print((sum((1, 2, 3, 4, 5)), newline));
+   PROC depth = (INT n) INT: (n = 0 | 0 | 1 + depth(n - 1));
+   print((depth(20000), newline))
 END

@@ -4,46 +4,46 @@ using Studio.Algol68;
 
 namespace Algol68Tests;
 
-/// <summary>Tests internes : programmes en ligne, erreurs, mise au point, serialisation, annulation, performances.</summary>
+/// <summary>Internal tests: inline programs, errors, debugging, serialisation, cancellation, performance.</summary>
 static class InternalTests
 {
     static readonly Algol68Language lang = new();
 
-    static CompilationResult Compile(string src, string name = "interne.a68") =>
+    static CompilationResult Compile(string src, string name = "internal.a68") =>
         lang.Compile(new SourceFile(name, src), new CompileOptions());
 
     static void Expect(string name, string src, string expected, string? input = null)
     {
         var cr = Compile(src, name + ".a68");
-        if (!cr.Success) { Program.Fail("interne/" + name, string.Join("\n", cr.Diagnostics)); return; }
+        if (!cr.Success) { Program.Fail("internal/" + name, string.Join("\n", cr.Diagnostics)); return; }
         var (o, res, _) = Program.Execute(cr.Program!, input);
         o = o.Replace("\r\n", "\n");
-        if (res.Error != null) { Program.Fail("interne/" + name, res.Error.ToString()); return; }
-        if (o != expected) { Program.Fail("interne/" + name, Program.Diff(expected, o)); return; }
-        Program.Pass("interne/" + name);
+        if (res.Error != null) { Program.Fail("internal/" + name, res.Error.ToString()); return; }
+        if (o != expected) { Program.Fail("internal/" + name, Program.Diff(expected, o)); return; }
+        Program.Pass("internal/" + name);
     }
 
     static void ExpectCompileError(string name, string src, string fragment, int line = 0)
     {
         var cr = Compile(src, name + ".a68");
-        if (cr.Success) { Program.Fail("interne/" + name, "erreur de compilation attendue"); return; }
+        if (cr.Success) { Program.Fail("internal/" + name, "compilation error expected"); return; }
         if (!cr.Diagnostics.Any(d => d.Message.Contains(fragment, StringComparison.OrdinalIgnoreCase) && (line == 0 || d.Line == line)))
-        { Program.Fail("interne/" + name, $"attendu « {fragment} » (ligne {line}), obtenu :\n" + string.Join("\n", cr.Diagnostics)); return; }
-        Program.Pass("interne/" + name);
+        { Program.Fail("internal/" + name, $"expected '{fragment}' (line {line}), got:\n" + string.Join("\n", cr.Diagnostics)); return; }
+        Program.Pass("internal/" + name);
     }
 
     static void ExpectRuntimeError(string name, string src, string fragment, int line = 0)
     {
         var cr = Compile(src, name + ".a68");
-        if (!cr.Success) { Program.Fail("interne/" + name, string.Join("\n", cr.Diagnostics)); return; }
+        if (!cr.Success) { Program.Fail("internal/" + name, string.Join("\n", cr.Diagnostics)); return; }
         var (_, res, _) = Program.Execute(cr.Program!, null);
-        if (res.Error == null) { Program.Fail("interne/" + name, "erreur d'exécution attendue"); return; }
+        if (res.Error == null) { Program.Fail("internal/" + name, "runtime error expected"); return; }
         if (!res.Error.Message.Contains(fragment, StringComparison.OrdinalIgnoreCase) || (line != 0 && res.Error.Line != line))
-        { Program.Fail("interne/" + name, $"attendu « {fragment} » ligne {line}, obtenu {res.Error}"); return; }
-        Program.Pass("interne/" + name);
+        { Program.Fail("internal/" + name, $"expected '{fragment}' at line {line}, got {res.Error}"); return; }
+        Program.Pass("internal/" + name);
     }
 
-    /// <summary>Execute sous le debogueur ; onPause choisit l'action (0 continue, 1 into, 2 over, 3 out).</summary>
+    /// <summary>Runs under the debugger; onPause chooses the action (0 continue, 1 into, 2 over, 3 out).</summary>
     static (List<(PauseReason reason, int line)> pauses, ExecutionResult res, string output) RunDebug(
         string src, Action<IDebugger> setup, Func<IDebugger, PauseInfo, int> onPause, string name = "dbg.a68")
     {
@@ -67,7 +67,7 @@ static class InternalTests
 
     static void Check(string name, bool ok, string detail)
     {
-        if (ok) Program.Pass("interne/" + name); else Program.Fail("interne/" + name, detail);
+        if (ok) Program.Pass("internal/" + name); else Program.Fail("internal/" + name, detail);
     }
 
     static string Lines(List<(PauseReason reason, int line)> p) => string.Join(",", p.Select(x => x.line));
@@ -75,7 +75,7 @@ static class InternalTests
     static void DebuggerTests()
     {
         const string prog = "INT s := 0;\nPROC p = (INT n) VOID:\n   s +:= n;\np(1); p(2);\nprint(s)\n";
-        // point d'arret sur le corps d'une PROC reduit a une unite (sur sa propre ligne)
+        // breakpoint on the body of a PROC made of a single unit (on its own line)
         {
             string vars = "", stack = "";
             var (p, res, _) = RunDebug(prog, d => d.SetBreakpoints("dbg.a68", new[] { 3 }), (d, pi) =>
@@ -88,36 +88,36 @@ static class InternalTests
                 }
                 return 0;
             });
-            Check("debogueur-point-arret-corps-unité", res.Error == null && Lines(p) == "3,3" && p.All(x => x.reason == PauseReason.Breakpoint),
-                $"pauses : {Lines(p)} erreur : {res.Error}");
-            Check("debogueur-variables", vars == "n=1|s=0;p=routine p", "variables : " + vars);
-            Check("debogueur-pile", stack == "p@3;programme principal@4", "pile : " + stack);
+            Check("debugger-breakpoint-unit-body", res.Error == null && Lines(p) == "3,3" && p.All(x => x.reason == PauseReason.Breakpoint),
+                $"pauses: {Lines(p)} error: {res.Error}");
+            Check("debugger-variables", vars == "n=1|s=0;p=routine p", "variables: " + vars);
+            Check("debugger-stack", stack == "p@3;main program@4", "stack: " + stack);
         }
-        // pas a pas detaille (into)
+        // step into
         {
             var (p, res, _) = RunDebug(prog, d => d.StopOnEntry = true, (d, pi) => 1);
-            Check("debogueur-pas-a-pas-into", res.Error == null && Lines(p) == "1,2,4,3,4,3,5" && p[0].reason == PauseReason.Entry,
-                $"pauses : {Lines(p)}");
+            Check("debugger-step-into", res.Error == null && Lines(p) == "1,2,4,3,4,3,5" && p[0].reason == PauseReason.Entry,
+                $"pauses: {Lines(p)}");
         }
-        // pas a pas principal (over)
+        // step over
         {
             var (p, res, _) = RunDebug(prog, d => d.StopOnEntry = true, (d, pi) => 2);
-            Check("debogueur-pas-a-pas-over", res.Error == null && Lines(p) == "1,2,4,5", $"pauses : {Lines(p)}");
+            Check("debugger-step-over", res.Error == null && Lines(p) == "1,2,4,5", $"pauses: {Lines(p)}");
         }
-        // sortie de routine (out)
+        // step out of a routine
         {
             var (p, res, _) = RunDebug(prog, d => d.SetBreakpoints("dbg.a68", new[] { 3 }), (d, pi) => pi.Line == 3 ? 3 : 0);
-            Check("debogueur-step-out", res.Error == null && Lines(p) == "3,4,3,5", $"pauses : {Lines(p)}");
+            Check("debugger-step-out", res.Error == null && Lines(p) == "3,4,3,5", $"pauses: {Lines(p)}");
         }
-        // pause sur erreur, avec pile intacte
+        // pause on error, with the stack intact
         {
             const string bad = "PROC f = (INT k) INT:\n   k % 0;\nprint(f(3))\n";
             string stack = "";
             var (p, res, _) = RunDebug(bad, d => d.BreakOnError = true, (d, pi) => { stack = string.Join(";", d.GetStack().Select(s => $"{s.Name}@{s.Line}")); return 0; });
-            Check("debogueur-pause-sur-erreur", p.Count == 1 && p[0].reason == PauseReason.Exception && p[0].line == 2 && res.Error != null && stack == "f@2;programme principal@3",
-                $"pauses : {Lines(p)} pile : {stack} erreur : {res.Error}");
+            Check("debugger-pause-on-error", p.Count == 1 && p[0].reason == PauseReason.Exception && p[0].line == 2 && res.Error != null && stack == "f@2;main program@3",
+                $"pauses: {Lines(p)} stack: {stack} error: {res.Error}");
         }
-        // demande de pause pendant une boucle longue
+        // pause request during a long loop
         {
             var cr = Compile("INT n := 0;\nWHILE n < 100000000 DO\n   n +:= 1\nOD\n", "dbg.a68");
             var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
@@ -128,10 +128,10 @@ static class InternalTests
             var timer = new Timer(_ => dbg.RequestPause(), null, 200, Timeout.Infinite);
             var res = exec.Run(cts.Token);
             timer.Dispose();
-            Check("debogueur-pause-demandee", res.Error == null && res.Cancelled && got != null && got.Reason == PauseReason.PauseRequest && got.Line is 2 or 3 && nval != "0",
-                $"pause {got?.Reason} ligne {got?.Line} n={nval} {res.Error}");
+            Check("debugger-pause-request", res.Error == null && res.Cancelled && got != null && got.Reason == PauseReason.PauseRequest && got.Line is 2 or 3 && nval != "0",
+                $"pause {got?.Reason} line {got?.Line} n={nval} {res.Error}");
         }
-        // structures et rangees explorables
+        // structures and rows can be expanded
         {
             const string src = "MODE P = STRUCT (INT x, [3] REAL v);\nP p;\nx OF p := 4; v OF p := (1, 2, 3);\nprint(x OF p)\n";
             string kids = "";
@@ -144,94 +144,94 @@ static class InternalTests
                 kids += "|" + string.Join(";", d.GetChildren(vv).Select(c => $"{c.Name}={c.Value}"));
                 return 0;
             });
-            Check("debogueur-enfants", kids == "x=4;v=[1:3] (3 éléments)|[1]=1;[2]=2;[3]=3", "enfants : " + kids);
+            Check("debugger-children", kids == "x=4;v=[1:3] (3 elements)|[1]=1;[2]=2;[3]=3", "children: " + kids);
         }
     }
 
     static void MiscTests()
     {
-        // annulation d'une boucle infinie
+        // cancellation of an infinite loop
         {
             var cr = Compile("INT n := 0;\nDO n +:= 1 OD\n");
             var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
             using var cts = new CancellationTokenSource(300);
             var sw = Stopwatch.StartNew();
             var res = exec.Run(cts.Token);
-            Check("annulation-boucle", res.Cancelled && sw.ElapsedMilliseconds < 5000, $"cancelled={res.Cancelled} en {sw.ElapsedMilliseconds} ms");
+            Check("cancel-loop", res.Cancelled && sw.ElapsedMilliseconds < 5000, $"cancelled={res.Cancelled} in {sw.ElapsedMilliseconds} ms");
         }
-        // annulation dans des branches PAR et pendant une attente de semaphore
+        // cancellation inside PAR branches and while waiting on a semaphore
         {
             var cr = Compile("SEMA s = LEVEL 0;\nPAR (DO SKIP OD, (DOWN s; SKIP), DO SKIP OD)\n");
             var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
             using var cts = new CancellationTokenSource(300);
             var res = exec.Run(cts.Token);
-            Check("annulation-par", res.Cancelled, $"cancelled={res.Cancelled} erreur={res.Error}");
+            Check("cancel-par", res.Cancelled, $"cancelled={res.Cancelled} error={res.Error}");
         }
-        // annulation pendant une pause du debogueur
+        // cancellation while the debugger is paused
         {
             var cr = Compile("print(1);\nprint(2)\n");
             var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
             var cts = new CancellationTokenSource();
             exec.Debugger.StopOnEntry = true;
-            exec.Debugger.Paused += pi => cts.CancelAfter(100); // ne reprend jamais
+            exec.Debugger.Paused += pi => cts.CancelAfter(100); // never resumes
             var res = exec.Run(cts.Token);
-            Check("annulation-en-pause", res.Cancelled, $"cancelled={res.Cancelled}");
+            Check("cancel-while-paused", res.Cancelled, $"cancelled={res.Cancelled}");
         }
-        // serialisation : sources + inclusions, rechargement par Deserialize
+        // serialisation: sources + includes, reloaded by Deserialize
         {
             var inc = new SourceFile("lib.a68", "PROC double = (INT x) INT: 2 * x;\n");
             var opts = new CompileOptions { IncludeResolver = (n, from) => n == "lib.a68" ? inc : null };
             var cr = lang.Compile(new SourceFile("main.a68", "PR include \"lib.a68\" PR\nprint((double(21), newline))\n"), opts);
-            if (!cr.Success) { Program.Fail("interne/serialisation", string.Join("\n", cr.Diagnostics)); }
+            if (!cr.Success) { Program.Fail("internal/serialisation", string.Join("\n", cr.Diagnostics)); }
             else
             {
                 var bytes = cr.Program!.Serialize();
                 var p2 = lang.Deserialize(bytes);
                 var (o, res, _) = Program.Execute(p2, null);
-                Check("serialisation", p2.LanguageId == "algol68" && res.Error == null && o == "        +42\n", $"sortie [{o}] {res.Error}");
+                Check("serialisation", p2.LanguageId == "algol68" && res.Error == null && o == "        +42\n", $"output [{o}] {res.Error}");
             }
         }
-        // inclusion introuvable
-        ExpectCompileError("inclusion-absente", "PR include \"absent.a68\" PR\nSKIP\n", "introuvable", 1);
-        // performances : 10 millions d'iterations
+        // missing included file
+        ExpectCompileError("missing-include", "PR include \"missing.a68\" PR\nSKIP\n", "not found", 1);
+        // performance: 10 million iterations
         {
             var cr = Compile("INT s := 0;\nFOR i TO 10000000 DO s +:= i MOD 3 OD;\nprint(s)\n");
             var sw = Stopwatch.StartNew();
             var (o, res, _) = Program.Execute(cr.Program!, null);
-            Check("performances-10M", res.Error == null && o.Trim() == "+10000000" && sw.Elapsed.TotalSeconds < 5,
-                $"sortie {o} en {sw.Elapsed.TotalSeconds:F2} s");
+            Check("performance-10M", res.Error == null && o.Trim() == "+10000000" && sw.Elapsed.TotalSeconds < 5,
+                $"output {o} in {sw.Elapsed.TotalSeconds:F2} s");
         }
-        // pile d'appels dans l'erreur d'execution
+        // call stack in the runtime error
         {
-            var cr = Compile("PROC g = (INT n) INT: 10 % n;\nPROC f = (INT n) INT: g(n - 1);\nprint(f(1))\n", "pile.a68");
+            var cr = Compile("PROC g = (INT n) INT: 10 % n;\nPROC f = (INT n) INT: g(n - 1);\nprint(f(1))\n", "stack.a68");
             var (_, res, _) = Program.Execute(cr.Program!, null);
             var st = res.Error == null ? "" : string.Join(";", res.Error.Stack.Select(s => $"{s.Name}@{s.Line}"));
-            Check("pile-erreur", res.Error != null && res.Error.Line == 1 && res.Error.File == "pile.a68" && st == "g@1;f@2;programme principal@3",
-                $"{res.Error} pile={st}");
+            Check("error-stack", res.Error != null && res.Error.Line == 1 && res.Error.File == "stack.a68" && st == "g@1;f@2;main program@3",
+                $"{res.Error} stack={st}");
         }
-        // position exacte des diagnostics
+        // exact position of diagnostics
         {
             var cr = Compile("BEGIN\n   INT x := 1;\n   x := y + 1\nEND\n");
             var d = cr.Diagnostics.FirstOrDefault();
-            Check("position-diagnostic", d != null && d.Line == 3 && d.Column == 9 && d.Severity == Severity.Error, d?.ToString() ?? "aucun");
+            Check("diagnostic-position", d != null && d.Line == 3 && d.Column == 9 && d.Severity == Severity.Error, d?.ToString() ?? "none");
         }
-        // erreur dans une branche PAR : propagation et arret des autres branches
-        ExpectRuntimeError("erreur-par", "[2] INT t;\nPAR (DO SKIP OD, t[3] := 1)\n", "hors des bornes", 2);
-        // point d'arret dans une branche parallele
+        // error in a PAR branch: propagation and stop of the other branches
+        ExpectRuntimeError("par-error", "[2] INT t;\nPAR (DO SKIP OD, t[3] := 1)\n", "out of bounds", 2);
+        // breakpoint in a parallel branch
         {
             const string src = "INT a := 0, b := 0;\nPAR (a := 1,\n     b := 2);\nprint((a + b, newline))\n";
             var (p, res, o) = RunDebug(src, d => d.SetBreakpoints("dbg.a68", new[] { 3 }), (d, pi) => 0);
-            Check("debogueur-par", res.Error == null && Lines(p) == "3" && o == "         +3\n", $"pauses {Lines(p)} sortie {o} {res.Error}");
+            Check("debugger-par", res.Error == null && Lines(p) == "3" && o == "         +3\n", $"pauses {Lines(p)} output {o} {res.Error}");
         }
-        // impression de structure avec champ non initialise
-        ExpectRuntimeError("champ-non-initialisé", "STRUCT (INT a, b) s;\na OF s := 1;\nprint(s)\n", "non initialisée", 3);
-        // valeurs exactes de quelques conversions (algorithmes a68g)
+        // printing a structure with an uninitialised field
+        ExpectRuntimeError("uninitialised-field", "STRUCT (INT a, b) s;\na OF s := 1;\nprint(s)\n", "uninitialised", 3);
+        // exact values of a few conversions (a68g algorithms)
         Expect("conversions", "print((whole(0, 0), whole(-5, 3), fixed(2.5, 0, 0), fixed(-0.25, 0, 2), float(0.0, 10, 3, 2), newline))",
             "0 -53-.25 +0.000e+0\n");
         Expect("stop", "print((\"a\", newline)); stop; print(\"b\")", "a\n");
     }
 
-    /// <summary>Robustesse : programmes tronques ou alteres -> diagnostics, jamais d'erreur interne.</summary>
+    /// <summary>Robustness: truncated or altered programs -> diagnostics, never an internal error.</summary>
     static void FuzzTests()
     {
         var dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples", "algol68");
@@ -255,18 +255,18 @@ static class InternalTests
                 try
                 {
                     var cr = lang.Compile(new SourceFile(Path.GetFileName(f), t), new CompileOptions());
-                    if (cr.Diagnostics.Any(d => d.Message.Contains("erreur interne"))) bad.Add($"{Path.GetFileName(f)} #{k} : {cr.Diagnostics.First(d => d.Message.Contains("erreur interne")).Message}");
+                    if (cr.Diagnostics.Any(d => d.Message.Contains("internal compiler error"))) bad.Add($"{Path.GetFileName(f)} #{k}: {cr.Diagnostics.First(d => d.Message.Contains("internal compiler error")).Message}");
                 }
-                catch (Exception e) { bad.Add($"{Path.GetFileName(f)} #{k} : exception {e.GetType().Name} {e.Message}"); }
+                catch (Exception e) { bad.Add($"{Path.GetFileName(f)} #{k}: exception {e.GetType().Name} {e.Message}"); }
             }
         }
-        Check("robustesse-compilateur", bad.Count == 0, $"{bad.Count}/{cases} cas en échec :\n" + string.Join("\n", bad.Take(15)));
+        Check("compiler-robustness", bad.Count == 0, $"{bad.Count}/{cases} failing cases:\n" + string.Join("\n", bad.Take(15)));
     }
 
     public static void Run()
     {
         FuzzTests();
-        Expect("bonjour", "print((\"Bonjour\", newline))", "Bonjour\n");
+        Expect("hello", "print((\"Hello\", newline))", "Hello\n");
         DebuggerTests();
         MiscTests();
     }

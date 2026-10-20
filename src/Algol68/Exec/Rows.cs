@@ -4,7 +4,7 @@ using Studio.Algol68.Semantics;
 
 namespace Studio.Algol68.Exec;
 
-/// <summary>Indice d'une tranche : indice simple ou trimmer.</summary>
+/// <summary>Indexer of a slice: plain subscript or trimmer.</summary>
 public sealed class SliceIndexer
 {
     public Node? Index;
@@ -17,19 +17,19 @@ public static class RowOps
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static A68Error OutOfBounds(long i, int lwb, int upb, int dim, Node at) =>
-        RT.Err($"indice {i} hors des bornes [{lwb}:{upb}]" + (dim > 0 ? $" (dimension {dim + 1})" : ""), at);
+        RT.Err($"index {i} out of bounds [{lwb}:{upb}]" + (dim > 0 ? $" (dimension {dim + 1})" : ""), at);
 
     public static RowV GetRow(Value v, Node at)
     {
         if (v.O is RowV r) return r;
-        if (ReferenceEquals(v.O, Value.Uninit) || v.O == null) throw RT.Err("rangée non initialisée", at);
-        throw RT.Err("rangée attendue", at);
+        if (ReferenceEquals(v.O, Value.Uninit) || v.O == null) throw RT.Err("uninitialised row", at);
+        throw RT.Err("row expected", at);
     }
 
-    /// <summary>Applique indices et trimmers a un descripteur ; rend (rangee resultante, index d'element si tous indices).</summary>
+    /// <summary>Applies subscripts and trimmers to a descriptor; returns (resulting row, element index when all are subscripts).</summary>
     public static (RowV? row, int idx) Slice(RowV r, SliceIndexer[] ix, Frame f, Node at)
     {
-        if (ix.Length != r.Dims) throw RT.Err($"nombre d'indices ({ix.Length}) différent du nombre de dimensions ({r.Dims})", at);
+        if (ix.Length != r.Dims) throw RT.Err($"number of indexers ({ix.Length}) differs from the number of dimensions ({r.Dims})", at);
         int offset = r.Offset;
         var lw = new List<int>(); var up = new List<int>(); var st = new List<int>();
         for (int d = 0; d < ix.Length; d++)
@@ -48,7 +48,7 @@ public static class RowOps
             if (x.HasColon) newL = x.At != null ? x.At.EvalInt(f) : 1;
             else newL = x.At != null ? x.At.EvalInt(f) : l;
             if (u >= l && (l < r.Lwb[d] || u > r.Upb[d]))
-                throw RT.Err($"trimmer [{l}:{u}] hors des bornes [{r.Lwb[d]}:{r.Upb[d]}]", at);
+                throw RT.Err($"trimmer [{l}:{u}] out of bounds [{r.Lwb[d]}:{r.Upb[d]}]", at);
             if (u >= l) offset += (int)(l - r.Lwb[d]) * r.Stride[d];
             lw.Add((int)newL); up.Add((int)(newL + (u - l))); st.Add(r.Stride[d]);
         }
@@ -57,7 +57,7 @@ public static class RowOps
     }
 }
 
-/// <summary>a[i] sur un nom de rangee a une dimension : rend un nom d'element.</summary>
+/// <summary>a[i] on the name of a one-dimensional row: yields the name of an element.</summary>
 public sealed class Subscript1NameNode : Node
 {
     readonly Node prim, index;
@@ -68,8 +68,8 @@ public sealed class Subscript1NameNode : Node
     RefV Get(Frame f)
     {
         var rr = Unsafe.As<RefV>(prim.EvalObj(f));
-        if (rr == null || rr.A == null) throw RT.Err("indexation d'un nom NIL", this);
-        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
+        if (rr == null || rr.A == null) throw RT.Err("indexing a NIL name", this);
+        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("uninitialised row", this);
         long i = index.EvalInt(f);
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
@@ -79,7 +79,7 @@ public sealed class Subscript1NameNode : Node
     }
 }
 
-/// <summary>a[i] (rangee a une dimension) dereference immediatement : lecture rapide.</summary>
+/// <summary>a[i] (one-dimensional row) dereferenced at once: fast read.</summary>
 public sealed class Subscript1DerefNode : Node
 {
     readonly Node prim, index; readonly bool copy; readonly Mode elemMode;
@@ -88,13 +88,13 @@ public sealed class Subscript1DerefNode : Node
     Value Get(Frame f)
     {
         var rr = Unsafe.As<RefV>(prim.EvalObj(f));
-        if (rr == null || rr.A == null) throw RT.Err("indexation d'un nom NIL", this);
-        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
+        if (rr == null || rr.A == null) throw RT.Err("indexing a NIL name", this);
+        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("uninitialised row", this);
         long i = index.EvalInt(f);
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
         var v = row.GetAt(idx);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"élément [{i}] non initialisé", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"element [{i}] is uninitialised", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, elemMode) : v; }
@@ -104,7 +104,7 @@ public sealed class Subscript1DerefNode : Node
     public override object? EvalObj(Frame f) => Eval(f).O;
 }
 
-/// <summary>a[i] sur une valeur rangee a une dimension.</summary>
+/// <summary>a[i] on a one-dimensional row value.</summary>
 public sealed class Subscript1ValueNode : Node
 {
     readonly Node prim, index;
@@ -117,7 +117,7 @@ public sealed class Subscript1ValueNode : Node
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
         var v = row.GetAt(idx);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"élément [{i}] non initialisé", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"element [{i}] is uninitialised", this);
         return v;
     }
     public override Value Eval(Frame f) => Get(f);
@@ -126,7 +126,7 @@ public sealed class Subscript1ValueNode : Node
     public override bool EvalBool(Frame f) => Get(f).N != 0;
 }
 
-/// <summary>Tranche generale (plusieurs dimensions, trimmers), sur nom ou valeur.</summary>
+/// <summary>General slice (several dimensions, trimmers), on a name or a value.</summary>
 public sealed class SliceNode : Node
 {
     readonly Node prim; readonly SliceIndexer[] ix; readonly bool onName;
@@ -137,7 +137,7 @@ public sealed class SliceNode : Node
         if (onName)
         {
             var rr = RT.CheckNil(prim.EvalObj(f) as RefV, this);
-            row = rr.A![rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
+            row = rr.A![rr.I].O as RowV ?? throw RT.Err("uninitialised row", this);
             scope = rr.Scope;
         }
         else row = RowOps.GetRow(prim.Eval(f), this);
@@ -150,14 +150,14 @@ public sealed class SliceNode : Node
                 return Value.Obj(new RefV(a, j, scope));
             }
             var v = row.GetAt(idx);
-            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("élément non initialisé", this);
+            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uninitialised element", this);
             return v;
         }
         return onName ? Value.Obj(RefV.NewCell(Value.Obj(res), scope)) : Value.Obj(res);
     }
 }
 
-/// <summary>Selection d'un champ : sur un nom de structure (rend un nom) ou une valeur.</summary>
+/// <summary>Field selection: on a structure name (yields a name) or on a value.</summary>
 public sealed class SelectNameNode : Node
 {
     readonly Node sec; readonly int field;
@@ -168,8 +168,8 @@ public sealed class SelectNameNode : Node
     RefV Get(Frame f)
     {
         var r = Unsafe.As<RefV>(sec.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("sélection dans un nom NIL", this);
-        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisée", this);
+        if (r == null || r.A == null) throw RT.Err("selection from a NIL name", this);
+        var s = r.A[r.I].O as Value[] ?? throw RT.Err("uninitialised structure", this);
         return new RefV(s, field, r.Scope);
     }
 }
@@ -182,10 +182,10 @@ public sealed class SelectDerefNode : Node
     Value Get(Frame f)
     {
         var r = Unsafe.As<RefV>(sec.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("sélection dans un nom NIL", this);
-        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisée", this);
+        if (r == null || r.A == null) throw RT.Err("selection from a NIL name", this);
+        var s = r.A[r.I].O as Value[] ?? throw RT.Err("uninitialised structure", this);
         var v = s[field];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialisé", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uninitialised field", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, fmode) : v; }
@@ -202,9 +202,9 @@ public sealed class SelectValueNode : Node
     Value Get(Frame f)
     {
         var sv = sec.Eval(f);
-        var s = sv.O as Value[] ?? throw RT.Err("structure non initialisée", this);
+        var s = sv.O as Value[] ?? throw RT.Err("uninitialised structure", this);
         var v = s[field];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialisé", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uninitialised field", this);
         return v;
     }
     public override Value Eval(Frame f) => Get(f);
@@ -213,7 +213,7 @@ public sealed class SelectValueNode : Node
     public override bool EvalBool(Frame f) => Get(f).N != 0;
 }
 
-/// <summary>Selection multiple : champ d'une rangee de structures (nom ou valeur).</summary>
+/// <summary>Multiple selection: field of a row of structures (name or value).</summary>
 public sealed class SelectRowNode : Node
 {
     readonly Node sec; readonly int field; readonly bool onName;
@@ -224,7 +224,7 @@ public sealed class SelectRowNode : Node
         if (onName)
         {
             var r = RT.CheckNil(sec.EvalObj(f) as RefV, this);
-            row = r.A![r.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
+            row = r.A![r.I].O as RowV ?? throw RT.Err("uninitialised row", this);
             scope = r.Scope;
         }
         else row = RowOps.GetRow(sec.Eval(f), this);

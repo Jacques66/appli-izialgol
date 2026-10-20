@@ -1,23 +1,23 @@
-# Suite de Syracuse (Collatz) : nombre d'etapes et maximum atteint #
+# Collatz sequence: number of steps and maximum reached #
 BEGIN
-   PROC syracuse = (INT depart, REF INT maximum) INT:
+   PROC collatz = (INT start, REF INT maximum) INT:
    BEGIN
-      INT n := depart, etapes := 0;
+      INT n := start, steps := 0;
       maximum := n;
       WHILE n /= 1 DO
          n := (ODD n | 3 * n + 1 | n % 2);
          IF n > maximum THEN maximum := n FI;
-         etapes +:= 1
+         steps +:= 1
       OD;
-      etapes
+      steps
    END;
    INT m;
-   INT e = syracuse(27, m);
-   print(("27 : ", whole(e, 0), " etapes, maximum ", whole(m, 0), newline));
-   INT meilleur := 1, record := 0;
+   INT e = collatz(27, m);
+   print(("27: ", whole(e, 0), " steps, maximum ", whole(m, 0), newline));
+   INT best := 1, record := 0;
    FOR i TO 30 DO
-      INT k = syracuse(i, LOC INT);
-      IF k > record THEN record := k; meilleur := i FI
+      INT k = collatz(i, LOC INT);
+      IF k > record THEN record := k; best := i FI
    OD;
-   print(("plus longue suite pour i <= 30 : ", whole(meilleur, 0), " (", whole(record, 0), " etapes)", newline))
+   print(("longest sequence for i <= 30: ", whole(best, 0), " (", whole(record, 0), " steps)", newline))
 END

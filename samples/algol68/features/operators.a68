@@ -1,4 +1,4 @@
-# Operateurs : declarations, priorites, surcharge, operateurs symboliques et gras #
+# Operators: declarations, priorities, overloading, symbolic and bold operators #
 BEGIN
    PRIO MAX = 9, MIN = 9;
    OP MAX = (INT a, b) INT: (a > b | a | b);
@@ -20,8 +20,8 @@ BEGIN
    END;
    print((2 + 3, newline));
    MODE FRAC = STRUCT (INT num, den);
-   PROC pgcd = (INT a, b) INT: (b = 0 | ABS a | pgcd(b, a MOD b));
-   OP NORM = (FRAC f) FRAC: (INT g = pgcd(num OF f, den OF f); (num OF f % g, den OF f % g));
+   PROC gcd = (INT a, b) INT: (b = 0 | ABS a | gcd(b, a MOD b));
+   OP NORM = (FRAC f) FRAC: (INT g = gcd(num OF f, den OF f); (num OF f % g, den OF f % g));
    OP + = (FRAC a, b) FRAC: NORM FRAC (num OF a * den OF b + num OF b * den OF a, den OF a * den OF b);
    OP * = (FRAC a, b) FRAC: NORM FRAC (num OF a * num OF b, den OF a * den OF b);
    PROC show = (FRAC f) STRING: whole(num OF f, 0) + "/" + whole(den OF f, 0);

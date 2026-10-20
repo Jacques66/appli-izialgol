@@ -1,4 +1,4 @@
-# Tri rapide (Hoare) sur une rangee passee par nom #
+# Quicksort (Hoare) on a row passed by name #
 BEGIN
    PROC quicksort = (REF [] INT a, INT lo, hi) VOID:
       IF lo < hi THEN

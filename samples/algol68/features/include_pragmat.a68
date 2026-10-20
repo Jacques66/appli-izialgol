@@ -1,3 +1,3 @@
-# Inclusion de fichier par pragmat ; programme sans BEGIN ... END (serie de phrases) #
-PR include "include/outils.a68" PR
-print((carre(7), CUBE 3, newline))
+# File inclusion by pragmat; program without BEGIN ... END (a plain series of phrases) #
+PR include "include/tools.a68" PR
+print((square(7), CUBE 3, newline))

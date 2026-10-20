@@ -1,6 +1,6 @@
-# Nombres parfaits inferieurs a 10000 : somme des diviseurs #
+# Perfect numbers below 10000: sum of divisors #
 BEGIN
-   PROC somme diviseurs = (INT n) INT:
+   PROC sum of divisors = (INT n) INT:
    BEGIN
       INT s := 1;
       FOR d FROM 2 WHILE d * d <= n DO
@@ -9,7 +9,7 @@ BEGIN
       s
    END;
    FOR n FROM 2 TO 10000 DO
-      IF somme diviseurs(n) = n THEN print((whole(n, 0), " ")) FI
+      IF sum of divisors(n) = n THEN print((whole(n, 0), " ")) FI
    OD;
    print(newline)
 END

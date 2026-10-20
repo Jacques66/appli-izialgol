@@ -6,7 +6,7 @@ using Studio.Algol68.Syntax;
 
 namespace Studio.Algol68.Semantics;
 
-/// <summary>Analyse semantique (identification, modes, coercitions) et generation de l'arbre executable.</summary>
+/// <summary>Semantic analysis (identification, modes, coercions) and generation of the executable tree.</summary>
 public sealed partial class Compiler
 {
     public readonly ModeTable M = new();
@@ -38,7 +38,7 @@ public sealed partial class Compiler
 
     public RoutineInfo CompileProgram(SerialAst prog)
     {
-        var info = new RoutineInfo { Name = "programme principal", Level = 0, File = prog.File, Line = prog.Line, Col = prog.Col };
+        var info = new RoutineInfo { Name = "main program", Level = 0, File = prog.File, Line = prog.Line, Col = prog.Col };
         routine = new RoutineCtx { Level = 0, Info = info };
         cur = PreludeRange;
         var body = GenSerial(prog, M.Void, Strength.Strong, true);
@@ -47,7 +47,7 @@ public sealed partial class Compiler
         return info;
     }
 
-    // ------------------------------------------------------------------ portees
+    // ------------------------------------------------------------------ ranges
 
     Range NewRange(Ast? at)
     {
@@ -57,7 +57,7 @@ public sealed partial class Compiler
         return r;
     }
 
-    /// <summary>Portee d'une clause suite (memoisee : l'analyse a priori et la generation partagent la meme).</summary>
+    /// <summary>Range of a serial clause (memoised: a priori analysis and generation share it).</summary>
     Range RangeOf(SerialAst s)
     {
         if (s.SemCache is Range r) return r;
@@ -87,7 +87,7 @@ public sealed partial class Compiler
         try { return f(); } finally { cur = save; }
     }
 
-    // ------------------------------------------------------------------ recherche
+    // ------------------------------------------------------------------ lookup
 
     public IdSym? LookupId(string name)
     {
@@ -108,7 +108,7 @@ public sealed partial class Compiler
         return null;
     }
 
-    /// <summary>Note l'usage d'un symbole non local par les routines en cours de compilation (portee des routines).</summary>
+    /// <summary>Records the use of a non-local symbol by the routines being compiled (routine scope).</summary>
     void NoteFree(Range declRange)
     {
         if (declRange.Routine == null) return;
@@ -118,16 +118,16 @@ public sealed partial class Compiler
 
     int HopsTo(Range declRange) => routine.Level - declRange.Routine!.Level;
 
-    // ------------------------------------------------------------------ declarants -> modes
+    // ------------------------------------------------------------------ declarers -> modes
 
-    /// <summary>Mode (canonique, non normalise) d'un declarant.</summary>
+    /// <summary>Mode (canonical, not normalised) of a declarer.</summary>
     public Mode DeclMode(DeclarerAst d)
     {
         var raw = BuildRaw(d);
         if (raw is IndicantMode im && im.Target == null) return M.Any;
         Mode res;
         try { res = M.Intern(raw); }
-        catch (InvalidOperationException) { Error(d, "mode mal formé"); return M.Any; }
+        catch (InvalidOperationException) { Error(d, "ill-formed mode"); return M.Any; }
         if (ContainsUnionDeclarer(d)) CheckUnions(res, d, new HashSet<Mode>(ReferenceEqualityComparer.Instance));
         return res;
     }
@@ -143,7 +143,7 @@ public sealed partial class Compiler
         _ => false,
     };
 
-    /// <summary>RR 4.7.1 : aucune composante d'une union ne peut etre fermement liee a une autre.</summary>
+    /// <summary>RR 4.7.1: no component of a union may be firmly related to another one.</summary>
     void CheckUnions(Mode m, Ast at, HashSet<Mode> seen)
     {
         if (!seen.Add(m)) return;
@@ -154,7 +154,7 @@ public sealed partial class Compiler
                     for (int j = 0; j < u.Members.Length; j++)
                         if (i != j && FindCoercion(u.Members[i], u.Members[j], Strength.Firm) != null)
                         {
-                            Error(at, $"union mal formée : les composantes {u.Members[i]} et {u.Members[j]} sont fermement liées");
+                            Error(at, $"ill-formed union: the components {u.Members[i]} and {u.Members[j]} are firmly related");
                             return;
                         }
                 foreach (var x in u.Members) CheckUnions(x, at, seen);
@@ -175,10 +175,10 @@ public sealed partial class Compiler
             case IndicantDeclarer id:
                 {
                     var ms = LookupMode(id.Name);
-                    if (ms == null) { Error(d, $"mode « {id.Name} » non déclaré"); return M.Any; }
+                    if (ms == null) { Error(d, $"mode '{id.Name}' not declared"); return M.Any; }
                     if (ms.Mode != null) return ms.Mode;
                     if (ms.Placeholder != null) return ms.Placeholder;
-                    Error(d, $"mode « {id.Name} » utilisé avant sa définition");
+                    Error(d, $"mode '{id.Name}' used before its definition");
                     return M.Any;
                 }
             case RefDeclarer r: return new RefMode(BuildRaw(r.Sub));
@@ -190,20 +190,20 @@ public sealed partial class Compiler
                     if (s2 is FlexMode) return s2;
                     if (s2 is IndicantMode im2 && im2.Target is RowMode rr) return new FlexMode(rr);
                     if (s2 == M.Any) return M.Any;
-                    Error(d, "FLEX doit preceder un déclarant de rangée");
+                    Error(d, "FLEX must precede a row declarer");
                     return sub;
                 }
             case ProcDeclarer pd: return new ProcMode(pd.Params.Select(BuildRaw).ToArray(), BuildRaw(pd.Result));
             case StructDeclarer sd:
                 {
                     var names = new HashSet<string>();
-                    foreach (var f in sd.Fields) if (!names.Add(f.Name)) Error(f.Pos, $"champ « {f.Name} » déclaré deux fois");
+                    foreach (var f in sd.Fields) if (!names.Add(f.Name)) Error(f.Pos, $"field '{f.Name}' declared twice");
                     return new StructMode(sd.Fields.Select(f => (BuildRaw(f.Mode), f.Name)).ToArray());
                 }
             case UnionDeclarer ud:
                 {
                     var ms = ud.Members.Select(BuildRaw).ToArray();
-                    if (ms.Length < 2) Error(d, "une union doit comporter au moins deux modes");
+                    if (ms.Length < 2) Error(d, "a union must have at least two modes");
                     return new UnionMode(ms);
                 }
             case RowDeclarer rd:
@@ -218,12 +218,12 @@ public sealed partial class Compiler
     Mode PrimFromDeclarer(PrimDeclarer p)
     {
         int size = p.Size;
-        if (size < 0) size = 0; // SHORT : equivalent a la longueur standard (int shorths = 1)
+        if (size < 0) size = 0; // SHORT: same as the standard length (int shorths = 1)
         bool sized = p.Name is "INT" or "REAL" or "BITS" or "BYTES" or "COMPL";
-        if (!sized && p.Size != 0) Error(p, $"LONG/SHORT ne s'applique pas a {p.Name}");
+        if (!sized && p.Size != 0) Error(p, $"LONG/SHORT does not apply to {p.Name}");
         if (size > 2 || (p.Name == "BYTES" && size > 1))
         {
-            Error(p, $"longueur non disponible pour {p.Name} (au plus {(p.Name == "BYTES" ? "LONG" : "LONG LONG")})");
+            Error(p, $"length not available for {p.Name} (at most {(p.Name == "BYTES" ? "LONG" : "LONG LONG")})");
             size = p.Name == "BYTES" ? 1 : 2;
         }
         return p.Name switch
@@ -245,12 +245,12 @@ public sealed partial class Compiler
         };
     }
 
-    /// <summary>Mode d'une valeur designee par un declarant (FLEX retire hors REF).</summary>
+    /// <summary>Mode of a value specified by a declarer (FLEX removed outside REF).</summary>
     public Mode ValueMode(DeclarerAst d) => M.Normalize(DeclMode(d), false);
-    /// <summary>Mode du nom d'une variable declaree avec ce declarant.</summary>
+    /// <summary>Mode of the name of a variable declared with this declarer.</summary>
     public Mode VarMode(DeclarerAst d) => M.Normalize(M.Ref(DeclMode(d)), false);
 
-    // ------------------------------------------------------------------ generateurs
+    // ------------------------------------------------------------------ generators
 
     GenSpec MakeGen(DeclarerAst d, bool flex)
     {
@@ -271,7 +271,7 @@ public sealed partial class Compiler
                         var b = rd.Bounds[i];
                         if (b.Formal || b.Upb == null)
                         {
-                            if (!flex) Error(b, "bornes requises dans un déclarant effectif (générateur ou déclaration de variable)");
+                            if (!flex) Error(b, "bounds required in an actual declarer (generator or variable declaration)");
                             continue;
                         }
                         lw[i] = b.Lwb != null ? GenMeekInt(b.Lwb) : null;
@@ -295,12 +295,12 @@ public sealed partial class Compiler
 
     GenSpec CompileModeGen(ModeSym ms)
     {
-        // compile les bornes dans la portee de la declaration du mode
+        // compile the bounds in the range of the mode declaration
         var saveCur = cur; var saveRoutine = routine;
         cur = ms.Range; routine = ms.Range.Routine!;
         suppressDeclCheck++;
         var placeholder = new IndicantGen();
-        ms.Gen = placeholder; // garde contre la recursion (via REF, qui ne genere rien)
+        ms.Gen = placeholder; // guard against recursion (through REF, which generates nothing)
         try { placeholder.Inner = MakeGen(ms.Decl!, false); placeholder.Hops = 0; return placeholder; }
         finally { suppressDeclCheck--; cur = saveCur; routine = saveRoutine; }
     }
@@ -318,7 +318,7 @@ public sealed partial class Compiler
         return UninitGen.Instance;
     }
 
-    // ------------------------------------------------------------------ pre-declaration d'une portee
+    // ------------------------------------------------------------------ pre-declaration of a range
 
     void DeclarePhrases(List<Ast> phrases, Range r)
     {
@@ -328,28 +328,28 @@ public sealed partial class Compiler
             if (ph is ModeDeclAst md)
                 foreach (var (name, decl, pos) in md.Items)
                 {
-                    if (r.Modes.ContainsKey(name)) { Error(pos, $"mode « {name} » déclaré deux fois dans la même portée"); continue; }
+                    if (r.Modes.ContainsKey(name)) { Error(pos, $"mode '{name}' declared twice in the same range"); continue; }
                     var ms = new ModeSym { Name = name, Range = r, Decl = decl, Pos = pos, Placeholder = new IndicantMode(name) };
                     r.Modes[name] = ms; newModes.Add(ms);
                 }
         if (newModes.Count > 0) ResolveModes(newModes);
-        // 2. priorites
+        // 2. priorities
         foreach (var ph in phrases)
             if (ph is PrioDeclAst pd)
                 foreach (var (name, p, pos) in pd.Items)
                 {
-                    if (r.Prios.ContainsKey(name)) Error(pos, $"priorité de « {name} » déclarée deux fois");
+                    if (r.Prios.ContainsKey(name)) Error(pos, $"priority of '{name}' declared twice");
                     r.Prios[name] = p;
                 }
-        // 3. etiquettes
+        // 3. labels
         foreach (var ph in phrases)
             if (ph is LabeledUnit lu)
                 foreach (var l in lu.Labels)
                 {
-                    if (r.Labels.ContainsKey(l) || r.Ids.ContainsKey(l)) { Error(lu, $"étiquette « {l} » déclarée deux fois"); continue; }
+                    if (r.Labels.ContainsKey(l) || r.Ids.ContainsKey(l)) { Error(lu, $"label '{l}' declared twice"); continue; }
                     r.Labels[l] = new LabelSym { Name = l, Range = r, Pos = lu, Target = new JumpTarget { Label = l, RoutineLevel = routine.Level } };
                 }
-        // 4. identificateurs et operateurs
+        // 4. identifiers and operators
         foreach (var ph in phrases)
         {
             switch (ph)
@@ -370,7 +370,7 @@ public sealed partial class Compiler
                     foreach (var (name, val, pos) in pdl.Items)
                     {
                         var pm = RoutineHeaderMode(val);
-                        if (pm == null) { Error(pos, $"PROC {name} : un texte de routine est attendu"); pm = M.Any; }
+                        if (pm == null) { Error(pos, $"PROC {name}: a routine text is expected"); pm = M.Any; }
                         DeclareId(r, name, pdl.Variable ? M.Normalize(M.Ref(pm)) : pm, pos);
                     }
                     break;
@@ -378,15 +378,15 @@ public sealed partial class Compiler
                     foreach (var (name, val, pos) in od.Items)
                     {
                         Mode? pm = od.Mode != null ? ValueMode(od.Mode) : RoutineHeaderMode(val);
-                        if (pm is not ProcMode procMode) { Error(pos, $"OP {name} : un texte de routine est attendu"); continue; }
-                        if (procMode.Params.Length is < 1 or > 2) { Error(pos, $"un opérateur a un ou deux opérandes (« {name} » en a {procMode.Params.Length})"); continue; }
-                        if (procMode.Params.Length == 2 && LookupPrio(name) == null) Error(pos, $"opérateur dyadique « {name} » sans déclaration de priorité");
+                        if (pm is not ProcMode procMode) { Error(pos, $"OP {name}: a routine text is expected"); continue; }
+                        if (procMode.Params.Length is < 1 or > 2) { Error(pos, $"an operator has one or two operands ('{name}' has {procMode.Params.Length})"); continue; }
+                        if (procMode.Params.Length == 2 && LookupPrio(name) == null) Error(pos, $"dyadic operator '{name}' without priority declaration");
                         var slot = new IdSym { Name = $"OP {name}", Range = r, Mode = procMode, Slot = routine.Alloc(), Pos = pos };
                         var op = new OpSym { Name = name, Range = r, Mode = procMode, Proc = slot, Pos = pos };
                         if (!r.Ops.TryGetValue(name, out var list)) r.Ops[name] = list = new List<OpSym>();
                         foreach (var o in list)
                             if (o.Mode.Params.Length == procMode.Params.Length && o.Mode.Params.Zip(procMode.Params).All(p => FirmlyRelated(p.First, p.Second)))
-                                Error(pos, $"opérateur « {name} » déjà déclaré pour des opérandes de mêmes modes dans cette portée");
+                                Error(pos, $"operator '{name}' already declared for operands of the same modes in this range");
                         list.Add(op);
                         val.SemCache = op;
                     }
@@ -403,7 +403,7 @@ public sealed partial class Compiler
 
     void DeclareId(Range r, string name, Mode mode, Ast pos)
     {
-        if (r.Ids.ContainsKey(name) || r.Labels.ContainsKey(name)) { Error(pos, $"« {name} » déclaré deux fois dans la même portée"); return; }
+        if (r.Ids.ContainsKey(name) || r.Labels.ContainsKey(name)) { Error(pos, $"'{name}' declared twice in the same range"); return; }
         var s = new IdSym { Name = name, Range = r, Mode = mode, Slot = routine.Alloc(), Pos = pos };
         r.Ids[name] = s;
         routine.Info.Vars.Add(new DebugVar { Name = name, Slot = s.Slot, Mode = mode, FromLine = pos.Line, ToLine = int.MaxValue, File = pos.File });
@@ -424,7 +424,7 @@ public sealed partial class Compiler
         foreach (var ms in mods) ms.Placeholder!.Target = BuildRaw(ms.Decl!);
         foreach (var ms in mods)
         {
-            if (!WellFormed(ms.Placeholder!)) { Error(ms.Pos, $"mode « {ms.Name} » mal formé (récursion non protegee par REF/PROC et STRUCT/PROC)"); ms.Placeholder!.Target = M.Any; }
+            if (!WellFormed(ms.Placeholder!)) { Error(ms.Pos, $"mode '{ms.Name}' is ill-formed (recursion not shielded by REF/PROC and STRUCT/PROC)"); ms.Placeholder!.Target = M.Any; }
         }
         foreach (var ms in mods)
         {
@@ -435,7 +435,7 @@ public sealed partial class Compiler
                 if (m.Name == null) m.Name = ms.Name;
                 ms.Mode = m;
             }
-            catch (InvalidOperationException) { Error(ms.Pos, $"mode « {ms.Name} » mal formé"); ms.Mode = M.Any; }
+            catch (InvalidOperationException) { Error(ms.Pos, $"mode '{ms.Name}' is ill-formed"); ms.Mode = M.Any; }
         }
         foreach (var ms in mods) ms.Placeholder = null;
     }
@@ -448,7 +448,7 @@ public sealed partial class Compiler
         _ => false,
     };
 
-    /// <summary>RR 7.4 : chaque cycle doit passer par un "yin" (REF, PROC) et un "yang" (STRUCT, PROC).</summary>
+    /// <summary>RR 7.4: every cycle must go through a "yin" (REF, PROC) and a "yang" (STRUCT, PROC).</summary>
     static bool WellFormed(IndicantMode p)
     {
         var visited = new HashSet<(Mode, bool, bool)>();

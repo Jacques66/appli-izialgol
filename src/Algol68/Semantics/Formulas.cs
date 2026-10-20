@@ -6,7 +6,7 @@ namespace Studio.Algol68.Semantics;
 
 public sealed partial class Compiler
 {
-    /// <summary>Identification d'un operateur (RR 7.2) : portee la plus interne ou une definition convient (operandes firm).</summary>
+    /// <summary>Operator identification (RR 7.2): innermost range where a definition fits (firm operands).</summary>
     OpSym? IdentifyOp(string name, Mode?[] operands, Ast pos, bool report)
     {
         bool exists = false;
@@ -14,12 +14,12 @@ public sealed partial class Compiler
         if (!exists)
         {
             if (report)
-                Error(pos, char.IsLetter(name[0]) ? $"« {name} » non déclaré : ni mode ni opérateur connu" : $"opérateur « {name} » non déclaré");
+                Error(pos, char.IsLetter(name[0]) ? $"'{name}' not declared: neither a known mode nor a known operator" : $"operator '{name}' not declared");
             return null;
         }
         if (operands.Any(m => m == null))
         {
-            if (report) Error(pos, $"opérande de « {name} » sans mode a priori (un affichage doit être converti par un cast)");
+            if (report) Error(pos, $"operand of '{name}' has no a priori mode (a display must be given a mode by a cast)");
             return null;
         }
         if (operands.Any(m => m == M.Any)) return null;
@@ -45,10 +45,10 @@ public sealed partial class Compiler
         }
         if (report)
         {
-            string ms = string.Join(" et ", operands.Select(m => m!.ToString()));
+            string ms = string.Join(" and ", operands.Select(m => m!.ToString()));
             Error(pos, operands.Length == 2
-                ? $"opérateur « {name} » non défini pour les opérandes de modes {ms}"
-                : $"opérateur monadique « {name} » non défini pour un opérande de mode {ms}");
+                ? $"operator '{name}' not defined for operands of modes {ms}"
+                : $"monadic operator '{name}' not defined for an operand of mode {ms}");
         }
         return null;
     }
@@ -69,7 +69,7 @@ public sealed partial class Compiler
         }
         var l = Gen(d.Left, op.Mode.Params[0], Strength.Firm);
         var r = Gen(d.Right, op.Mode.Params[1], Strength.Firm);
-        CheckTransient(l, d.Left, "opérande"); CheckTransient(r, d.Right, "opérande");
+        CheckTransient(l, d.Left, "an operand"); CheckTransient(r, d.Right, "an operand");
         return (ApplyOp(op, new[] { l, r }, d), op.Mode.Result);
     }
 
@@ -82,7 +82,7 @@ public sealed partial class Compiler
             return (new ConstNode(default).At<ConstNode>(m), M.Any);
         }
         var a = Gen(m.Operand, op.Mode.Params[0], Strength.Firm);
-        CheckTransient(a, m.Operand, "opérande");
+        CheckTransient(a, m.Operand, "an operand");
         return (ApplyOp(op, new[] { a }, m), op.Mode.Result);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class Compiler
         {
             NoteFree(op.Range);
             if (!op.Proc!.Declared && op.Range.Routine == routine && suppressDeclCheck == 0)
-                Error(pos, $"opérateur « {op.Name} » utilisé avant sa déclaration");
+                Error(pos, $"operator '{op.Name}' used before its declaration");
             var slot = new SlotNode(HopsTo(op.Range), op.Proc.Slot) { Name = "OP " + op.Name, NeedsObj = true };
             slot.SetPos(pos);
             var modes = new Mode[args.Length];

@@ -1,7 +1,7 @@
-# plusieurs erreurs signalees en une seule compilation #
+# several errors reported in a single compilation #
 BEGIN
-   print(inconnu);
+   print(unknown);
    print(TRUE * 2);
    INT i := 2.5;
-   print(autre)
+   print(other)
 END

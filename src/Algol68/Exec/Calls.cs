@@ -8,7 +8,7 @@ public static class Calls
 {
     const int MaxCallDepth = 100000;
 
-    /// <summary>Appel generique d'une valeur procedure.</summary>
+    /// <summary>Generic call of a procedure value.</summary>
     public static Value Invoke(ProcV p, Value[] args, Frame caller, Node site, int callerDepth)
     {
         if (p.Jump != null) throw new JumpException(p.Jump, p.Env!);
@@ -35,7 +35,7 @@ public static class Calls
         if (++ts.CallDepth > MaxCallDepth || !RuntimeHelpers.TryEnsureSufficientExecutionStack())
         {
             ts.CallDepth--;
-            throw RT.Err("débordement de pile (récursion trop profonde)", site);
+            throw RT.Err("stack overflow (recursion too deep)", site);
         }
         nf.Caller = ts.Top;
         ts.Top = nf;
@@ -44,7 +44,7 @@ public static class Calls
         {
             var v = nf.Info.Body.Eval(nf);
             if (nf.Info.CheckResultScope && RT.ScopeOf(v, nf.Info.ResultMode!) >= nf.Depth)
-                throw RT.Err($"violation de portée : la routine « {nf.Info.Name} » rend une valeur locale", site);
+                throw RT.Err($"scope violation: routine '{nf.Info.Name}' yields a local value", site);
             return v;
         }
         finally
@@ -55,7 +55,7 @@ public static class Calls
     }
 }
 
-/// <summary>Appel d'une procedure quelconque (valeur calculee).</summary>
+/// <summary>Call of an arbitrary procedure (computed value).</summary>
 public sealed class CallNode : Node
 {
     readonly Node proc; readonly Node[] args; readonly int siteLevel; readonly bool[] copyArg; readonly Mode[] argModes;
@@ -66,7 +66,7 @@ public sealed class CallNode : Node
     }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procédure non initialisée", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("call of an uninitialised procedure", this);
         if (p.Routine != null && p.Bound == null && p.Jump == null)
         {
             var r = p.Routine;
@@ -74,7 +74,7 @@ public sealed class CallNode : Node
             for (int i = 0; i < args.Length; i++)
             {
                 var v = args[i].Eval(f);
-                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"argument {i + 1} non initialisé", this);
+                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"argument {i + 1} is uninitialised", this);
                 nf.S[i] = copyArg[i] ? RT.DeepCopy(v, argModes[i]) : v;
             }
             return Calls.Run(nf, this);
@@ -89,7 +89,7 @@ public sealed class CallNode : Node
     }
 }
 
-/// <summary>Appel direct d'une primitive du prelude.</summary>
+/// <summary>Direct call of a prelude primitive.</summary>
 public sealed class BuiltinCallNode : Node
 {
     readonly BuiltinFn fn; readonly Node[] args;
@@ -102,14 +102,14 @@ public sealed class BuiltinCallNode : Node
     }
 }
 
-/// <summary>Deprocedurage : appel sans parametre.</summary>
+/// <summary>Deproceduring: call without parameters.</summary>
 public sealed class DeprocNode : Node
 {
     readonly Node proc; readonly int siteLevel;
     public DeprocNode(Node proc, int siteLevel) { this.proc = proc; this.siteLevel = siteLevel; SetPos(proc); }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procédure non initialisée", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("call of an uninitialised procedure", this);
         if (p.Routine != null && p.Bound == null)
         {
             var nf = new Frame(p.Routine, p.Env, f.Depth + siteLevel + 1, f.Ctx);
@@ -119,11 +119,11 @@ public sealed class DeprocNode : Node
     }
 }
 
-/// <summary>Texte de routine : fabrique une fermeture.</summary>
+/// <summary>Routine text: builds a closure.</summary>
 public sealed class RoutineTextNode : Node
 {
     readonly RoutineInfo info;
-    readonly int scopeHops;      // -1 : portee globale
+    readonly int scopeHops;      // -1: global scope
     readonly int scopeLevel;
     public RoutineTextNode(RoutineInfo info, int scopeHops, int scopeLevel) { this.info = info; this.scopeHops = scopeHops; this.scopeLevel = scopeLevel; }
     public override Value Eval(Frame f) => Value.Obj(Make(f));
@@ -136,19 +136,19 @@ public sealed class RoutineTextNode : Node
     }
 }
 
-/// <summary>Parametrage partiel (extension a68g) : p(a, , c).</summary>
+/// <summary>Partial parametrisation (a68g extension): p(a, , c).</summary>
 public sealed class PartialCallNode : Node
 {
     readonly Node proc; readonly Node?[] args; readonly ProcMode full;
     public PartialCallNode(Node proc, Node?[] args, ProcMode full) { this.proc = proc; this.args = args; this.full = full; }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("procédure non initialisée", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("uninitialised procedure", this);
         int n = full.Params.Length;
         var bound = new Value[n]; var mask = new bool[n];
         if (p.Bound != null)
         {
-            // composer avec un parametrage existant
+            // compose with an existing partial parametrisation
             int k = 0;
             for (int i = 0; i < p.Bound.Length; i++)
             {

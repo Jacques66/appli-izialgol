@@ -1,11 +1,11 @@
-'COMMENT' Programme ecrit en stropping QUOTE (detecte automatiquement) 'COMMENT'
+'COMMENT' Program written with QUOTE stropping (detected automatically) 'COMMENT'
 'BEGIN'
-   'INT' somme := 0;
-   'FOR' i 'TO' 10 'DO' somme +:= i 'OD';
-   'PROC' carre = ('REAL' x) 'REAL': x * x;
-   print((somme, newline));
-   print((carre(1.5), newline));
-   'IF' somme > 50 'THEN' print(("grand", newline)) 'ELSE' print(("petit", newline)) 'FI';
-   'STRING' Mot := "Quote";
-   print((mot, newline)) # les identificateurs ne distinguent pas la casse #
+   'INT' sum := 0;
+   'FOR' i 'TO' 10 'DO' sum +:= i 'OD';
+   'PROC' square = ('REAL' x) 'REAL': x * x;
+   print((sum, newline));
+   print((square(1.5), newline));
+   'IF' sum > 50 'THEN' print(("large", newline)) 'ELSE' print(("small", newline)) 'FI';
+   'STRING' Word := "Quote";
+   print((word, newline)) # identifiers are not case sensitive #
 'END'

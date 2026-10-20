@@ -1,18 +1,18 @@
-# Lecture sur l'entree standard : entiers, rangees, chaines, reels, booleens, caracteres, fin de fichier #
+# Reading standard input: integers, rows, strings, reals, booleans, characters, end of file #
 BEGIN
    INT n; read(n);
    [n] INT v; read(v);
    INT s := 0; FOR i TO n DO s +:= v[i] OD;
-   print(("somme : ", whole(s, 0), newline));
-   STRING nom; read((newline, nom, newline));
-   print(("nom : ", nom, newline));
+   print(("sum: ", whole(s, 0), newline));
+   STRING name; read((newline, name, newline));
+   print(("name: ", name, newline));
    REAL r; BOOL b; read((r, b));
    print((r * 2, b, newline));
    CHAR c; read(c);
-   print(("car : ", c, newline));
-   on logical file end(stand in, (REF FILE f) BOOL: (print(("fin", newline)); GOTO fini));
-   INT encore; read(encore);
-   print("jamais");
-fini:
-   print(("termine", newline))
+   print(("char: ", c, newline));
+   on logical file end(stand in, (REF FILE f) BOOL: (print(("end", newline)); GOTO finished));
+   INT more; read(more);
+   print("never");
+finished:
+   print(("finished", newline))
 END

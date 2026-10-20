@@ -1,9 +1,9 @@
-disque 1 : A -> C
-disque 2 : A -> B
-disque 1 : C -> B
-disque 3 : A -> C
-disque 1 : B -> A
-disque 2 : B -> C
-disque 1 : A -> C
-coups : 7
-coups pour 10 disques : 1023
+disk 1: A -> C
+disk 2: A -> B
+disk 1: C -> B
+disk 3: A -> C
+disk 1: B -> A
+disk 2: B -> C
+disk 1: A -> C
+moves: 7
+moves for 10 disks: 1023

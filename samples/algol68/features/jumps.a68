@@ -1,33 +1,33 @@
-# Sauts : GOTO, GO TO, etiquette seule, EXIT, sortie de procedure et de recursion, etiquette comme PROC VOID #
+# Jumps: GOTO, GO TO, label alone, EXIT, leaving a procedure and a recursion, label used as PROC VOID #
 BEGIN
    INT i := 0;
    BEGIN
-   debut: i +:= 1;
-      IF i < 3 THEN GOTO debut FI;
+   start: i +:= 1;
+      IF i < 3 THEN GOTO start FI;
       print((i, newline));
-      GO TO suite;
-      print("jamais");
-   suite: print(("suite", newline))
+      GO TO next;
+      print("never");
+   next: print(("next", newline))
    END;
    BEGIN
-      PROC chercher = (INT x) VOID: (x > 5 | trouve | print(("petit ", whole(x, 0), newline)));
-      chercher(2);
-      chercher(9);
-      print("jamais");
-   trouve: print(("trouve", newline))
+      PROC search = (INT x) VOID: (x > 5 | found | print(("small ", whole(x, 0), newline)));
+      search(2);
+      search(9);
+      print("never");
+   found: print(("found", newline))
    END;
-   INT v = (TRUE | 10 EXIT un: 20);
+   INT v = (TRUE | 10 EXIT one: 20);
    print((v, newline));
    BEGIN
-      PROC appeler = (PROC VOID p) VOID: (print(("avant", newline)); p; print("jamais"));
-      appeler(sortie);
-      print("jamais");
-   sortie: print(("sortie", newline))
+      PROC call = (PROC VOID p) VOID: (print(("before", newline)); p; print("never"));
+      call(escape);
+      print("never");
+   escape: print(("escaped", newline))
    END;
    BEGIN
-      INT profondeur := 0;
-      PROC descendre = (INT n) VOID: (profondeur := n; (n = 50 | fini); descendre(n + 1));
-      descendre(1);
-   fini: print((profondeur, newline))
+      INT depth := 0;
+      PROC descend = (INT n) VOID: (depth := n; (n = 50 | finished); descend(n + 1));
+      descend(1);
+   finished: print((depth, newline))
    END
 END

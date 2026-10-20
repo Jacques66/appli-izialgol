@@ -1,6 +1,6 @@
-# Transput formate : motifs entiers, reels, booleens, chaines, bits, choix, general, collections #
+# Formatted transput: integral, real, boolean, string, bits, choice, general patterns, collections #
 BEGIN
-   printf(($"Bonjour"l$));
+   printf(($"Hello"l$));
    printf(($"n = "g(0)l$, 42));
    printf(($5d l$, 42));
    printf(($5zd l$, 42));
@@ -11,8 +11,8 @@ BEGIN
    printf(($3d"/"2d"/"4d l$, 21));
    printf(($2d"/", 2d"/", 4d l$, 21, 10, 2026));
    printf(($zd"h", 2d l$, 9, 5));
-   printf(($c("lundi","mardi","mercredi")l$, 2));
-   printf(($b x, b("oui","non")l$, TRUE, FALSE));
+   printf(($c("monday","tuesday","wednesday")l$, 2));
+   printf(($b x, b("yes","no")l$, TRUE, FALSE));
    printf(($5a"|"l$, "abcde"));
    printf(($2r8d l$, BIN 10));
    printf(($16r3zd l$, BIN 255));
@@ -24,11 +24,11 @@ BEGIN
    FORMAT f = $"x="g(0)$;
    printf((f, 5, newline));
    printf(($g(0)" "$, 1, 2, 3)); print(newline);
-   FORMAT entier = $g(0)$;
-   printf(($"["f(entier)"]"l$, 7));
+   FORMAT integer = $g(0)$;
+   printf(($"["f(integer)"]"l$, 7));
    printf(($"a"3x"b"l$));
    printf(($d.1di d.1d l$, 1.5 I 2.5));
-   printf(($l"ligne"$));
+   printf(($l"line"$));
    printf(($l$));
    [] INT t = (10, 20, 30);
    printf(($"t :"n(UPB t)(x2d)l$, t));

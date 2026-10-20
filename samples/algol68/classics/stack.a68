@@ -1,20 +1,20 @@
-# Pile generique : union, structure recursive, HEAP, procedures sur des noms #
+# Generic stack: union, recursive structure, HEAP, procedures on names #
 BEGIN
-   MODE ELEMENT = UNION (INT, STRING);
-   MODE CELLULE = STRUCT (ELEMENT val, REF CELLULE dessous);
-   MODE PILE = REF CELLULE;
-   PROC empiler = (REF PILE p, ELEMENT e) VOID: p := HEAP CELLULE := (e, p);
-   PROC depiler = (REF PILE p) ELEMENT:
-      IF PILE (p) IS NIL THEN print(("pile vide", newline)); SKIP
-      ELSE ELEMENT e = val OF p; p := dessous OF p; e
+   MODE ITEM = UNION (INT, STRING);
+   MODE CELL = STRUCT (ITEM val, REF CELL below);
+   MODE STACK = REF CELL;
+   PROC push = (REF STACK p, ITEM e) VOID: p := HEAP CELL := (e, p);
+   PROC pop = (REF STACK p) ITEM:
+      IF STACK (p) IS NIL THEN print(("empty stack", newline)); SKIP
+      ELSE ITEM e = val OF p; p := below OF p; e
       FI;
-   PROC vide = (PILE p) BOOL: p IS NIL;
-   PILE p := NIL;
-   empiler(p, 1); empiler(p, "deux"); empiler(p, 3);
-   WHILE NOT vide(p) DO
-      CASE depiler(p) IN
-         (INT i): print(("entier ", whole(i, 0), newline)),
-         (STRING s): print(("chaine ", s, newline))
+   PROC empty = (STACK p) BOOL: p IS NIL;
+   STACK p := NIL;
+   push(p, 1); push(p, "two"); push(p, 3);
+   WHILE NOT empty(p) DO
+      CASE pop(p) IN
+         (INT i): print(("integer ", whole(i, 0), newline)),
+         (STRING s): print(("string ", s, newline))
       ESAC
    OD
 END

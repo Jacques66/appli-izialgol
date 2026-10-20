@@ -1,4 +1,4 @@
-# Test "man or boy" de Knuth : fermetures et recursion ; le resultat doit etre -67 #
+# Knuth's "man or boy" test: closures and recursion; the result must be -67 #
 BEGIN
    PROC a = (INT k, PROC INT x1, x2, x3, x4, x5) INT:
    BEGIN

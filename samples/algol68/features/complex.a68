@@ -1,4 +1,4 @@
-# Nombres complexes : COMPL, LONG COMPL, operateurs, elargissement #
+# Complex numbers: COMPL, LONG COMPL, operators, widening #
 BEGIN
    COMPL z = 3 I 4, w = 1 I -2;
    print((z + w, newline));
@@ -20,8 +20,8 @@ BEGIN
    print((ABS lz, newline));
    printf(($g(0, 2)"+", g(0, 2)"i"l$, z));
    printf(($-d.2di-d.2d l$, w));
-   [] COMPL racines = (1, 0 I 1, -1, 0 I -1);
-   COMPL produit := 1;
-   FOR k TO UPB racines DO produit *:= racines[k] OD;
-   print((fixed(RE produit, 0, 1), " ", fixed(IM produit, 0, 1), newline))
+   [] COMPL roots = (1, 0 I 1, -1, 0 I -1);
+   COMPL product := 1;
+   FOR k TO UPB roots DO product *:= roots[k] OD;
+   print((fixed(RE product, 0, 1), " ", fixed(IM product, 0, 1), newline))
 END

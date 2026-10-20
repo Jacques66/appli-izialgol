@@ -1,35 +1,35 @@
-# Unions et clauses de conformite #
+# Unions and conformity clauses #
 BEGIN
-   MODE NOMBRE = UNION (INT, REAL, COMPL);
-   PROC decrire = (NOMBRE n) STRING:
+   MODE NUMBER = UNION (INT, REAL, COMPL);
+   PROC describe = (NUMBER n) STRING:
       CASE n IN
-         (INT i): "entier " + whole(i, 0),
-         (REAL r): "reel " + fixed(r, 0, 2),
-         (COMPL z): "complexe " + fixed(re OF z, 0, 1) + "+" + fixed(im OF z, 0, 1) + "i"
+         (INT i): "integer " + whole(i, 0),
+         (REAL r): "real " + fixed(r, 0, 2),
+         (COMPL z): "complex " + fixed(re OF z, 0, 1) + "+" + fixed(im OF z, 0, 1) + "i"
       ESAC;
-   [] NOMBRE valeurs = (1, 2.5, 3 I 4, -7);
-   FOR k TO UPB valeurs DO print((decrire(valeurs[k]), newline)) OD;
-   MODE SCALAIRE = UNION (INT, REAL), TOUT = UNION (SCALAIRE, STRING, BOOL);
-   [] TOUT divers = (42, "texte", TRUE, 1.5);
-   FOR k TO UPB divers DO
-      CASE divers[k] IN
-         (SCALAIRE s): print(("scalaire ", (s | (INT i): whole(i, 0) | "reel"))),
-         (STRING t): print(("chaine ", t)),
-         (BOOL b): print(("booleen ", b))
+   [] NUMBER values = (1, 2.5, 3 I 4, -7);
+   FOR k TO UPB values DO print((describe(values[k]), newline)) OD;
+   MODE SCALAR = UNION (INT, REAL), ANY = UNION (SCALAR, STRING, BOOL);
+   [] ANY various = (42, "text", TRUE, 1.5);
+   FOR k TO UPB various DO
+      CASE various[k] IN
+         (SCALAR s): print(("scalar ", (s | (INT i): whole(i, 0) | "real"))),
+         (STRING t): print(("string ", t)),
+         (BOOL b): print(("boolean ", b))
       ESAC;
       print(newline)
    OD;
    UNION (INT, CHAR, VOID) u := EMPTY;
-   CASE u IN (INT): print("int") OUSE u IN (CHAR c): print(c) OUT print("vide") ESAC;
+   CASE u IN (INT): print("int") OUSE u IN (CHAR c): print(c) OUT print("empty") ESAC;
    print(newline);
    u := "x";
-   print(((u | (VOID): "rien", (INT i): "entier" | "car"), newline));
+   print(((u | (VOID): "nothing", (INT i): "integer" | "char"), newline));
    UNION (INT, STRING) w := "abc";
    print(((w | (STRING s): UPB s, (INT i): i), newline));
    w := 3;
    print(((w | (STRING s): UPB s, (INT i): i), newline));
-   [] UNION (INT, STRING) liste = (1, "deux", 3);
+   [] UNION (INT, STRING) list = (1, "two", 3);
    INT n := 0;
-   FOR k TO UPB liste DO (liste[k] | (INT i): n +:= i) OD;
+   FOR k TO UPB list DO (list[k] | (INT i): n +:= i) OD;
    print((n, newline))
 END

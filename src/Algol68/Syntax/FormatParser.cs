@@ -3,7 +3,7 @@ using Studio.Common;
 
 namespace Studio.Algol68.Syntax;
 
-/// <summary>Analyse d'un texte de format $ ... $ (RR 10.3.4).</summary>
+/// <summary>Parses a format text $ ... $ (RR 10.3.4).</summary>
 internal sealed class FormatParser
 {
     readonly Parser parser;
@@ -40,7 +40,7 @@ internal sealed class FormatParser
         {
             f.Pieces = ParsePieces(false);
             SkipWs();
-            if (p < text.Length) throw Err($"caractère inattendu « {Peek()} » dans le format");
+            if (p < text.Length) throw Err($"unexpected character '{Peek()}' in the format");
         }
         catch (FmtError e)
         {
@@ -61,7 +61,7 @@ internal sealed class FormatParser
             SkipWs();
             if (p >= text.Length || Peek() == ')')
             {
-                if (list.Count == 0 && inCollection) throw Err("collection vide dans le format");
+                if (list.Count == 0 && inCollection) throw Err("empty collection in the format");
                 if (list.Count == 0) list.Add(Pos(new PictureAst()));
                 break;
             }
@@ -73,11 +73,11 @@ internal sealed class FormatParser
         return list;
     }
 
-    // element brut
+    // raw element
     sealed class Elem
     {
         public ReplicatorAst Rep = new();
-        public char Kind;           // insertion : k x y l p q " ; cadre : d z a b . e i + - r ; motif special : c B f g h
+        public char Kind;           // insertion: k x y l p q " ; frame: d z a b . e i + - r ; special pattern: c B f g h
         public string Literal = "";
         public bool Suppressed;
         public int Radix;
@@ -104,14 +104,14 @@ internal sealed class FormatParser
             if (c == '(')
             {
                 // collection
-                foreach (var e in elems) if (!e.IsInsertion) throw Err("une collection ne peut suivre qu'une insertion");
+                foreach (var e in elems) if (!e.IsInsertion) throw Err("a collection can only follow an insertion");
                 var coll = new CollectionAst { File = file, Line = el, Col = ec };
                 coll.Before = ToInsertion(elems);
                 coll.Rep = rep;
                 NextCh();
                 coll.Pieces = ParsePieces(true);
                 SkipWs();
-                if (Peek() != ')') throw Err("« ) » attendu dans le format");
+                if (Peek() != ')') throw Err("')' expected in the format");
                 NextCh();
                 var after = new List<Elem>();
                 while (true)
@@ -121,7 +121,7 @@ internal sealed class FormatParser
                     int al = line, ac = col;
                     var r2 = ParseReplicator();
                     SkipWs();
-                    var e2 = ParseInsertionElem(r2, al, ac) ?? throw Err($"insertion attendue après une collection, trouvé « {Peek()} »");
+                    var e2 = ParseInsertionElem(r2, al, ac) ?? throw Err($"insertion expected after a collection, found '{Peek()}'");
                     after.Add(e2);
                 }
                 coll.After = ToInsertion(after);
@@ -137,14 +137,14 @@ internal sealed class FormatParser
                 c = Peek();
                 if (c == '"' )
                 {
-                    // litteral supprime : equivaut a rien en sortie (accepte)
+                    // suppressed literal: produces nothing on output (accepted)
                     var lit = ReadString();
                     elems.Add(new Elem { Rep = rep, Kind = '"', Literal = "", Line = el, Col = ec });
                     _ = lit;
                     continue;
                 }
                 if (!(c is 'd' or 'z' or 'a' or '.' or 'e' or 'i' or 'D' or 'Z' or 'A' or 'E' or 'I'))
-                    throw Err($"cadre supprimable attendu après « s », trouvé « {c} »");
+                    throw Err($"suppressible frame expected after 's', found '{c}'");
             }
             c = char.ToLowerInvariant(c);
             switch (c)
@@ -153,9 +153,9 @@ internal sealed class FormatParser
                     NextCh(); e3.Kind = c; break;
                 case 'r':
                     NextCh();
-                    if (rep.Dynamic != null || !rep.Present) throw Err("la base d'un motif de bits doit être un nombre (2r, 4r, 8r, 16r)");
+                    if (rep.Dynamic != null || !rep.Present) throw Err("the radix of a bits pattern must be a number (2r, 4r, 8r, 16r)");
                     e3.Kind = 'r'; e3.Radix = rep.Static;
-                    if (e3.Radix is not (2 or 4 or 8 or 16)) throw Err($"base {e3.Radix} invalide pour un motif de bits");
+                    if (e3.Radix is not (2 or 4 or 8 or 16)) throw Err($"invalid radix {e3.Radix} for a bits pattern");
                     e3.Rep = new ReplicatorAst();
                     break;
                 case 'b':
@@ -169,11 +169,11 @@ internal sealed class FormatParser
                             e3.Kind = 'B';
                             e3.Choices.Add(ParseLiteralInsertion());
                             SkipWs();
-                            if (Peek() != ',') throw Err("« , » attendu dans le motif de choix booleen");
+                            if (Peek() != ',') throw Err("',' expected in the boolean choice pattern");
                             NextCh();
                             e3.Choices.Add(ParseLiteralInsertion());
                             SkipWs();
-                            if (Peek() != ')') throw Err("« ) » attendu dans le motif de choix booleen");
+                            if (Peek() != ')') throw Err("')' expected in the boolean choice pattern");
                             NextCh();
                         }
                         else { p = save; line = sl; col = sc; e3.Kind = 'b'; }
@@ -182,7 +182,7 @@ internal sealed class FormatParser
                 case 'c':
                     {
                         NextCh(); SkipWs();
-                        if (Peek() != '(') throw Err("« ( » attendu après « c » (motif de choix)");
+                        if (Peek() != '(') throw Err("'(' expected after 'c' (choice pattern)");
                         NextCh();
                         e3.Kind = 'c';
                         while (true)
@@ -192,14 +192,14 @@ internal sealed class FormatParser
                             if (Peek() == ',') { NextCh(); continue; }
                             break;
                         }
-                        if (Peek() != ')') throw Err("« ) » attendu dans le motif de choix");
+                        if (Peek() != ')') throw Err("')' expected in the choice pattern");
                         NextCh();
                         break;
                     }
                 case 'f':
                     {
                         NextCh(); SkipWs();
-                        if (Peek() != '(') throw Err("« ( » attendu après « f » (motif de format)");
+                        if (Peek() != '(') throw Err("'(' expected after 'f' (format pattern)");
                         e3.Kind = 'f';
                         e3.Unit = ParseEnclosedUnit();
                         break;
@@ -216,7 +216,7 @@ internal sealed class FormatParser
                         break;
                     }
                 default:
-                    throw Err($"caractère « {Peek()} » inattendu dans le format");
+                    throw Err($"unexpected character '{Peek()}' in the format");
             }
             elems.Add(e3);
         }
@@ -239,7 +239,7 @@ internal sealed class FormatParser
         return null;
     }
 
-    /// <summary>Litteral d'un motif de choix : [replicateur] "..." { [replicateur] "..." } avec alignements eventuels.</summary>
+    /// <summary>Literal of a choice pattern: [replicator] "..." { [replicator] "..." } with optional alignments.</summary>
     InsertionAst ParseLiteralInsertion()
     {
         var elems = new List<Elem>();
@@ -250,7 +250,7 @@ internal sealed class FormatParser
             int el = line, ec = col;
             var rep = ParseReplicator();
             SkipWs();
-            var e = ParseInsertionElem(rep, el, ec) ?? throw Err($"litteral attendu dans un motif de choix, trouvé « {Peek()} »");
+            var e = ParseInsertionElem(rep, el, ec) ?? throw Err($"literal expected in a choice pattern, found '{Peek()}'");
             elems.Add(e);
         }
         return ToInsertion(elems);
@@ -262,7 +262,7 @@ internal sealed class FormatParser
         var sb = new StringBuilder();
         while (true)
         {
-            if (p >= text.Length) throw Err("chaîne non terminee dans le format");
+            if (p >= text.Length) throw Err("unterminated string in the format");
             char c = NextCh();
             if (c == '"')
             {
@@ -301,14 +301,14 @@ internal sealed class FormatParser
 
     (string inner, int l, int c) ReadParenthesized()
     {
-        if (Peek() != '(') throw Err("« ( » attendu");
+        if (Peek() != '(') throw Err("'(' expected");
         NextCh();
         int l = line, c = col;
         int depth = 1; bool inStr = false;
         var sb = new StringBuilder();
         while (true)
         {
-            if (p >= text.Length) throw Err("« ) » manquante dans le format");
+            if (p >= text.Length) throw Err("missing ')' in the format");
             char ch = NextCh();
             if (ch == '"') inStr = !inStr;
             if (!inStr)
@@ -346,7 +346,7 @@ internal sealed class FormatParser
     PictureAst BuildPicture(List<Elem> elems, int l, int c)
     {
         var pic = new PictureAst { File = file, Line = l, Col = c };
-        // derniere position d'un cadre ou motif
+        // last position of a frame or pattern
         int last = -1;
         for (int i = 0; i < elems.Count; i++) if (!elems[i].IsInsertion) last = i;
         pic.Insertion = ToInsertion(elems.Skip(last + 1).ToList());
@@ -375,7 +375,7 @@ internal sealed class FormatParser
         if (specials.Count > 0)
         {
             if (specials.Count > 1 || pat.Frames.Count > 0)
-                throw new FmtError("un motif de choix, de format ou général ne peut pas être combine avec d'autres cadres", l, c);
+                throw new FmtError("a choice, format or general pattern cannot be combined with other frames", l, c);
             var s = specials[0];
             switch (s.Kind)
             {
@@ -402,23 +402,23 @@ internal sealed class FormatParser
         bool hasPE = frames.Any(f => f.Marker is '.' or 'e');
         if (hasA)
         {
-            if (frames.Any(f => f.Marker != 'a')) throw new FmtError("un motif de chaîne ne contient que des cadres « a »", l, c);
+            if (frames.Any(f => f.Marker != 'a')) throw new FmtError("a string pattern contains only 'a' frames", l, c);
             return PatternKind.String;
         }
         if (hasB)
         {
-            if (frames.Count != 1) throw new FmtError("un motif booleen ne contient qu'un cadre « b »", l, c);
+            if (frames.Count != 1) throw new FmtError("a boolean pattern contains a single 'b' frame", l, c);
             return PatternKind.Boolean;
         }
         if (hasR)
         {
             if (frames[0].Marker != 'r' || frames.Skip(1).Any(f => f.Marker is not ('d' or 'z')))
-                throw new FmtError("motif de bits mal formé (forme attendue : 2r8d)", l, c);
+                throw new FmtError("ill-formed bits pattern (expected form: 2r8d)", l, c);
             return PatternKind.Bits;
         }
         if (hasI)
         {
-            if (frames.Count(f => f.Marker == 'i') != 1) throw new FmtError("un motif complexe contient un seul cadre « i »", l, c);
+            if (frames.Count(f => f.Marker == 'i') != 1) throw new FmtError("a complex pattern contains a single 'i' frame", l, c);
             return PatternKind.Complex;
         }
         ValidateNumeric(frames, hasPE, l, c);
@@ -430,9 +430,9 @@ internal sealed class FormatParser
         int signs = frames.Count(f => f.Marker is '+' or '-');
         int points = frames.Count(f => f.Marker == '.');
         int exps = frames.Count(f => f.Marker == 'e');
-        if (points > 1) throw new FmtError("plusieurs cadres « . » dans un motif", l, c);
-        if (exps > 1) throw new FmtError("plusieurs cadres « e » dans un motif", l, c);
-        if (signs > (exps > 0 ? 2 : 1)) throw new FmtError("trop de cadres de signe dans un motif", l, c);
-        if (frames.All(f => f.Marker is '+' or '-')) throw new FmtError("motif numérique sans chiffre", l, c);
+        if (points > 1) throw new FmtError("several '.' frames in a pattern", l, c);
+        if (exps > 1) throw new FmtError("several 'e' frames in a pattern", l, c);
+        if (signs > (exps > 0 ? 2 : 1)) throw new FmtError("too many sign frames in a pattern", l, c);
+        if (frames.All(f => f.Marker is '+' or '-')) throw new FmtError("numeric pattern without digits", l, c);
     }
 }

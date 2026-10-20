@@ -1,4 +1,4 @@
-# Rangees : tranches, trimmers, @, FLEX, LWB/UPB, affichages, rangees de rangees, selection multiple #
+# Rows: slices, trimmers, @, FLEX, LWB/UPB, displays, rows of rows, multiple selection #
 BEGIN
    [1:10] INT a;
    FOR i TO 10 DO a[i] := i OD;
@@ -26,23 +26,23 @@ BEGIN
    [3] [2] INT rr;
    FOR i TO 3 DO rr[i] := (i, i * 10) OD;
    print((rr[2][2], rr[3], newline));
-   [] STRING mots = ("un", "deux", "trois");
-   FOR i TO UPB mots DO print((mots[i], " ")) OD; print(newline);
-   print((UPB mots[3], newline));
-   [] INT vide = ();
-   print((UPB vide, LWB vide, ELEMS vide, newline));
+   [] STRING words = ("one", "two", "three");
+   FOR i TO UPB words DO print((words[i], " ")) OD; print(newline);
+   print((UPB words[3], newline));
+   [] INT empty = ();
+   print((UPB empty, LWB empty, ELEMS empty, newline));
    MODE PT = STRUCT (INT x, y);
    [] PT pts = ((1, 2), (3, 4), (5, 6));
    print((x OF pts, newline));
    [3] PT vpts := pts;
    y OF vpts := (7, 8, 9);
    print((y OF vpts[2], newline));
-   STRING s := "bonjour";
-   s[1] := "B";
+   STRING s := "welcome";
+   s[1] := "W";
    print((s, " ", s[4:7], " ", UPB s, newline));
    s := s + " !";
    print((s, newline));
-   [0:2, -1:1] REAL grille;
-   FOR i FROM 0 TO 2 DO FOR j FROM -1 TO 1 DO grille[i, j] := i + j / 10 OD OD;
-   print((fixed(grille[2, -1], 0, 1), " ", 1 LWB grille, " ", 2 LWB grille, newline))
+   [0:2, -1:1] REAL grid;
+   FOR i FROM 0 TO 2 DO FOR j FROM -1 TO 1 DO grid[i, j] := i + j / 10 OD OD;
+   print((fixed(grid[2, -1], 0, 1), " ", 1 LWB grid, " ", 2 LWB grid, newline))
 END

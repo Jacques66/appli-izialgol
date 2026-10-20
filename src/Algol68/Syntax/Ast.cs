@@ -2,22 +2,22 @@ using System.Numerics;
 
 namespace Studio.Algol68.Syntax;
 
-/// <summary>Noeud de l'arbre syntaxique.</summary>
+/// <summary>Node of the syntax tree.</summary>
 public abstract class Ast
 {
     public string File = "";
     public int Line, Col;
     public T At<T>(Token t) where T : Ast { File = t.File; Line = t.Line; Col = t.Col; return (T)this; }
     public T At<T>(Ast a) where T : Ast { File = a.File; Line = a.Line; Col = a.Col; return (T)this; }
-    // cache semantique
+    // semantic cache
     internal object? SemCache;
 }
 
-// ---------------------------------------------------------------- declarants
+// ---------------------------------------------------------------- declarers
 
 public abstract class DeclarerAst : Ast { }
 
-/// <summary>INT, REAL, BITS, BYTES, COMPL avec longueur ; BOOL, CHAR, STRING, VOID, FORMAT, FILE, CHANNEL, SEMA.</summary>
+/// <summary>INT, REAL, BITS, BYTES, COMPL with a length; BOOL, CHAR, STRING, VOID, FORMAT, FILE, CHANNEL, SEMA.</summary>
 public sealed class PrimDeclarer : DeclarerAst { public string Name = ""; public int Size; }
 public sealed class IndicantDeclarer : DeclarerAst { public string Name = ""; }
 public sealed class RefDeclarer : DeclarerAst { public DeclarerAst Sub = null!; }
@@ -28,7 +28,7 @@ public sealed class UnionDeclarer : DeclarerAst { public List<DeclarerAst> Membe
 public sealed class BoundAst : Ast { public UnitAst? Lwb, Upb; public bool Formal; }
 public sealed class RowDeclarer : DeclarerAst { public List<BoundAst> Bounds = new(); public DeclarerAst Elem = null!; }
 
-// ---------------------------------------------------------------- unites
+// ---------------------------------------------------------------- units
 
 public abstract class UnitAst : Ast { }
 
@@ -46,10 +46,10 @@ public sealed class IdentAst : UnitAst { public string Name = ""; }
 public sealed class DyadicAst : UnitAst { public string Op = ""; public UnitAst Left = null!, Right = null!; }
 public sealed class MonadicAst : UnitAst { public string Op = ""; public UnitAst Operand = null!; }
 
-/// <summary>Element d'un appel ou d'une tranche : unite, ou trimmer [lwb]:[upb][@ at], ou vide.</summary>
+/// <summary>Element of a call or slice: unit, or trimmer [lwb]:[upb][@ at], or empty.</summary>
 public sealed class IndexerAst : Ast
 {
-    public UnitAst? Unit;            // indice ou argument
+    public UnitAst? Unit;            // subscript or argument
     public bool IsTrimmer;
     public UnitAst? Lwb, Upb, AtLwb; // trimmer
     public bool HasColon;
@@ -70,8 +70,8 @@ public sealed class FormatTextAst : UnitAst { public FormatAst Format = null!; }
 // clauses
 public sealed class SerialAst : Ast
 {
-    public List<Ast> Phrases = new();      // DeclarationAst ou LabeledUnit
-    // chaque EXIT termine une "suite" : index de la phrase apres laquelle se trouve EXIT
+    public List<Ast> Phrases = new();      // DeclarationAst or LabeledUnit
+    // each EXIT completes a "series": index of the phrase after which EXIT appears
     public List<int> ExitAfter = new();
 }
 public sealed class LabeledUnit : Ast { public List<string> Labels = new(); public UnitAst Unit = null!; }
@@ -82,16 +82,16 @@ public sealed class ParallelAst : UnitAst { public List<UnitAst> Units = new(); 
 public sealed class CondAst : UnitAst
 {
     public SerialAst If = null!; public SerialAst Then = null!;
-    public SerialAst? Else;          // ELSE ... ou ELIF (sous forme de CondAst enveloppe)
-    public UnitAst? ElifCond;        // ELIF : clause conditionnelle imbriquee
-    public bool Brief;               // forme ( | | ) : conditionnelle ou cas selon le mode
+    public SerialAst? Else;          // ELSE ... or ELIF (as a nested CondAst)
+    public UnitAst? ElifCond;        // ELIF: nested conditional clause
+    public bool Brief;               // form ( | | ): conditional or case depending on the mode
 }
 public sealed class CaseAst : UnitAst
 {
     public SerialAst Selector = null!;
     public List<UnitAst> In = new();
     public SerialAst? Out;
-    public UnitAst? Ouse;           // OUSE : CaseAst ou ConformityAst imbriquee
+    public UnitAst? Ouse;           // OUSE: nested CaseAst or ConformityAst
 }
 public sealed class ConformityCase : Ast { public DeclarerAst Declarer = null!; public string? Name; public UnitAst Unit = null!; public List<DeclarerAst>? Alternatives; }
 public sealed class ConformityAst : UnitAst
@@ -118,11 +118,11 @@ public sealed class ModeDeclAst : DeclarationAst { public List<(string Name, Dec
 public sealed class PrioDeclAst : DeclarationAst { public List<(string Name, int Prio, Ast Pos)> Items = new(); }
 public sealed class OpDeclAst : DeclarationAst
 {
-    public DeclarerAst? Mode;     // forme OP (INT,INT)INT + = ...
+    public DeclarerAst? Mode;     // form OP (INT,INT)INT + = ...
     public List<(string Name, UnitAst Value, Ast Pos)> Items = new();
 }
 public sealed class IdentityDeclAst : DeclarationAst { public DeclarerAst Declarer = null!; public List<(string Name, UnitAst Value, Ast Pos)> Items = new(); }
 public sealed class VarDeclAst : DeclarationAst { public bool Heap; public DeclarerAst Declarer = null!; public List<(string Name, UnitAst? Init, Ast Pos)> Items = new(); }
-/// <summary>PROC p = texte de routine (ou PROC p := texte de routine : variable).</summary>
+/// <summary>PROC p = routine text (or PROC p := routine text: variable).</summary>
 public sealed class ProcDeclAst : DeclarationAst { public bool Variable; public bool Heap; public List<(string Name, UnitAst Value, Ast Pos)> Items = new(); }
 

@@ -1,9 +1,9 @@
-# Noms transitoires (RR 2.1.3.6.c) : usages permis sur les tranches de noms FLEX #
+# Transient names (RR 2.1.3.6.c): allowed uses of slices of FLEX names #
 BEGIN
    STRING s := "abcdef";
-   s[2] := "B";                         # destination : permis #
-   s[3:4] := "CD";                      # destination d'une tranche : permis #
-   CHAR c = s[5];                       # dereference : permis #
-   [] CHAR t = s[1:3];                  # valeur de la tranche : permis #
+   s[2] := "B";                         # destination: allowed #
+   s[3:4] := "CD";                      # destination of a trim: allowed #
+   CHAR c = s[5];                       # dereferenced: allowed #
+   [] CHAR t = s[1:3];                  # value of the slice: allowed #
    print((s, " ", c, " ", t, " ", UPB s[2:4], newline))
 END

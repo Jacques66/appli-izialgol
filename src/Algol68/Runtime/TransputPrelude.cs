@@ -25,23 +25,23 @@ public static partial class Prelude
         CtxConst("standerrorchannel", Ch, x => Value.Obj(x.Transput.StandErrorChannel));
         CtxConst("standbackchannel", Ch, x => Value.Obj(x.Transput.StandBackChannel));
 
-        // transput sans format
+        // formatless transput
         Proc("print write", V, new[] { ROut }, (f, a, at) => { var t = T(f); t.PutList(f, Value.Obj(t.StandOutRef), a[0], at); return default; });
         Proc("put", V, new[] { RF, ROut }, (f, a, at) => { T(f).PutList(f, a[0], a[1], at); return default; });
         Proc("read", V, new[] { RIn }, (f, a, at) => { var t = T(f); t.GetList(f, Value.Obj(t.StandInRef), a[0], at); return default; });
         Proc("get", V, new[] { RF, RIn }, (f, a, at) => { T(f).GetList(f, a[0], a[1], at); return default; });
-        // formate
+        // formatted
         Proc("printf writef", V, new[] { ROut }, (f, a, at) => { var t = T(f); t.PutfList(f, Value.Obj(t.StandOutRef), a[0], at); return default; });
         Proc("putf", V, new[] { RF, ROut }, (f, a, at) => { T(f).PutfList(f, a[0], a[1], at); return default; });
         Proc("readf", V, new[] { RIn }, (f, a, at) => { var t = T(f); t.GetfList(f, Value.Obj(t.StandInRef), a[0], at); return default; });
         Proc("getf", V, new[] { RF, RIn }, (f, a, at) => { T(f).GetfList(f, a[0], a[1], at); return default; });
-        // binaire
+        // binary
         Proc("printbin writebin", V, new[] { ROut }, (f, a, at) => { var t = T(f); t.PutBin(f, Value.Obj(t.StandBackRef), a[0], at); return default; });
         Proc("putbin", V, new[] { RF, ROut }, (f, a, at) => { T(f).PutBin(f, a[0], a[1], at); return default; });
         Proc("readbin", V, new[] { RIn }, (f, a, at) => { var t = T(f); t.GetBin(f, Value.Obj(t.StandBackRef), a[0], at); return default; });
         Proc("getbin", V, new[] { RF, RIn }, (f, a, at) => { T(f).GetBin(f, a[0], a[1], at); return default; });
 
-        // fichiers
+        // files
         Proc("open", I, new[] { RF, S, Ch }, (f, a, at) => Value.I(T(f).Open(f, a[0], Str(a[1], at), a[2], at)));
         Proc("establish", I, new[] { RF, S, Ch }, (f, a, at) => Value.I(T(f).Establish(f, a[0], Str(a[1], at), a[2], at)));
         Proc("create", I, new[] { RF, Ch }, (f, a, at) => Value.I(T(f).Create(f, a[0], a[1], at)));
@@ -65,7 +65,7 @@ public static partial class Prelude
         Proc("term", S, new[] { RF }, (f, a, at) => RT.StrValue(Transput.GetFile(a[0], at).Term));
         Proc("programidf", S, Array.Empty<Mode>(), (f, a, at) => RT.StrValue(f.Ctx.Program.MainFile));
 
-        // evenements
+        // events
         foreach (var (name, setter) in new (string, Action<FileV, ProcV?>)[]
         {
             ("onlogicalfileend onfileend", (fl, p) => fl.OnLogicalEnd = p),
@@ -85,7 +85,7 @@ public static partial class Prelude
         var charErr = M.Proc(B, RF, M.RefChar);
         Proc("oncharerror", V, new[] { RF, charErr }, (f, a, at) => { Transput.GetFile(a[0], at).OnCharError = a[1].O as ProcV; return default; });
 
-        // enquetes
+        // enquiries
         foreach (var (name, pred) in new (string, Func<FileV, bool>)[]
         {
             ("putpossible", fl => fl.Opened && fl.Channel.Put),
@@ -111,7 +111,7 @@ public static partial class Prelude
         Proc("float", S, new[] { NUMBER, I, I, I }, (f, a, at) => { var u = (UnionV)a[0].O!; return RT.StrValue(Transput.FloatAny(u.M, u.V, (int)a[1].N, (int)a[2].N, (int)a[3].N)); });
         Proc("real", S, new[] { NUMBER, I, I, I, I }, (f, a, at) => { var u = (UnionV)a[0].O!; return RT.StrValue(Transput.FloatAny(u.M, u.V, (int)a[1].N, (int)a[2].N, (int)a[3].N, (int)a[4].N)); });
 
-        // chaines
+        // strings
         Proc("charinstring", B, new[] { M.Char, M.RefInt, S }, (f, a, at) =>
         {
             var s = Str(a[2], at); int i = s.IndexOf((char)a[0].N);
@@ -140,7 +140,7 @@ public static partial class Prelude
             Proc(LongPrefix(s) + "bitspack", M.BitsOf(s), new[] { M.RowBool }, (f, a, at) =>
             {
                 var els = RowOps.GetRow(a[0], at).Elements();
-                if (els.Length > w) throw RT.Err($"bits pack : {els.Length} booleens pour {w} bits", at);
+                if (els.Length > w) throw RT.Err($"bits pack: {els.Length} booleans for {w} bits", at);
                 BigInteger b = 0;
                 foreach (var e in els) b = (b << 1) | (RT.CheckInit(e, at).N != 0 ? 1 : 0);
                 return size == 0 ? Value.I((long)b) : Value.Obj(b);
@@ -149,17 +149,17 @@ public static partial class Prelude
         Proc("bytespack", M.Bytes, new[] { S }, (f, a, at) =>
         {
             var s = Str(a[0], at);
-            if (s.Length > BytesWidth) throw RT.Err($"bytes pack : chaîne de {s.Length} caractères pour {BytesWidth} octets", at);
+            if (s.Length > BytesWidth) throw RT.Err($"bytes pack: string of {s.Length} characters for {BytesWidth} bytes", at);
             return Value.Obj(s.PadRight(BytesWidth, '\0'));
         });
         Proc("longbytespack", M.LongBytes, new[] { S }, (f, a, at) =>
         {
             var s = Str(a[0], at);
-            if (s.Length > LongBytesWidth) throw RT.Err($"long bytes pack : chaîne de {s.Length} caractères pour {LongBytesWidth} octets", at);
+            if (s.Length > LongBytesWidth) throw RT.Err($"long bytes pack: string of {s.Length} characters for {LongBytesWidth} bytes", at);
             return Value.Obj(s.PadRight(LongBytesWidth, '\0'));
         });
 
-        // lectures et ecritures simplifiees (Algol68C, a68g)
+        // simplified reads and writes (Algol68C, a68g)
         foreach (var (suffix, mode) in new (string, Mode)[] { ("int", M.Int), ("real", M.Real), ("bool", M.Bool), ("char", M.Char), ("string", M.String), ("longint", M.LongInt), ("longreal", M.LongReal), ("bits", M.Bits), ("compl", M.Compl) })
         {
             var md = mode;

@@ -11,7 +11,7 @@ public sealed partial class Compiler
     readonly Dictionary<UnitAst, Mode?> apri = new(ReferenceEqualityComparer.Instance);
     string? pendingRoutineName;
 
-    // ================================================================== modes a priori
+    // ================================================================== a priori modes
 
     public Mode? Apriori(UnitAst u)
     {
@@ -96,7 +96,7 @@ public sealed partial class Compiler
             case ParallelAst: return M.Void;
             case CollateralAst c:
                 {
-                    // un affichage n'a pas de mode a priori ; une collaterale de VOID est VOID
+                    // a display has no a priori mode; a collateral of VOID units is VOID
                     return null;
                 }
             case ClosedAst c: return SerialApriori(c.Serial);
@@ -144,7 +144,7 @@ public sealed partial class Compiler
     Mode? BalanceBranches(List<Mode?> l, Ast pos)
     {
         if (l.All(x => x == null || IsFlexible(x))) return l.FirstOrDefault(x => x is SpecialMode sm && sm.Kind == SpecialKind.Vacuum) ?? (l.Any(x => x == null) ? null : M.Skip);
-        if (l.Any(x => x == null)) return null; // un affichage parmi les branches : contexte fort requis
+        if (l.Any(x => x == null)) return null; // a display among the branches: strong context required
         return Balance(l, pos);
     }
 
@@ -168,7 +168,7 @@ public sealed partial class Compiler
             case CollateralAst c: n = GenCollateral(c, target); break;
             case SkipAst: n = GenSkip(target, u); break;
             case NilAst:
-                if (target is not RefMode && target != M.Any) Error(u, $"NIL n'est pas un nom de mode {target}");
+                if (target is not RefMode && target != M.Any) Error(u, $"NIL is not a name of mode {target}");
                 n = new NilNode();
                 break;
             case VacuumAst: n = GenVacuum(target, u); break;
@@ -177,7 +177,7 @@ public sealed partial class Compiler
             default:
                 {
                     var (raw, a) = GenRaw(u);
-                    if (a == null) { Error(u, "mode a priori indetermine"); a = M.Any; }
+                    if (a == null) { Error(u, "undetermined a priori mode"); a = M.Any; }
                     n = Coerce(raw, a, target, s, u);
                     break;
                 }
@@ -202,7 +202,7 @@ public sealed partial class Compiler
     {
         if (target.IsVoid) return new ConstNode(default).At<ConstNode>(at);
         var r = target.AsRow;
-        if (r == null) { if (target != M.Any) Error(at, $"() (rangée vide) en contexte de mode {target}"); return new ConstNode(default); }
+        if (r == null) { if (target != M.Any) Error(at, $"() (empty row) in a context of mode {target}"); return new ConstNode(default); }
         int dims = r.Dims;
         return new SkipNode(() =>
         {
@@ -215,7 +215,7 @@ public sealed partial class Compiler
     Node GenJump(string label, Mode target, Ast at)
     {
         var ls = LookupLabel(label);
-        if (ls == null) { Error(at, $"étiquette « {label} » non déclarée"); return new ConstNode(default); }
+        if (ls == null) { Error(at, $"label '{label}' not declared"); return new ConstNode(default); }
         NoteFree(ls.Range);
         int hops = HopsTo(ls.Range);
         if (target is ProcMode pm && pm.Params.Length == 0 && pm.Result.IsVoid)
@@ -265,7 +265,7 @@ public sealed partial class Compiler
             case LoopAst lp: return (GenLoop(lp), M.Void);
             case ParallelAst par: return (GenPar(par), M.Void);
         }
-        Error(u, "construction non prise en charge ici");
+        Error(u, "construct not supported here");
         return (new ConstNode(default), M.Any);
     }
 
@@ -276,12 +276,12 @@ public sealed partial class Compiler
         int size = Math.Max(0, d.Size);
         if (size == 0)
         {
-            if (d.Value > int.MaxValue) { Error(d, $"dénotation entière {d.Value} supérieure a max int ({int.MaxValue})"); return (new ConstNode(Value.I(0)), M.Int); }
+            if (d.Value > int.MaxValue) { Error(d, $"integral denotation {d.Value} exceeds max int ({int.MaxValue})"); return (new ConstNode(Value.I(0)), M.Int); }
             return (new ConstNode(Value.I((long)d.Value)).At<ConstNode>(d), M.Int);
         }
         if (size > 2) size = 2;
         var max = Prelude.MaxLongInt(size, this);
-        if (d.Value > max) Error(d, $"dénotation trop grande pour {(size == 1 ? "LONG INT" : "LONG LONG INT")}");
+        if (d.Value > max) Error(d, $"denotation too large for {(size == 1 ? "LONG INT" : "LONG LONG INT")}");
         return (new ConstNode(Value.Obj(d.Value)).At<ConstNode>(d), M.IntOf(size));
     }
 
@@ -291,7 +291,7 @@ public sealed partial class Compiler
         if (size == 0)
         {
             if (!double.TryParse(d.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) || double.IsInfinity(v))
-            { Error(d, $"dénotation réelle {d.Text} hors limites"); v = 0; }
+            { Error(d, $"real denotation {d.Text} out of range"); v = 0; }
             return (new ConstNode(Value.R(v)).At<ConstNode>(d), M.Real);
         }
         var mp = MpReal.Parse(d.Text, Prelude.RealDigits(size, this));
@@ -302,19 +302,19 @@ public sealed partial class Compiler
     {
         int size = Math.Max(0, Math.Min(2, d.Size));
         int width = Prelude.BitsWidthOf(size, this);
-        if (d.Value.GetBitLength() > width) Error(d, $"dénotation de bits {d.Text} trop large pour {width} bits");
+        if (d.Value.GetBitLength() > width) Error(d, $"bits denotation {d.Text} too wide for {width} bits");
         if (size == 0) return (new ConstNode(Value.I((long)(d.Value & uint.MaxValue))).At<ConstNode>(d), M.Bits);
         return (new ConstNode(Value.Obj(d.Value)).At<ConstNode>(d), M.BitsOf(size));
     }
 
-    // ------------------------------------------------------------------ identificateurs
+    // ------------------------------------------------------------------ identifiers
 
     (Node, Mode?) GenIdent(IdentAst id)
     {
         var s = LookupId(id.Name);
         if (s == null)
         {
-            Error(id, $"identificateur « {id.Name} » non déclaré");
+            Error(id, $"identifier '{id.Name}' not declared");
             return (new ConstNode(default).At<ConstNode>(id), M.Any);
         }
         return (SymNode(s, id), s.Mode);
@@ -329,14 +329,14 @@ public sealed partial class Compiler
             if (s.Builtin != null) return new ConstNode(Value.Obj(new ProcV { Builtin = s.Builtin, Name = s.Name })).At<ConstNode>(at);
         }
         if (!s.Declared && s.Range.Routine == routine && suppressDeclCheck == 0 && !s.IsLoopVar)
-            Error(at, $"« {s.Name} » utilisé avant sa déclaration");
+            Error(at, $"'{s.Name}' used before its declaration");
         NoteFree(s.Range);
         var n = new SlotNode(HopsTo(s.Range), s.Slot) { Name = s.Name, NeedsObj = s.Mode is not PrimMode };
         n.SetPos(at);
         return n;
     }
 
-    // ------------------------------------------------------------------ appels et tranches
+    // ------------------------------------------------------------------ calls and slices
 
     enum ApplyKind { Error, Call, SliceName, SliceValue }
     sealed record ApplyInfo(ApplyKind Kind, Mode? PrimTarget, Mode? Result, RowMode? Row = null, ProcMode? Proc = null, int Trims = 0);
@@ -344,7 +344,7 @@ public sealed partial class Compiler
     ApplyInfo ClassifyApply(ApplyAst a, bool report)
     {
         var A = Apriori(a.Primary);
-        if (A == null) { if (report) Error(a.Primary, "le primaire d'un appel ou d'une tranche n'a pas de mode a priori"); return new ApplyInfo(ApplyKind.Error, null, M.Any); }
+        if (A == null) { if (report) Error(a.Primary, "the primary of a call or slice has no a priori mode"); return new ApplyInfo(ApplyKind.Error, null, M.Any); }
         if (A == M.Any) return new ApplyInfo(ApplyKind.Error, null, M.Any);
         int trims = a.Args.Count(x => x.IsTrimmer);
         var cur = A;
@@ -354,11 +354,11 @@ public sealed partial class Compiler
             {
                 if (pm.Params.Length > 0)
                 {
-                    if (a.Brackets && report) Error(a, "appel de procédure avec des crochets [ ]");
+                    if (a.Brackets && report) Error(a, "procedure call with brackets [ ]");
                     Mode res = pm.Result;
                     if (trims > 0)
                     {
-                        // parametrage partiel : PROC des parametres manquants
+                        // partial parametrisation: PROC of the missing parameters
                         var rest = new List<Mode>();
                         for (int i = 0; i < pm.Params.Length && i < a.Args.Count; i++) if (a.Args[i].IsTrimmer) rest.Add(pm.Params[i]);
                         res = M.Intern(new ProcMode(rest.ToArray(), pm.Result));
@@ -384,7 +384,7 @@ public sealed partial class Compiler
             }
             break;
         }
-        if (report) Error(a, $"{A} n'est ni une procédure ni une rangée : appel ou tranche impossible");
+        if (report) Error(a, $"{A} is neither a procedure nor a row: cannot call or slice it");
         return new ApplyInfo(ApplyKind.Error, null, M.Any);
     }
 
@@ -407,7 +407,7 @@ public sealed partial class Compiler
         var pm = info.Proc!;
         if (a.Args.Count != pm.Params.Length)
         {
-            Error(a, $"nombre d'arguments incorrect : {a.Args.Count} au lieu de {pm.Params.Length} pour {pm}");
+            Error(a, $"wrong number of arguments: {a.Args.Count} instead of {pm.Params.Length} for {pm}");
         }
         var args = new List<Node?>();
         for (int i = 0; i < a.Args.Count; i++)
@@ -415,14 +415,14 @@ public sealed partial class Compiler
             var x = a.Args[i];
             if (x.IsTrimmer)
             {
-                if (x.HasColon || x.Lwb != null || x.Upb != null || x.AtLwb != null) Error(x, "trimmer dans une liste d'arguments");
+                if (x.HasColon || x.Lwb != null || x.Upb != null || x.AtLwb != null) Error(x, "trimmer in an argument list");
                 args.Add(null);
                 continue;
             }
             var pmode = i < pm.Params.Length ? pm.Params[i] : M.Any;
             args.Add(Gen(x.Unit!, pmode, Strength.Strong));
         }
-        // primaire : contexte meek vers le mode procedure
+        // primary: meek context towards the procedure mode
         Node proc;
         BuiltinFn? direct = null;
         if (a.Primary is IdentAst pid && LookupId(pid.Name) is IdSym ps && ps.IsPrelude && ps.Builtin != null && ReferenceEquals(ps.Mode, pm))
@@ -436,7 +436,7 @@ public sealed partial class Compiler
         for (int i = 0; i < modes.Length; i++)
         {
             var pmode = i < pm.Params.Length ? pm.Params[i] : M.Any;
-            modes[i] = IsFresh(argNodes[i]) ? M.Int : pmode; // M.Int : pas de copie
+            modes[i] = IsFresh(argNodes[i]) ? M.Int : pmode; // M.Int: no copy
         }
         return new CallNode(proc, argNodes, modes, cur.Level).At<CallNode>(a);
     }
@@ -446,7 +446,7 @@ public sealed partial class Compiler
     Node GenSlice(ApplyAst a, ApplyInfo info)
     {
         var row = info.Row!;
-        if (a.Args.Count != row.Dims) Error(a, $"{a.Args.Count} indice(s) pour une rangée a {row.Dims} dimension(s)");
+        if (a.Args.Count != row.Dims) Error(a, $"{a.Args.Count} indexer(s) for a row with {row.Dims} dimension(s)");
         var prim = Gen(a.Primary, info.PrimTarget!, Strength.Weak);
         bool onName = info.Kind == ApplyKind.SliceName;
         var ix = new SliceIndexer[a.Args.Count];
@@ -479,7 +479,7 @@ public sealed partial class Compiler
     SelInfo ClassifySelection(SelectionAst sel, bool report)
     {
         var A = Apriori(sel.Secondary);
-        if (A == null) { if (report) Error(sel, "sélection dans une valeur sans mode a priori"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+        if (A == null) { if (report) Error(sel, "selection from a value without an a priori mode"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
         if (A == M.Any) return new SelInfo(SelKind.Error, null, M.Any, -1);
         var cur = A;
         for (int g = 0; g < 32; g++)
@@ -489,14 +489,14 @@ public sealed partial class Compiler
                 if (rm.Sub is StructMode sm)
                 {
                     int f = sm.IndexOf(sel.Field);
-                    if (f < 0) { if (report) Error(sel, $"pas de champ « {sel.Field} » dans {sm}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+                    if (f < 0) { if (report) Error(sel, $"no field '{sel.Field}' in {sm}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
                     return new SelInfo(SelKind.Name, cur, M.Normalize(M.Ref(sm.Fields[f].Mode)), f);
                 }
                 var row = rm.Sub.AsRow;
                 if (row != null && row.Elem is StructMode sm2)
                 {
                     int f = sm2.IndexOf(sel.Field);
-                    if (f < 0) { if (report) Error(sel, $"pas de champ « {sel.Field} » dans {sm2}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+                    if (f < 0) { if (report) Error(sel, $"no field '{sel.Field}' in {sm2}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
                     return new SelInfo(SelKind.RowName, cur, M.Normalize(M.Ref(M.Row(row.Dims, sm2.Fields[f].Mode))), f);
                 }
                 cur = M.Normalize(rm.Sub); continue;
@@ -504,19 +504,19 @@ public sealed partial class Compiler
             if (cur is StructMode s)
             {
                 int f = s.IndexOf(sel.Field);
-                if (f < 0) { if (report) Error(sel, $"pas de champ « {sel.Field} » dans {s}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+                if (f < 0) { if (report) Error(sel, $"no field '{sel.Field}' in {s}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
                 return new SelInfo(SelKind.Value, cur, s.Fields[f].Mode, f);
             }
             if (cur is RowMode r && r.Elem is StructMode s2)
             {
                 int f = s2.IndexOf(sel.Field);
-                if (f < 0) { if (report) Error(sel, $"pas de champ « {sel.Field} » dans {s2}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+                if (f < 0) { if (report) Error(sel, $"no field '{sel.Field}' in {s2}"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
                 return new SelInfo(SelKind.RowValue, cur, M.Row(r.Dims, s2.Fields[f].Mode), f);
             }
             if (cur is ProcMode pm && pm.Params.Length == 0) { cur = pm.Result; continue; }
             break;
         }
-        if (report) Error(sel, $"sélection « {sel.Field} OF » dans une valeur de mode {A} qui n'est pas une structure");
+        if (report) Error(sel, $"selection '{sel.Field} OF' from a value of mode {A} which is not a structure");
         return new SelInfo(SelKind.Error, null, M.Any, -1);
     }
 
@@ -538,16 +538,16 @@ public sealed partial class Compiler
         return (n, info.Result);
     }
 
-    // ------------------------------------------------------------------ affectation, relation d'identite
+    // ------------------------------------------------------------------ assignment, identity relation
 
     (Node, Mode?) GenAssign(AssignAst asg)
     {
         var a = Apriori(asg.Dest);
-        if (a == null) { Error(asg.Dest, "destination d'affectation sans mode a priori"); a = M.Any; }
+        if (a == null) { Error(asg.Dest, "assignment destination without an a priori mode"); a = M.Any; }
         var dt = DeprocAll(a);
         if (dt is not RefMode rm)
         {
-            if (dt != M.Any) Error(asg.Dest, $"la destination d'une affectation doit être un nom (mode REF ...), pas {a}");
+            if (dt != M.Any) Error(asg.Dest, $"the destination of an assignment must be a name (mode REF ...), not {a}");
             Gen(asg.Source, M.Any, Strength.Strong);
             return (new ConstNode(default).At<ConstNode>(asg), M.Any);
         }
@@ -555,7 +555,7 @@ public sealed partial class Compiler
         var sub = rm.Sub;
         var valMode = M.Normalize(sub);
         var src = Gen(asg.Source, valMode, Strength.Strong);
-        CheckTransient(src, asg.Source, "affecté");
+        CheckTransient(src, asg.Source, "assigned");
         bool scopeCheck = valMode.HasNames;
         Node n;
         if (dest is SlotNode sn && !sub.NeedsCopy && !scopeCheck) n = new AssignSlotNode(sn.Hops, sn.Slot, src);
@@ -570,21 +570,21 @@ public sealed partial class Compiler
         Mode? l = la == null ? null : DeprocAll(la);
         Mode? r = ra == null ? null : DeprocAll(ra);
         bool lf = l == null || IsFlexible(l), rf = r == null || IsFlexible(r);
-        if (!lf && l is not RefMode && l != M.Any) Error(ir.Left, $"relation d'identite : {la} n'est pas un nom");
-        if (!rf && r is not RefMode && r != M.Any) Error(ir.Right, $"relation d'identite : {ra} n'est pas un nom");
+        if (!lf && l is not RefMode && l != M.Any) Error(ir.Left, $"identity relation: {la} is not a name");
+        if (!rf && r is not RefMode && r != M.Any) Error(ir.Right, $"identity relation: {ra} is not a name");
         Mode mode;
-        if (lf && rf) { Error(ir, "relation d'identite sans mode determinable (NIL :=: NIL ?)"); mode = M.Any; }
+        if (lf && rf) { Error(ir, "identity relation without a determinable mode (NIL :=: NIL?)"); mode = M.Any; }
         else if (lf) mode = r!;
         else if (rf) mode = l!;
         else if (FindCoercion(l!, r!, Strength.Strong) != null) mode = r!;
         else if (FindCoercion(r!, l!, Strength.Strong) != null) mode = l!;
-        else { Error(ir, $"relation d'identite entre noms de modes incompatibles {la} et {ra}"); mode = M.Any; }
+        else { Error(ir, $"identity relation between names of incompatible modes {la} and {ra}"); mode = M.Any; }
         var ln = Gen(ir.Left, mode, Strength.Strong);
         var rn = Gen(ir.Right, mode, Strength.Strong);
         return (new IdentityRelNode(ln, rn, ir.Not).At<IdentityRelNode>(ir), M.Bool);
     }
 
-    // ------------------------------------------------------------------ textes de routine
+    // ------------------------------------------------------------------ routine texts
 
     (Node, Mode?) GenRoutineText(RoutineTextAst rt)
     {
@@ -608,14 +608,14 @@ public sealed partial class Compiler
             for (int i = 0; i < rt.Params.Count; i++)
             {
                 var p = rt.Params[i];
-                if (!names.Add(p.Name)) Error(p, $"paramètre « {p.Name} » déclaré deux fois");
+                if (!names.Add(p.Name)) Error(p, $"parameter '{p.Name}' declared twice");
                 var s = new IdSym { Name = p.Name, Range = pr, Mode = pm.Params[i], Slot = ctx.Alloc(), Declared = true, Pos = p };
                 pr.Ids[p.Name] = s;
                 info.Vars.Add(new DebugVar { Name = p.Name, Slot = s.Slot, Mode = s.Mode, FromLine = rt.Line, ToLine = int.MaxValue, File = rt.File });
             }
             var body = Gen(rt.Body, pm.Result, Strength.Strong);
-            CheckTransient(body, rt.Body, "rendu par une routine");
-            // le corps reduit a une unite est une instruction (points d'arret, pas a pas)
+            CheckTransient(body, rt.Body, "yielded by a routine");
+            // a body consisting of a single unit is a statement (breakpoints, stepping)
             info.Body = Stmt(body, rt.Body);
             info.FrameSize = ctx.NextSlot;
             info.CheckResultScope = pm.Result.HasNames;
@@ -631,7 +631,7 @@ public sealed partial class Compiler
         return (new RoutineTextNode(info, hops, level).At<RoutineTextNode>(rt), pm);
     }
 
-    // ------------------------------------------------------------------ clauses suites
+    // ------------------------------------------------------------------ serial clauses
 
     Node Stmt(Node n) => n is StmtNode ? n : new StmtNode(n);
     Node Stmt(Node n, UnitAst u)
@@ -643,7 +643,7 @@ public sealed partial class Compiler
         return s;
     }
 
-    /// <summary>Premier symbole d'une unite (position des instructions).</summary>
+    /// <summary>First symbol of a unit (position of statements).</summary>
     static Ast StartOf(UnitAst u) => u switch
     {
         DyadicAst d => StartOf(d.Left),
@@ -681,21 +681,21 @@ public sealed partial class Compiler
                 }
                 else
                 {
-                    if (i == last) Error(ph, "une clause doit se terminer par une unité, pas par une déclaration");
-                    if (seenLabel) Error(ph, "une déclaration ne peut pas suivre une unité étiquetée dans la même clause");
+                    if (i == last) Error(ph, "a clause must end with a unit, not with a declaration");
+                    if (seenLabel) Error(ph, "a declaration cannot follow a labelled unit in the same clause");
                     foreach (var n in GenDeclaration((DeclarationAst)ph))
                     {
                         stmts.Add(Stmt(n)); yields.Add(false); completes.Add(false);
                     }
                 }
-                if (i < last && s.ExitAfter.Contains(i) && ph is not LabeledUnit) Error(ph, "EXIT doit suivre une unité");
+                if (i < last && s.ExitAfter.Contains(i) && ph is not LabeledUnit) Error(ph, "EXIT must follow a unit");
             }
             if (stmts.Count == 0) { stmts.Add(new ConstNode(default)); yields.Add(true); completes.Add(true); }
-            // EXIT suivi d'une partie sans etiquette : inaccessible
+            // EXIT followed by a part without a label: unreachable
             for (int i = 0; i < s.ExitAfter.Count; i++)
             {
                 int k = s.ExitAfter[i] + 1;
-                if (k <= last && s.Phrases[k] is LabeledUnit nl && nl.Labels.Count == 0) Error(nl, "unité inaccessible après EXIT (une étiquette est requise)");
+                if (k <= last && s.Phrases[k] is LabeledUnit nl && nl.Labels.Count == 0) Error(nl, "unreachable unit after EXIT (a label is required)");
             }
             serial.Stmts = stmts.ToArray(); serial.Yields = yields.ToArray(); serial.Completes = completes.ToArray();
             serial.HasLabels = hasLabels;
@@ -726,7 +726,7 @@ public sealed partial class Compiler
                     if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     if (val is RoutineTextAst) pendingRoutineName = name;
                     var v = Gen(val, s.Mode, Strength.Strong);
-                    CheckTransient(v, val, "lié à un identificateur");
+                    CheckTransient(v, val, "bound to an identifier");
                     pendingRoutineName = null;
                     s.Declared = true;
                     yield return new IdentityDeclNode(s.Slot, v, s.Mode, s.Mode.NeedsCopy && !IsFresh(v)).At<IdentityDeclNode>(pos);
@@ -743,7 +743,7 @@ public sealed partial class Compiler
                     {
                         if (init is RoutineTextAst) pendingRoutineName = name;
                         iv = Gen(init, M.Normalize(sub), Strength.Strong);
-                        CheckTransient(iv, init, "affecté");
+                        CheckTransient(iv, init, "assigned");
                         pendingRoutineName = null;
                     }
                     s.Declared = true;
@@ -788,7 +788,7 @@ public sealed partial class Compiler
         }
     }
 
-    // ------------------------------------------------------------------ clauses de choix
+    // ------------------------------------------------------------------ choice clauses
 
     Node GenCond(CondAst c, Mode target)
     {
@@ -798,7 +798,7 @@ public sealed partial class Compiler
         {
             if (c.Brief && IsIntSelector(c.If))
             {
-                // ( n | a | b ) : clause de cas abregee a une seule unite
+                // ( n | a | b ): brief case clause with a single unit
                 var sel = GenSerial(c.If, M.Int, Strength.Meek, true);
                 var one = GenSerial(c.Then, target, Strength.Strong, true);
                 Node? outp = c.Else != null ? GenSerial(c.Else, target, Strength.Strong, true)
@@ -856,7 +856,7 @@ public sealed partial class Compiler
             var selMode = sa == null ? M.Any : MeekValue(sa);
             if (selMode is not UnionMode um)
             {
-                if (selMode != M.Any) Error(c, $"la clause de conformite exige une valeur unie, pas {selMode}");
+                if (selMode != M.Any) Error(c, $"the conformity clause requires a united value, not {selMode}");
                 um = null!;
             }
             var node = new ConformityNode();
@@ -871,12 +871,12 @@ public sealed partial class Compiler
                 if (cm is UnionMode cu)
                 {
                     acc = cu.Members;
-                    if (um != null) foreach (var x in acc) if (um.IndexOf(x) < 0) Error(cc, $"le mode {x} n'est pas une composante de {um}");
+                    if (um != null) foreach (var x in acc) if (um.IndexOf(x) < 0) Error(cc, $"mode {x} is not a component of {um}");
                 }
                 else
                 {
                     acc = new[] { cm };
-                    if (um != null && um.IndexOf(cm) < 0 && cm != M.Any) Error(cc, $"le mode {cm} n'est pas une composante de {um}");
+                    if (um != null && um.IndexOf(cm) < 0 && cm != M.Any) Error(cc, $"mode {cm} is not a component of {um}");
                 }
                 accept.Add(acc); rewrap.Add(cm is UnionMode);
                 slots.Add(cc.Name != null ? cr.Ids[cc.Name].Slot : -1);
@@ -910,19 +910,19 @@ public sealed partial class Compiler
         {
             if (c.Units.Count != sm.Fields.Length)
             {
-                Error(c, $"affichage de structure : {c.Units.Count} valeurs pour {sm.Fields.Length} champs de {sm}");
+                Error(c, $"structure display: {c.Units.Count} values for the {sm.Fields.Length} fields of {sm}");
             }
             var fields = new Node[sm.Fields.Length];
             for (int i = 0; i < fields.Length; i++)
                 fields[i] = i < c.Units.Count ? Gen(c.Units[i], sm.Fields[i].Mode, Strength.Strong) : GenSkip(sm.Fields[i].Mode, c);
             return new StructDisplayNode(fields, sm.Fields.Select(f => f.Mode).ToArray()).At<StructDisplayNode>(c);
         }
-        Error(c, $"un affichage (clause collaterale) ne peut pas produire une valeur de mode {target}");
+        Error(c, $"a display (collateral clause) cannot yield a value of mode {target}");
         foreach (var u in c.Units) Gen(u, M.Any, Strength.Strong);
         return new ConstNode(default).At<ConstNode>(c);
     }
 
-    // ------------------------------------------------------------------ boucles
+    // ------------------------------------------------------------------ loops
 
     Node GenLoop(LoopAst lp)
     {

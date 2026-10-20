@@ -6,7 +6,7 @@ using Range = Studio.Algol68.Semantics.Range;
 
 namespace Studio.Algol68.Runtime;
 
-/// <summary>Arithmetique reelle d'une longueur donnee (REAL : double ; LONG/LONG LONG REAL : MpReal).</summary>
+/// <summary>Real arithmetic of a given length (REAL: double; LONG/LONG LONG REAL: MpReal).</summary>
 public sealed class RA
 {
     public readonly int Size; public readonly int Digits;
@@ -21,12 +21,12 @@ public sealed class RA
     public Value One => FromLong(1);
     public double D(Value v) => IsDouble ? v.Real : ((MpReal)v.O!).ToDouble();
 
-    static Value Chk(double d, Node at) { if (double.IsNaN(d) || double.IsInfinity(d)) throw RT.Err("débordement réel (REAL)", at); return Value.R(d); }
+    static Value Chk(double d, Node at) { if (double.IsNaN(d) || double.IsInfinity(d)) throw RT.Err("real overflow (REAL)", at); return Value.R(d); }
     T Guard<T>(Func<T> f, Node at)
     {
         try { return f(); }
-        catch (OverflowException) { throw RT.Err($"débordement réel ({(Size == 1 ? "LONG REAL" : "LONG LONG REAL")})", at); }
-        catch (DivideByZeroException) { throw RT.Err("division par zéro", at); }
+        catch (OverflowException) { throw RT.Err($"real overflow ({(Size == 1 ? "LONG REAL" : "LONG LONG REAL")})", at); }
+        catch (DivideByZeroException) { throw RT.Err("division by zero", at); }
         catch (ArithmeticException e) { throw RT.Err(e.Message, at); }
     }
 
@@ -35,7 +35,7 @@ public sealed class RA
     public Value Mul(Value a, Value b, Node at) => IsDouble ? Chk(a.Real * b.Real, at) : Guard(() => V(MpReal.Mul(Mp(a), Mp(b))), at);
     public Value Div(Value a, Value b, Node at)
     {
-        if (IsDouble) { if (b.Real == 0) throw RT.Err("division par zéro", at); return Chk(a.Real / b.Real, at); }
+        if (IsDouble) { if (b.Real == 0) throw RT.Err("division by zero", at); return Chk(a.Real / b.Real, at); }
         return Guard(() => V(MpReal.Div(Mp(a), Mp(b))), at);
     }
     public Value Neg(Value a) => IsDouble ? Value.R(-a.Real) : V(-Mp(a));
@@ -49,8 +49,8 @@ public sealed class RA
         if (IsDouble)
         {
             double x = a.Real, r = 1; long k = Math.Abs(n);
-            if (x == 0 && n < 0) throw RT.Err("division par zéro dans **", at);
-            // RR : produit repete
+            if (x == 0 && n < 0) throw RT.Err("division by zero in **", at);
+            // RR: repeated product
             double b = x;
             while (k > 0) { if ((k & 1) != 0) r *= b; k >>= 1; if (k > 0) b *= b; }
             return Chk(n >= 0 ? r : 1 / r, at);
@@ -61,7 +61,7 @@ public sealed class RA
     {
         if (IsDouble)
         {
-            if (a.Real < 0) throw RT.Err("puissance réelle d'un nombre négatif", at);
+            if (a.Real < 0) throw RT.Err("real power of a negative number", at);
             return Chk(Math.Pow(a.Real, b.Real), at);
         }
         return Guard(() => V(MpReal.Pow(Mp(a), Mp(b))), at);
@@ -74,13 +74,13 @@ public sealed class RA
             double x = a.Real;
             double r = name switch
             {
-                "sqrt" => x < 0 ? throw RT.Err("sqrt d'un nombre négatif", at) : Math.Sqrt(x),
+                "sqrt" => x < 0 ? throw RT.Err("sqrt of a negative number", at) : Math.Sqrt(x),
                 "exp" => Math.Exp(x),
-                "ln" => x <= 0 ? throw RT.Err("ln d'un nombre non positif", at) : Math.Log(x),
-                "log" => x <= 0 ? throw RT.Err("log d'un nombre non positif", at) : Math.Log10(x),
+                "ln" => x <= 0 ? throw RT.Err("ln of a non-positive number", at) : Math.Log(x),
+                "log" => x <= 0 ? throw RT.Err("log of a non-positive number", at) : Math.Log10(x),
                 "sin" => Math.Sin(x), "cos" => Math.Cos(x), "tan" => Math.Tan(x),
-                "arcsin" => Math.Abs(x) > 1 ? throw RT.Err("arcsin hors du domaine [-1, 1]", at) : Math.Asin(x),
-                "arccos" => Math.Abs(x) > 1 ? throw RT.Err("arccos hors du domaine [-1, 1]", at) : Math.Acos(x),
+                "arcsin" => Math.Abs(x) > 1 ? throw RT.Err("arcsin outside the domain [-1, 1]", at) : Math.Asin(x),
+                "arccos" => Math.Abs(x) > 1 ? throw RT.Err("arccos outside the domain [-1, 1]", at) : Math.Acos(x),
                 "arctan" => Math.Atan(x),
                 "sinh" => Math.Sinh(x), "cosh" => Math.Cosh(x), "tanh" => Math.Tanh(x),
                 "arcsinh" => Math.Asinh(x), "arccosh" => Math.Acosh(x), "arctanh" => Math.Atanh(x),
@@ -125,7 +125,7 @@ public sealed class RA
     {
         if (IsDouble)
         {
-            if (x.Real == 0 && y.Real == 0) throw RT.Err("arctan2(0, 0) indéfini", at);
+            if (x.Real == 0 && y.Real == 0) throw RT.Err("arctan2(0, 0) is undefined", at);
             return Value.R(Math.Atan2(y.Real, x.Real));
         }
         return Guard(() => V(MpReal.Atan2(Mp(y), Mp(x))), at);
@@ -138,7 +138,7 @@ public sealed class RA
         if (IsDouble)
         {
             double f = Math.Floor(a.Real);
-            if (f > int.MaxValue || f < int.MinValue) throw RT.Err("ENTIER : résultat hors de l'intervalle des INT", at);
+            if (f > int.MaxValue || f < int.MinValue) throw RT.Err("ENTIER: result outside the range of INT", at);
             return Value.I((long)f);
         }
         return Prelude.BigV(Mp(a).Floor(), intSize, at);
@@ -149,14 +149,14 @@ public sealed class RA
         {
             double x = a.Real;
             double r = x >= 0 ? Math.Floor(x + 0.5) : -Math.Floor(-x + 0.5);
-            if (r > int.MaxValue || r < int.MinValue) throw RT.Err("ROUND : résultat hors de l'intervalle des INT", at);
+            if (r > int.MaxValue || r < int.MinValue) throw RT.Err("ROUND: result outside the range of INT", at);
             return Value.I((long)r);
         }
         return Prelude.BigV(Mp(a).Round(), intSize, at);
     }
 }
 
-/// <summary>Prelude standard (RR 10.2) : operateurs, constantes, fonctions.</summary>
+/// <summary>Standard prelude (RR 10.2): operators, constants, functions.</summary>
 public static partial class Prelude
 {
     public const int LongDigits = 35;
@@ -170,7 +170,7 @@ public static partial class Prelude
     public const int LongBitsWidth = 116;
 
     static int llDigits = DefaultLongLongDigits;
-    /// <summary>Precision courante de LONG LONG (fixee a la compilation par PR precision PR).</summary>
+    /// <summary>Current LONG LONG precision (set at compile time by PR precision PR).</summary>
     public static int LLDigits => llDigits;
     public static void SetLongLong(int digits) { llDigits = digits; }
 
@@ -184,10 +184,10 @@ public static partial class Prelude
     {
         if (size == 0)
         {
-            if (b > int.MaxValue || b < int.MinValue) throw RT.Err("débordement d'entier (INT)", at);
+            if (b > int.MaxValue || b < int.MinValue) throw RT.Err("integer overflow (INT)", at);
             return Value.I((long)b);
         }
-        if (BigInteger.Abs(b) > MaxLongInt(size)) throw RT.Err($"débordement d'entier ({(size == 1 ? "LONG INT" : "LONG LONG INT")})", at);
+        if (BigInteger.Abs(b) > MaxLongInt(size)) throw RT.Err($"integer overflow ({(size == 1 ? "LONG INT" : "LONG LONG INT")})", at);
         return Value.Obj(b);
     }
     public static BigInteger Big(Value v, int size) => size == 0 ? v.N : (BigInteger)v.O!;
@@ -201,7 +201,7 @@ public static partial class Prelude
         return RowV.Make1(data);
     }
 
-    // ------------------------------------------------------------------ enregistrement
+    // ------------------------------------------------------------------ registration
 
     sealed class Ctx
     {
@@ -252,7 +252,7 @@ public static partial class Prelude
         BuildTransput(c, M);
     }
 
-    // ------------------------------------------------------------------ entiers
+    // ------------------------------------------------------------------ integers
 
     static void BuildIntOps(ModeTable M)
     {
@@ -267,12 +267,12 @@ public static partial class Prelude
         foreach (var (n, cmp) in CmpNames()) Op(n, B, new[] { I, I }, a => new IntCmp(a[0], a[1], cmp));
         Op("-", I, new[] { I }, a => new IntNeg(a[0]));
         Op("+", I, new[] { I }, a => a[0]);
-        Op1("ABS", I, I, (v, at) => { long x = Math.Abs(v.N); if (x > int.MaxValue) throw RT.Err("débordement d'entier (INT)", at); return Value.I(x); });
+        Op1("ABS", I, I, (v, at) => { long x = Math.Abs(v.N); if (x > int.MaxValue) throw RT.Err("integer overflow (INT)", at); return Value.I(x); });
         Op1("SIGN", I, I, (v, at) => Value.I(Math.Sign(v.N)));
         Op1("ODD", B, I, (v, at) => Value.B((v.N & 1) != 0));
         Op1("REPR", M.Char, I, (v, at) =>
         {
-            if (v.N < 0 || v.N > char.MaxValue) throw RT.Err($"REPR {v.N} : pas de caractère correspondant", at);
+            if (v.N < 0 || v.N > char.MaxValue) throw RT.Err($"REPR {v.N}: no corresponding character", at);
             return Value.I(v.N);
         });
         Op("+* I", M.Compl, new[] { I, I }, a => new Exec.Op2(a[0], a[1], (x, y, at) => Value.Obj(new[] { Value.R(x.N), Value.R(y.N) })));
@@ -288,10 +288,10 @@ public static partial class Prelude
             Op2("+", L, L, L, (x, y, at) => BigV(G(x) + G(y), size, at));
             Op2("-", L, L, L, (x, y, at) => BigV(G(x) - G(y), size, at));
             Op2("*", L, L, L, (x, y, at) => BigV(G(x) * G(y), size, at));
-            Op2("% OVER", L, L, L, (x, y, at) => { if (G(y).IsZero) throw RT.Err("division entière par zéro", at); return BigV(BigInteger.Divide(G(x), G(y)), size, at); });
+            Op2("% OVER", L, L, L, (x, y, at) => { if (G(y).IsZero) throw RT.Err("integer division by zero", at); return BigV(BigInteger.Divide(G(x), G(y)), size, at); });
             Op2("%* MOD", L, L, L, (x, y, at) =>
             {
-                if (G(y).IsZero) throw RT.Err("MOD par zéro", at);
+                if (G(y).IsZero) throw RT.Err("MOD by zero", at);
                 var rr = BigInteger.Remainder(G(x), G(y)); if (rr.Sign < 0) rr += BigInteger.Abs(G(y));
                 return Value.Obj(rr);
             });
@@ -299,10 +299,10 @@ public static partial class Prelude
             Op2("/", LR, L, L, (x, y, at) => ra.Div(ra.FromInt(x), ra.FromInt(y), at));
             Op2("** ^ UP", L, L, I, (x, y, at) =>
             {
-                if (y.N < 0) throw RT.Err("exposant négatif dans LONG INT ** INT", at);
+                if (y.N < 0) throw RT.Err("negative exponent in LONG INT ** INT", at);
                 var bx = G(x); var lim = MaxLongInt(size);
                 BigInteger res = 1;
-                for (long k = 0; k < y.N; k++) { res *= bx; if (BigInteger.Abs(res) > lim) throw RT.Err("débordement d'entier (LONG INT)", at); }
+                for (long k = 0; k < y.N; k++) { res *= bx; if (BigInteger.Abs(res) > lim) throw RT.Err("integer overflow (LONG INT)", at); }
                 return Value.Obj(res);
             });
             foreach (var (n, cmp) in CmpNames()) { var cc = cmp; Op2(n, B, L, L, (x, y, at) => Value.B(CmpRes(G(x).CompareTo(G(y)), cc))); }
@@ -331,7 +331,7 @@ public static partial class Prelude
         Cmp.Lt => c < 0, Cmp.Le => c <= 0, Cmp.Eq => c == 0, Cmp.Ne => c != 0, Cmp.Ge => c >= 0, _ => c > 0
     };
 
-    // ------------------------------------------------------------------ reels
+    // ------------------------------------------------------------------ reals
 
     static void BuildRealOps(ModeTable M)
     {
@@ -375,7 +375,7 @@ public static partial class Prelude
         Op1("SHORTEN", R, M.LongReal, (v, at) =>
         {
             double d = ((MpReal)v.O!).ToDouble();
-            if (double.IsInfinity(d)) throw RT.Err("SHORTEN : valeur hors de l'intervalle des REAL", at);
+            if (double.IsInfinity(d)) throw RT.Err("SHORTEN: value outside the range of REAL", at);
             return Value.R(d);
         });
         // LONG REAL, LONG LONG REAL
@@ -422,9 +422,9 @@ public static partial class Prelude
         }
     }
 
-    // ------------------------------------------------------------------ complexes
+    // ------------------------------------------------------------------ complex numbers
 
-    static Value[] Cx(Value v, Node at) => v.O as Value[] ?? throw RT.Err("complexe non initialisé", at);
+    static Value[] Cx(Value v, Node at) => v.O as Value[] ?? throw RT.Err("uninitialised complex", at);
 
     static void BuildComplOps(ModeTable M)
     {
@@ -450,7 +450,7 @@ public static partial class Prelude
             {
                 var x = Cx(a, at); var y = Cx(b, at);
                 var d = ra.Add(ra.Mul(y[0], y[0], at), ra.Mul(y[1], y[1], at), at);
-                if (ra.IsZero(d)) throw RT.Err("division complexe par zéro", at);
+                if (ra.IsZero(d)) throw RT.Err("complex division by zero", at);
                 var nre = ra.Add(ra.Mul(x[0], y[0], at), ra.Mul(x[1], y[1], at), at);
                 var nim = ra.Sub(ra.Mul(x[1], y[0], at), ra.Mul(x[0], y[1], at), at);
                 return Mk(ra.Div(nre, d, at), ra.Div(nim, d, at));
@@ -508,7 +508,7 @@ public static partial class Prelude
                     return s == 0 ? Mk(Value.R(((MpReal)x[0].O!).ToDouble()), Value.R(((MpReal)x[1].O!).ToDouble())) : Mk(ra.V((MpReal)x[0].O!), ra.V((MpReal)x[1].O!));
                 });
             }
-            // affectations combinees
+            // combined assignments
             var RC = M.Ref(C);
             foreach (var (n, fn) in new (string, Func<Value, Value, Node, Value>)[] { ("+:= PLUSAB", Add), ("-:= MINUSAB", Sub), ("*:= TIMESAB", Mul), ("/:= DIVAB", Div) })
             {
@@ -518,7 +518,7 @@ public static partial class Prelude
                 Op(n, RC, new[] { RC, LI }, a => new OpAb(a[0], a[1], (x, y, at) => f2(x, FromI(y), at)));
             }
         }
-        // affectations combinees INT et REAL
+        // combined assignments for INT and REAL
         var RI = M.RefInt; var RR = M.RefReal; var Ii = M.Int; var Rr = M.Real;
         Op("+:= PLUSAB", RI, new[] { RI, Ii }, a => new IntPlusAb(a[0], a[1], 0));
         Op("-:= MINUSAB", RI, new[] { RI, Ii }, a => new IntPlusAb(a[0], a[1], 1));
@@ -542,10 +542,10 @@ public static partial class Prelude
             Op("+:= PLUSAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) => BigV(G(x) + G(y), size, at)));
             Op("-:= MINUSAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) => BigV(G(x) - G(y), size, at)));
             Op("*:= TIMESAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) => BigV(G(x) * G(y), size, at)));
-            Op("%:= OVERAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) => { if (G(y).IsZero) throw RT.Err("division entière par zéro", at); return BigV(G(x) / G(y), size, at); }));
+            Op("%:= OVERAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) => { if (G(y).IsZero) throw RT.Err("integer division by zero", at); return BigV(G(x) / G(y), size, at); }));
             Op("%*:= MODAB", RL, new[] { RL, L }, a => new OpAb(a[0], a[1], (x, y, at) =>
             {
-                if (G(y).IsZero) throw RT.Err("MOD par zéro", at);
+                if (G(y).IsZero) throw RT.Err("MOD by zero", at);
                 var rr = BigInteger.Remainder(G(x), G(y)); if (rr.Sign < 0) rr += BigInteger.Abs(G(y)); return Value.Obj(rr);
             }));
             var LRm = M.RealOf(s); var RLR = M.Ref(LRm);
@@ -559,7 +559,7 @@ public static partial class Prelude
         }
     }
 
-    // ------------------------------------------------------------------ booleens, caracteres, chaines
+    // ------------------------------------------------------------------ booleans, characters, strings
 
     static string S(Value v, Node at) => v.O is RowV r ? r.AsString() : RT.Str(v, at);
     static string C(Value v) => ((char)v.N).ToString();
@@ -581,13 +581,13 @@ public static partial class Prelude
         Op2("= EQ", B, B, B, (x, y, at) => Value.B(x.Bool == y.Bool));
         Op2("/= ~= ^= NE", B, B, B, (x, y, at) => Value.B(x.Bool != y.Bool));
         Op1("ABS", I, B, (v, at) => Value.I(v.Bool ? 1 : 0));
-        // caracteres
+        // characters
         foreach (var (n, cmp) in CmpNames()) { var cc = cmp; Op(n, B, new[] { Ch, Ch }, a => new IntCmp(a[0], a[1], cc)); }
         Op1("ABS", I, Ch, (v, at) => Value.I(v.N));
         Op2("+", St, Ch, Ch, (x, y, at) => RT.StrValue(C(x) + C(y)));
         Op2("*", St, Ch, I, (x, y, at) => RT.StrValue(Repeat(C(x), y.N, at)));
         Op2("*", St, I, Ch, (x, y, at) => RT.StrValue(Repeat(C(y), x.N, at)));
-        // chaines
+        // strings
         foreach (var (n, cmp) in CmpNames())
         {
             var cc = cmp;
@@ -611,25 +611,25 @@ public static partial class Prelude
 
     static Value Concat(Value x, Value y, Node at)
     {
-        var a = x.O as RowV ?? throw RT.Err("chaîne non initialisée", at);
-        var b = y.O as RowV ?? throw RT.Err("chaîne non initialisée", at);
+        var a = x.O as RowV ?? throw RT.Err("uninitialised string", at);
+        var b = y.O as RowV ?? throw RT.Err("uninitialised string", at);
         var ea = a.Elements(); var eb = b.Elements();
         var data = new Value[ea.Length + eb.Length];
         Array.Copy(ea, data, ea.Length); Array.Copy(eb, 0, data, ea.Length, eb.Length);
-        foreach (var v in data) if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("caractère non initialisé dans une chaîne", at);
+        foreach (var v in data) if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("uninitialised character in a string", at);
         return Value.Obj(RowV.Make1(data));
     }
 
     static string Repeat(string s, long n, Node at)
     {
         if (n <= 0) return "";
-        if (s.Length * n > 100_000_000) throw RT.Err("chaîne trop longue", at);
+        if (s.Length * n > 100_000_000) throw RT.Err("string too long", at);
         var sb = new StringBuilder((int)(s.Length * n));
         for (long i = 0; i < n; i++) sb.Append(s);
         return sb.ToString();
     }
 
-    // ------------------------------------------------------------------ bits et octets
+    // ------------------------------------------------------------------ bits and bytes
 
     public static BigInteger BitsMask(int size) => (BigInteger.One << BitsWidthOf(size)) - 1;
 
@@ -656,31 +656,31 @@ public static partial class Prelude
             Op2(">= GE", B, Bt, Bt, (x, y, at) => Value.B((G(x) | G(y)) == G(x)));
             Value Shift(Value x, long n, Node at)
             {
-                if (Math.Abs(n) > w) throw RT.Err($"décalage de {n} positions supérieur à la largeur des bits ({w})", at);
+                if (Math.Abs(n) > w) throw RT.Err($"shift by {n} positions exceeds the bits width ({w})", at);
                 return n >= 0 ? Mk(G(x) << (int)n) : Mk(G(x) >> (int)-n);
             }
             Op2("SHL UP ^ **", Bt, Bt, I, (x, y, at) => Shift(x, y.N, at));
             Op2("SHR DOWN", Bt, Bt, I, (x, y, at) => Shift(x, -y.N, at));
-            Op1("ABS", LI, Bt, (v, at) => size == 0 ? Value.I((long)(int)(uint)v.N) : Value.Obj(G(v))); // a68g : interpretation signee sur 32 bits
+            Op1("ABS", LI, Bt, (v, at) => size == 0 ? Value.I((long)(int)(uint)v.N) : Value.Obj(G(v))); // a68g: signed 32-bit interpretation
             Op1("BIN", Bt, LI, (v, at) =>
             {
                 var b = Big(v, size);
-                if (b.Sign < 0) throw RT.Err("BIN d'un entier négatif", at);
+                if (b.Sign < 0) throw RT.Err("BIN of a negative integer", at);
                 return Mk(b);
             });
             Op2("ELEM", B, I, Bt, (x, y, at) =>
             {
-                if (x.N < 1 || x.N > w) throw RT.Err($"ELEM : indice {x.N} hors de [1:{w}]", at);
+                if (x.N < 1 || x.N > w) throw RT.Err($"ELEM: index {x.N} outside [1:{w}]", at);
                 return Value.B(((G(y) >> (int)(w - x.N)) & 1) == 1);
             });
             Op2("SET", Bt, I, Bt, (x, y, at) =>
             {
-                if (x.N < 1 || x.N > w) throw RT.Err($"SET : indice {x.N} hors de [1:{w}]", at);
+                if (x.N < 1 || x.N > w) throw RT.Err($"SET: index {x.N} outside [1:{w}]", at);
                 return Mk(G(y) | (BigInteger.One << (int)(w - x.N)));
             });
             Op2("CLEAR", Bt, I, Bt, (x, y, at) =>
             {
-                if (x.N < 1 || x.N > w) throw RT.Err($"CLEAR : indice {x.N} hors de [1:{w}]", at);
+                if (x.N < 1 || x.N > w) throw RT.Err($"CLEAR: index {x.N} outside [1:{w}]", at);
                 return Mk(G(y) & ~(BigInteger.One << (int)(w - x.N)));
             });
             if (s < 2)
@@ -691,23 +691,23 @@ public static partial class Prelude
                 Op1("SHORTEN", Bt, Bt2, (v, at) =>
                 {
                     var b = (BigInteger)v.O!;
-                    if (b > mask) throw RT.Err("SHORTEN : bits non représentables dans la longueur inférieure", at);
+                    if (b > mask) throw RT.Err("SHORTEN: bits not representable in the shorter length", at);
                     return Mk(b);
                 });
             }
         }
-        // ABS (BITS) INT : interpretation non signee limitee a INT (a68g : valeur sur 32 bits)
+        // ABS (BITS) INT: signed 32-bit interpretation, as in a68g
         // BYTES
         for (int s0 = 0; s0 <= 1; s0++)
         {
             int s = s0;
             var By = s == 0 ? M.Bytes : M.LongBytes;
             int w = s == 0 ? BytesWidth : LongBytesWidth;
-            string G(Value v, Node at) => v.O as string ?? throw RT.Err("octets non initialisés", at);
+            string G(Value v, Node at) => v.O as string ?? throw RT.Err("uninitialised bytes", at);
             foreach (var (n, cmp) in CmpNames()) { var cc = cmp; Op2(n, B, By, By, (x, y, at) => Value.B(CmpRes(StringCompare(G(x, at), G(y, at)), cc))); }
             Op2("ELEM", M.Char, I, By, (x, y, at) =>
             {
-                if (x.N < 1 || x.N > w) throw RT.Err($"ELEM : indice {x.N} hors de [1:{w}]", at);
+                if (x.N < 1 || x.N > w) throw RT.Err($"ELEM: index {x.N} outside [1:{w}]", at);
                 return Value.I(G(y, at)[(int)x.N - 1]);
             });
             if (s == 0)
@@ -718,7 +718,7 @@ public static partial class Prelude
         }
     }
 
-    // ------------------------------------------------------------------ rangees, semaphores
+    // ------------------------------------------------------------------ rows, semaphores
 
     static void BuildRowsSemaOps(ModeTable M)
     {
@@ -736,12 +736,12 @@ public static partial class Prelude
         });
         var Se = M.Sema;
         Op1("LEVEL", Se, I, (v, at) => Value.Obj(new SemaV((int)v.N)));
-        Op1("LEVEL", I, Se, (v, at) => { var s = v.O as SemaV ?? throw RT.Err("sémaphore non initialisé", at); lock (s.Lock) return Value.I(s.Level); });
+        Op1("LEVEL", I, Se, (v, at) => { var s = v.O as SemaV ?? throw RT.Err("uninitialised semaphore", at); lock (s.Lock) return Value.I(s.Level); });
         Op("UP", M.Void, new[] { Se }, a => new OpF(a, (f, v, at) => { Par.Up(f, v[0], at); return default; }));
         Op("DOWN", M.Void, new[] { Se }, a => new OpF(a, (f, v, at) => { Par.Down(f, v[0], at); return default; }));
     }
 
-    // ------------------------------------------------------------------ constantes
+    // ------------------------------------------------------------------ constants
 
     static void BuildConstants(ModeTable M)
     {
@@ -791,7 +791,7 @@ public static partial class Prelude
         }
     }
 
-    // ------------------------------------------------------------------ fonctions mathematiques
+    // ------------------------------------------------------------------ mathematical functions
 
     static readonly string[] MathFns = { "sqrt", "exp", "ln", "log", "cos", "sin", "tan", "arccos", "arcsin", "arctan", "sinh", "cosh", "tanh", "arcsinh", "arccosh", "arctanh", "cbrt" };
     static readonly Dictionary<string, string[]> Aliases = new()
@@ -813,12 +813,12 @@ public static partial class Prelude
                 var name = fn;
                 var names = p + name;
                 if (Aliases.TryGetValue(name, out var al)) foreach (var a in al) names += " " + p + a;
-                if (s == 1) names += " d" + name; // a68g : dsqrt...
+                if (s == 1) names += " d" + name; // a68g: dsqrt...
                 if (s == 2) names += " q" + name;
                 Proc(names, R, new[] { R }, (f, a, at) => ra.Fn(name, a[0], at));
             }
             Proc(p + "arctan2 " + (s == 0 ? "atan2" : p + "atan2"), R, new[] { R, R }, (f, a, at) => ra.Atan2(a[1], a[0], at));
-            // complexes
+            // complex numbers
             var C = s == 0 ? M.Compl : s == 1 ? M.LongCompl : M.LongLongCompl;
             foreach (var fn in new[] { "sqrt", "exp", "ln", "cos", "sin", "tan", "arccos", "arcsin", "arctan" })
             {
@@ -827,7 +827,7 @@ public static partial class Prelude
                 if (s == 0) names += " c" + name;
                 Proc(names, C, new[] { C }, (f, a, at) => ComplexFn(ra, name, a[0], at));
             }
-            // aleatoire
+            // random numbers
             var LI = M.IntOf(s);
             Proc(p + "random", R, Array.Empty<Mode>(), (f, a, at) => ra.FromDouble(NextRandom(f.Ctx)));
             Proc(p + "nextrandom", R, new[] { M.Ref(LI) }, (f, a, at) =>
@@ -842,7 +842,7 @@ public static partial class Prelude
         }
         Proc("firstrandom", M.Void, new[] { M.Int }, (f, a, at) => { lock (f.Ctx.RandomLock) f.Ctx.RandomSeed = a[0].N * 2654435761L + 1; return default; });
         Proc("rnd", M.Real, Array.Empty<Mode>(), (f, a, at) => Value.R(NextRandom(f.Ctx)));
-        // divers a68g
+        // miscellaneous a68g
         Proc("seconds cputime clock", M.Real, Array.Empty<Mode>(), (f, a, at) => Value.R(f.Ctx.Clock.Elapsed.TotalSeconds));
         Proc("sleep", M.Int, new[] { M.Int }, (f, a, at) => { Thread.Sleep((int)Math.Max(0, a[0].N) * 1000); return Value.I(0); });
         Proc("stop", M.Void, Array.Empty<Mode>(), (f, a, at) => throw new StopException(0));
@@ -882,14 +882,14 @@ public static partial class Prelude
             var z = new Complex(x[0].Real, x[1].Real);
             Complex r = name switch
             {
-                "sqrt" => Complex.Sqrt(z), "exp" => Complex.Exp(z), "ln" => z == Complex.Zero ? throw RT.Err("ln de zéro", at) : Complex.Log(z),
+                "sqrt" => Complex.Sqrt(z), "exp" => Complex.Exp(z), "ln" => z == Complex.Zero ? throw RT.Err("ln of zero", at) : Complex.Log(z),
                 "cos" => Complex.Cos(z), "sin" => Complex.Sin(z), "tan" => Complex.Tan(z),
                 "arccos" => Complex.Acos(z), "arcsin" => Complex.Asin(z), "arctan" => Complex.Atan(z),
                 _ => z,
             };
             return Value.Obj(new[] { Value.R(r.Real), Value.R(r.Imaginary) });
         }
-        // multiprecision : formules explicites
+        // multiprecision: explicit formulas
         Value re = x[0], im = x[1];
         Value Mk(Value a, Value b) => Value.Obj(new[] { a, b });
         switch (name)
@@ -919,7 +919,7 @@ public static partial class Prelude
                 return Mk(ra.Mul(ra.Fn("cos", re, at), ra.Fn("cosh", im, at), at), ra.Neg(ra.Mul(ra.Fn("sin", re, at), ra.Fn("sinh", im, at), at)));
             default:
                 {
-                    // repli : calcul en double puis elargissement
+                    // fallback: compute in double, then widen
                     var z = new Complex(ra.D(re), ra.D(im));
                     Complex r = name switch { "tan" => Complex.Tan(z), "arccos" => Complex.Acos(z), "arcsin" => Complex.Asin(z), "arctan" => Complex.Atan(z), _ => z };
                     return Mk(ra.FromDouble(r.Real), ra.FromDouble(r.Imaginary));

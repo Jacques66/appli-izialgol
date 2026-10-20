@@ -1,4 +1,4 @@
-# BITS et BYTES : operateurs logiques, decalages, ELEM, SET, CLEAR, bits pack, bytes pack #
+# BITS and BYTES: logical operators, shifts, ELEM, SET, CLEAR, bits pack, bytes pack #
 BEGIN
    BITS a = 2r1100, b = 2r1010;
    print((ABS (a AND b), ABS (a OR b), ABS (a XOR b), newline));

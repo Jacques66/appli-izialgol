@@ -1,4 +1,4 @@
-Bonjour
+Hello
 n = 42
 00042
     42
@@ -9,8 +9,8 @@ n = 42
 000/00/0021
 21/10/2026
  9h05
-mardi
-T non
+tuesday
+T no
 abcde|
 00001010
   ff
@@ -24,7 +24,7 @@ x=5
 a   b
 1.5i2.5
 
-ligne
+line
 t : 10 20 30
 .667
 +1234.568e+2

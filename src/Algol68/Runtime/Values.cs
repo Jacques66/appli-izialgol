@@ -6,8 +6,8 @@ using Studio.Algol68.Semantics;
 namespace Studio.Algol68.Runtime;
 
 /// <summary>
-/// Valeur Algol 68 : N porte INT, BOOL, CHAR, BITS et REAL (bits IEEE) ; O porte les autres valeurs
-/// (RefV, RowV, Value[] pour les structures, UnionV, ProcV, BigInteger, MpReal, FileV...).
+/// Algol 68 value: N holds INT, BOOL, CHAR, BITS and REAL (IEEE bits); O holds the other values
+/// (RefV, RowV, Value[] for structures, UnionV, ProcV, BigInteger, MpReal, FileV...).
 /// </summary>
 public struct Value
 {
@@ -15,7 +15,7 @@ public struct Value
     public object? O;
 
     public static readonly object Uninit = new UninitMarker();
-    sealed class UninitMarker { public override string ToString() => "<non initialisé>"; }
+    sealed class UninitMarker { public override string ToString() => "<uninitialised>"; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static Value I(long n) => new() { N = n };
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static Value R(double d) => new() { N = BitConverter.DoubleToInt64Bits(d) };
@@ -30,7 +30,7 @@ public struct Value
     public override readonly string ToString() => O != null ? O.ToString() ?? "" : N.ToString();
 }
 
-/// <summary>Nom (reference) : designe la case A[I]. A == null : NIL.</summary>
+/// <summary>Name (reference): designates the cell A[I]. A == null: NIL.</summary>
 public sealed class RefV
 {
     public Value[]? A;
@@ -43,13 +43,13 @@ public sealed class RefV
     public bool SameAs(RefV o) => ReferenceEquals(A, o.A) && I == o.I;
 }
 
-/// <summary>Valeur multiple (rangee) : descripteur sur un stockage partage.</summary>
+/// <summary>Multiple value (row): descriptor over shared storage.</summary>
 public sealed class RowV
 {
     public Value[] Data;
     public int Offset;
     public int[] Lwb, Upb, Stride;
-    public int[]? Path;   // selection de champ appliquee a chaque element (selection multiple)
+    public int[]? Path;   // field selection applied to each element (multiple selection)
     public int Scope;
 
     public RowV(Value[] data, int offset, int[] lwb, int[] upb, int[] stride, int[]? path = null)
@@ -74,7 +74,7 @@ public sealed class RowV
     {
         long n = 1;
         for (int d = 0; d < lwb.Length; d++) n *= Math.Max(0, (long)upb[d] - lwb[d] + 1);
-        if (n > int.MaxValue / 2) throw new A68Error("rangée trop grande");
+        if (n > int.MaxValue / 2) throw new A68Error("row too large");
         return (int)n;
     }
 
@@ -90,7 +90,7 @@ public sealed class RowV
 
     public int Length1 => Math.Max(0, Upb[0] - Lwb[0] + 1);
 
-    /// <summary>Index dans Data (avant application du chemin de champs) ; -1 si hors bornes.</summary>
+    /// <summary>Index in Data (before applying the field path); -1 if out of bounds.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Index1(long i)
     {
@@ -116,14 +116,14 @@ public sealed class RowV
         return v;
     }
 
-    /// <summary>Case de stockage designee par un element (pour un nom d'element).</summary>
+    /// <summary>Storage cell designated by an element (for an element name).</summary>
     public (Value[] arr, int idx) SlotAt(int idx)
     {
         if (Path == null) return (Data, idx);
         Value[] arr = Data; int i = idx;
         foreach (int f in Path)
         {
-            if (arr[i].O is not Value[] s) throw new A68Error("sélection dans une structure non initialisée");
+            if (arr[i].O is not Value[] s) throw new A68Error("selection from an uninitialised structure");
             arr = s; i = f;
         }
         return (arr, i);
@@ -135,7 +135,7 @@ public sealed class RowV
         a[i] = v;
     }
 
-    /// <summary>Enumere les index Data des elements en ordre lexicographique.</summary>
+    /// <summary>Enumerates the Data indices of the elements in lexicographic order.</summary>
     public IEnumerable<int> Indices()
     {
         int dims = Dims;
@@ -183,7 +183,7 @@ public sealed class RowV
         return true;
     }
 
-    // ---- chaines
+    // ---- strings
 
     public static RowV FromString(string s)
     {
@@ -203,14 +203,14 @@ public sealed class RowV
             for (int i = 0; i < n; i++)
             {
                 var v = Data[o + i * s];
-                if (v.IsUninit) throw new A68Error("caractère non initialisé dans une chaîne");
+                if (v.IsUninit) throw new A68Error("uninitialised character in a string");
                 sb.Append((char)v.N);
             }
             return sb.ToString();
         }
         foreach (var v in Elements())
         {
-            if (v.IsUninit) throw new A68Error("caractère non initialisé dans une chaîne");
+            if (v.IsUninit) throw new A68Error("uninitialised character in a string");
             sb.Append((char)v.N);
         }
         return sb.ToString();
@@ -219,7 +219,7 @@ public sealed class RowV
     public static readonly RowV EmptyString = Make1(Array.Empty<Value>());
 }
 
-/// <summary>Valeur d'un mode union : mode effectif (non union) et valeur.</summary>
+/// <summary>Value of a union mode: actual (non-union) mode and value.</summary>
 public sealed class UnionV
 {
     public readonly Mode M;
@@ -229,7 +229,7 @@ public sealed class UnionV
 
 public delegate Value BuiltinFn(Frame caller, Value[] args, Exec.Node site);
 
-/// <summary>Valeur procedure : routine + environnement, ou primitive.</summary>
+/// <summary>Procedure value: routine + environ, or primitive.</summary>
 public sealed class ProcV
 {
     public Exec.RoutineInfo? Routine;
@@ -237,21 +237,21 @@ public sealed class ProcV
     public int Scope;
     public BuiltinFn? Builtin;
     public string Name = "";
-    // parametrage partiel (extension a68g)
+    // partial parametrisation (a68g extension)
     public Value[]? Bound;
     public bool[]? BoundMask;
     public ProcMode? FullMode;
-    // saut (etiquette utilisee comme PROC VOID)
+    // jump (label used as a PROC VOID)
     public Exec.JumpTarget? Jump;
-    public override string ToString() => Routine != null ? $"routine {Routine.Name}" : Builtin != null ? $"primitive {Name}" : "procédure";
+    public override string ToString() => Routine != null ? $"routine {Routine.Name}" : Builtin != null ? $"primitive {Name}" : "procedure";
 }
 
-/// <summary>Cadre d'activation (une routine ou le programme principal).</summary>
+/// <summary>Activation frame (a routine or the main program).</summary>
 public sealed class Frame
 {
     public readonly Value[] S;
     public readonly Frame? Static;
-    public readonly int Depth;           // profondeur dynamique de la portee principale de la routine
+    public readonly int Depth;           // dynamic depth of the main range of the routine
     public readonly Exec.RoutineInfo Info;
     public readonly ExecContext Ctx;
     public int Line, Col;
@@ -273,7 +273,7 @@ public sealed class SemaV
     public SemaV(int l) { Level = l; }
 }
 
-/// <summary>Erreur d'execution Algol 68.</summary>
+/// <summary>Algol 68 runtime error.</summary>
 public sealed class A68Error : Exception
 {
     public string File = ""; public int Line, Col;
@@ -286,8 +286,8 @@ public sealed class A68Error : Exception
     }
 }
 
-/// <summary>Arret demande (annulation).</summary>
+/// <summary>Requested stop (cancellation).</summary>
 public sealed class CancelledException : Exception { }
 
-/// <summary>Arret normal par stop (exit) d'un programme.</summary>
+/// <summary>Normal stop of a program (stop).</summary>
 public sealed class StopException : Exception { public int Code; public StopException(int c) { Code = c; } }

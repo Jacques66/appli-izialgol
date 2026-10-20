@@ -1,6 +1,6 @@
-somme : 60
-nom : Jean Dupont
+sum: 60
+name: John Smith
 +5.00000000000000e  +0T
-car : x
-fin
-termine
+char: x
+end
+finished
