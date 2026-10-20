@@ -75,9 +75,13 @@ public sealed class Parser
         if (!IsBold(w)) throw Err($"« {w} » attendu, trouve {Cur}");
         Next();
     }
+    Token? lastReported;
     void Report(Token t, string msg)
     {
         if (speculative > 0) return;
+        // une seule erreur par symbole : evite les cascades apres une erreur
+        if (lastReported != null && lastReported.Line == t.Line && lastReported.Col == t.Col && lastReported.File == t.File) return;
+        lastReported = t;
         diags.Add(new Diagnostic(Severity.Error, t.File, t.Line, t.Col, msg));
     }
 
