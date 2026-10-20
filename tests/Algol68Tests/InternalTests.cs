@@ -123,12 +123,12 @@ static class InternalTests
             var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
             var dbg = exec.Debugger;
             PauseInfo? got = null; string nval = "";
-            dbg.Paused += pi => { got = pi; nval = dbg.GetVariables(0).First(v => v.Name == "n").Value; dbg.Continue(); };
-            var timer = new Timer(_ => dbg.RequestPause(), null, 200, Timeout.Infinite);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            dbg.Paused += pi => { got = pi; nval = dbg.GetVariables(0).First(v => v.Name == "n").Value; cts.Cancel(); dbg.Continue(); };
+            var timer = new Timer(_ => dbg.RequestPause(), null, 200, Timeout.Infinite);
             var res = exec.Run(cts.Token);
             timer.Dispose();
-            Check("debogueur-pause-demandee", res.Error == null && got != null && got.Reason == PauseReason.PauseRequest && got.Line is 2 or 3 && nval != "0",
+            Check("debogueur-pause-demandee", res.Error == null && res.Cancelled && got != null && got.Reason == PauseReason.PauseRequest && got.Line is 2 or 3 && nval != "0",
                 $"pause {got?.Reason} ligne {got?.Line} n={nval} {res.Error}");
         }
         // structures et rangees explorables
@@ -231,8 +231,41 @@ static class InternalTests
         Expect("stop", "print((\"a\", newline)); stop; print(\"b\")", "a\n");
     }
 
+    /// <summary>Robustesse : programmes tronques ou alteres -> diagnostics, jamais d'erreur interne.</summary>
+    static void FuzzTests()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples", "algol68");
+        if (!Directory.Exists(dir)) return;
+        var rnd = new Random(1234);
+        int cases = 0; var bad = new List<string>();
+        foreach (var f in Directory.GetFiles(dir, "*.a68", SearchOption.AllDirectories).OrderBy(x => x))
+        {
+            var text = File.ReadAllText(f);
+            for (int k = 0; k < 12; k++)
+            {
+                string t = text;
+                int a = rnd.Next(t.Length), len = rnd.Next(1, 12);
+                t = (k % 3) switch
+                {
+                    0 => t.Remove(a, Math.Min(len, t.Length - a)),
+                    1 => t.Insert(a, new[] { "(", ")", ";", "IF", "OD", ",", ":=", "[", "$", "\"", "#", "'", "END" }[rnd.Next(13)]),
+                    _ => t[..a],
+                };
+                cases++;
+                try
+                {
+                    var cr = lang.Compile(new SourceFile(Path.GetFileName(f), t), new CompileOptions());
+                    if (cr.Diagnostics.Any(d => d.Message.Contains("erreur interne"))) bad.Add($"{Path.GetFileName(f)} #{k} : {cr.Diagnostics.First(d => d.Message.Contains("erreur interne")).Message}");
+                }
+                catch (Exception e) { bad.Add($"{Path.GetFileName(f)} #{k} : exception {e.GetType().Name} {e.Message}"); }
+            }
+        }
+        Check("robustesse-compilateur", bad.Count == 0, $"{bad.Count}/{cases} cas en echec :\n" + string.Join("\n", bad.Take(15)));
+    }
+
     public static void Run()
     {
+        FuzzTests();
         Expect("bonjour", "print((\"Bonjour\", newline))", "Bonjour\n");
         DebuggerTests();
         MiscTests();

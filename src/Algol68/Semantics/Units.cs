@@ -715,7 +715,7 @@ public sealed partial class Compiler
             case IdentityDeclAst id:
                 foreach (var (name, val, pos) in id.Items)
                 {
-                    if (!cur.Ids.TryGetValue(name, out var s)) continue;
+                    if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     if (val is RoutineTextAst) pendingRoutineName = name;
                     var v = Gen(val, s.Mode, Strength.Strong);
                     pendingRoutineName = null;
@@ -726,7 +726,7 @@ public sealed partial class Compiler
             case VarDeclAst vd:
                 foreach (var (name, init, pos) in vd.Items)
                 {
-                    if (!cur.Ids.TryGetValue(name, out var s)) continue;
+                    if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     var sub = ((RefMode)s.Mode).Sub;
                     var gen = MakeGen(vd.Declarer, false);
                     Node? iv = null;
@@ -744,7 +744,7 @@ public sealed partial class Compiler
             case ProcDeclAst pd:
                 foreach (var (name, val, pos) in pd.Items)
                 {
-                    if (!cur.Ids.TryGetValue(name, out var s)) continue;
+                    if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     pendingRoutineName = name;
                     if (pd.Variable)
                     {
