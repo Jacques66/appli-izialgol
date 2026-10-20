@@ -1,0 +1,6 @@
+begin
+   integer i;
+   outtext("avant"); outimage;
+   outtext("partiel ");
+   i := 10 // i
+end

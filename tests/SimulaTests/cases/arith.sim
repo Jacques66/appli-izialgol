@@ -1,0 +1,24 @@
+begin
+   integer i, j; real x, y; long real z; short integer s;
+   i := 17; j := 5;
+   outint(i // j, 4); outint(rem(i, j), 4); outint(mod(-i, j), 4); outint(rem(-i, j), 4);
+   outint(-i // j, 4); outint(i ** 2, 6); outimage;
+   x := i / j; outfix(x, 3, 10); outreal(x, 5, 12); outimage;
+   y := 2.5; i := y; outint(i, 3); i := -2.5; outint(i, 3); i := 3.49; outint(i, 3); outimage;
+   outint(entier(-1.8), 3); outint(entier(1.8), 3); outint(sign(-4), 3); outint(abs(-7), 3); outimage;
+   x := 2 ** 0.5; outfix(x, 6, 10); outfix(2.0 ** 3, 2, 8); outfix(10 ** 2, 1, 8); outimage;
+   z := 1.0&&-3; outreal(z, 3, 12); outreal(123456.789, 6, 14); outreal(0, 3, 10); outimage;
+   outint(maxint, 12); outint(minint, 13); outimage;
+   s := 300; outint(s * 200, 8); outimage;
+   outfix(-0.004, 2, 8); outfix(1.005, 2, 8); outfix(2.675, 2, 8); outimage;
+   outint(max(3, 9), 3); outfix(min(2.5, 1), 2, 6); outimage;
+   outfrac(1869000, 2, 12); outfrac(-12345, 0, 10); outfrac(5, 3, 8); outimage;
+   outint(123, 0); outtext("|"); outint(-45, -6); outtext("|"); outint(12345, 3); outtext("|"); outimage;
+   outfix(3.14159, 2, 0); outtext("|"); outfix(2.5, 1, -8); outtext("|"); outimage;
+   if 3 < 4.5 and not (2 = 3) then outtext("vrai") else outtext("faux"); outimage;
+   outint(if i > 0 then 1 else -1, 3); outfix(if true then 1 else 2.5, 1, 5); outimage;
+   x := sqrt(16) + sin(0) + cos(0) + ln(exp(1)) + arctan(1) * 4; outfix(x, 5, 10); outimage;
+   i := 7; i := i + i * 2 - 3; outint(i, 4); outimage;
+   x := 1 / 3; outreal(x, 10, 18); outimage;
+   x := -1.5&3; outreal(x, 2, 10); outfix(x, 0, 8); outimage
+end

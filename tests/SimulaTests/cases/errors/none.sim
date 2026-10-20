@@ -1,0 +1,5 @@
+begin
+   class c; begin integer x; end;
+   ref(c) r;
+   r.x := 1
+end

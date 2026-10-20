@@ -1,0 +1,12 @@
+begin
+   integer n, i, s; real x; text t;
+   n := inint;
+   for i := 1 step 1 until n do s := s + inint;
+   outtext("somme = "); outint(s, 0); outimage;
+   x := inreal; outfix(x * 2, 3, 0); outimage;
+   inimage; t :- sysin.image.strip; outtext("ligne : [" & t & "]"); outimage;
+   inimage; outchar(inchar); outchar(inchar); outimage; inimage;
+   while not lastitem do begin outint(inint, 4) end;
+   outimage;
+   if endfile then outtext("fin de fichier"); outimage
+end

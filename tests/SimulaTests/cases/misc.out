@@ -1,0 +1,18 @@
+l1 l2 l3
+  21.0  32.0  0  3
+  4  1  0  1  4
+   1   5  10  15  20  25 100
+   1   2   4   8  16  32
+ab
+VF
+ 10  7  4  1
+  1
+  1  2  3 sortie
+ 100  0.50 salut
+imp faux
+eqv vrai
+and then ok
+or else ok
+  50
+sysout connecte
+  1

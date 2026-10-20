@@ -1,0 +1,46 @@
+simulation begin
+   ref(head) file_attente;
+   integer servis;
+
+   process class client(numero); integer numero;
+   begin
+      outfix(time, 1, 6); outtext(" : arrivee du client "); outint(numero, 0); outimage;
+      wait(file_attente);
+      outfix(time, 1, 6); outtext(" : depart du client "); outint(numero, 0); outimage;
+      servis := servis + 1
+   end;
+
+   process class guichet;
+   begin ref(client) c;
+      while true do
+      begin
+         if file_attente.empty then passivate
+         else
+         begin
+            c :- file_attente.first;
+            c.out;
+            outfix(time, 1, 6); outtext(" : debut service "); outint(c.numero, 0); outimage;
+            hold(3);
+            activate c
+         end
+      end
+   end;
+
+   process class generateur;
+   begin integer i;
+      for i := 1 step 1 until 4 do
+      begin
+         activate new client(i);
+         if guichet1.idle then activate guichet1;
+         hold(2)
+      end
+   end;
+
+   ref(guichet) guichet1;
+   file_attente :- new head;
+   guichet1 :- new guichet;
+   activate new generateur;
+   hold(50);
+   outtext("clients servis : "); outint(servis, 0); outimage;
+   outtext("temps final : "); outfix(time, 1, 0); outimage
+end

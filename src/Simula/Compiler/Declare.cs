@@ -10,6 +10,7 @@ public sealed partial class SimCompiler
     readonly List<string> files = new();
     readonly SimProgram prog = new();
     readonly Dictionary<object, Scope> scopeOf = new(ReferenceEqualityComparer.Instance);
+    readonly Dictionary<object, Scope> bodyScopeOf = new(ReferenceEqualityComparer.Instance);
     readonly Dictionary<object, int> tempOf = new(ReferenceEqualityComparer.Instance);
     readonly Dictionary<object, ClassSym> prefixedClassOf = new(ReferenceEqualityComparer.Instance);
     readonly HashSet<string> includedModules = new(StringComparer.OrdinalIgnoreCase);
@@ -218,7 +219,7 @@ public sealed partial class SimCompiler
                         var cs = new ConnScope { Parent = s, Frame = s.Frame, TempSlot = tempOf[ins], Label = "inspect" };
                         scopeOf[ins] = cs;
                         var ls = new LabelScope { Parent = cs, Frame = s.Frame };
-                        scopeOf[ins.DoBody] = ls;
+                        bodyScopeOf[ins] = ls;
                         DeclareStmt(ls, ins.DoBody);
                     }
                     foreach (var w in ins.Whens)
@@ -226,7 +227,7 @@ public sealed partial class SimCompiler
                         var cs = new ConnScope { Parent = s, Frame = s.Frame, TempSlot = tempOf[ins], Label = "when" };
                         scopeOf[w] = cs;
                         var ls = new LabelScope { Parent = cs, Frame = s.Frame };
-                        scopeOf[w.Body] = ls;
+                        bodyScopeOf[w] = ls;
                         DeclareStmt(ls, w.Body);
                     }
                     if (ins.Otherwise != null) DeclareStmt(s, ins.Otherwise);
@@ -423,7 +424,8 @@ public sealed partial class SimCompiler
             }
         }
         c.Info.VTable = vt;
-        c.Info.Attrs = fs.Syms.Values.Select(DebugVar).Where(v => v != null).Select(v => v!).ToList();
+        c.Info.Attrs = pre.Info.Attrs.Concat(fs.Syms.Values.Select(DebugVar).Where(v => v != null).Select(v => v!))
+            .Where(v => !v.Name.EndsWith("__")).ToList();
         c.Laying = false;
         c.LaidOut = true;
     }

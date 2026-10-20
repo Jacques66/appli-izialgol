@@ -29,9 +29,12 @@ public sealed partial class SimCompiler
     void Patch(int at) => g.Code[at] = Here;
     void PatchTo(int at, int target) => g.Code[at] = target;
 
+    SrcPos curPos;
+
     void Line(SrcPos p)
     {
         if (p.Line == 0) return;
+        curPos = p;
         var u = g.Unit;
         if (u.Lines.Count == 0 || u.Lines[^1].Line != p.Line || u.Lines[^1].File != p.File || u.Lines[^1].Pc != Here)
             u.Lines.Add(new LineEntry { Pc = Here, Line = p.Line, Col = p.Col, File = p.File });
@@ -848,7 +851,7 @@ public sealed partial class SimCompiler
             E(Op.RefEq);
             var jo = EJump(Op.Jt);
             var os = g.Scope;
-            g.Scope = scopeOf[ins.DoBody];
+            g.Scope = bodyScopeOf[ins];
             EmitStmt(ins.DoBody);
             g.Scope = os;
             ends.Add(EJump(Op.Jmp));
@@ -867,7 +870,7 @@ public sealed partial class SimCompiler
                 E(Op.In, cls?.Info.Id ?? 0);
                 var jn = EJump(Op.Jf);
                 var os = g.Scope;
-                g.Scope = scopeOf[w.Body];
+                g.Scope = bodyScopeOf[w];
                 EmitStmt(w.Body);
                 g.Scope = os;
                 ends.Add(EJump(Op.Jmp));

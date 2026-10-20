@@ -1,0 +1,5 @@
+compile.sim(3,9): erreur: type text incompatible avec integer
+compile.sim(4,4): erreur: identificateur 'y' non declare
+compile.sim(5,9): erreur: ':-' est reserve aux references (destination de type real : utiliser ':=')
+compile.sim(6,7): erreur: expression booleenne attendue (trouve integer)
+

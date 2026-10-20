@@ -1,0 +1,7 @@
+begin
+   integer i; real x;
+   i := "texte";
+   y := 3;
+   x :- 2.0;
+   if i then x := 1
+end

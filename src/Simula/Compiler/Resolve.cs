@@ -115,7 +115,7 @@ public sealed partial class SimCompiler
     {
         if (f.Depth == 0) return -1;
         int h = g.Frame.Depth - f.Depth;
-        if (h < 0) { Err(SrcPos.None, "acces a un cadre non englobant (erreur interne)"); return 0; }
+        if (h < 0) { Err(curPos, $"acces a un cadre non englobant (erreur interne : {f.Label} depuis {g.Frame.Label})"); return 0; }
         return h;
     }
 

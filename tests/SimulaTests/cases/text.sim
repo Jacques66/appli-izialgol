@@ -1,0 +1,31 @@
+begin
+   text t, u, v; character c; integer n;
+   t :- copy("Hello World");
+   outtext(t.sub(7, 5)); outint(t.length, 4); outimage;
+   u :- t.sub(1, 5); u := "HELLO"; outtext(t); outimage;
+   v :- blanks(10); v := "abc"; outtext("[" & v & "]"); outtext("[" & v.strip & "]"); outimage;
+   outtext(upcase(copy("simula"))); outtext(lowcase(copy(" ABC"))); outimage;
+   t.setpos(1); n := 0;
+   while t.more do begin c := t.getchar; if c = 'o' then n := n + 1 end;
+   outint(n, 3); outint(t.pos, 4); outimage;
+   v :- copy("  -123 45.5e2 rest");
+   outint(v.getint, 6); outint(v.pos, 3);
+   u :- v.sub(v.pos, v.length - v.pos + 1);
+   outfix(u.getreal, 1, 8); outimage;
+   v :- blanks(8); v.putint(-42); outtext("[" & v & "]");
+   v.putfix(3.14159, 3); outtext("[" & v & "]"); v.putreal(1234.5, 3); outtext("[" & v & "]"); outimage;
+   if "abc" < "abd" and "ab" < "abc" and not ("b" < "a") and "x" = "x" then outtext("comparaisons ok"); outimage;
+   t :- "constante"; outtext(if t.constant then "constante" else "variable"); outimage;
+   u :- t; if u == t then outtext("meme reference"); outimage;
+   u :- copy(t); if u = t and u =/= t then outtext("meme valeur, autre reference"); outimage;
+   if notext == "" and notext.length = 0 then outtext("notext ok"); outimage;
+   t :- copy("abcdef"); u :- t.sub(2, 3); outint(u.start, 3); outtext(u.main); outimage;
+   u.setpos(2); u.putchar('X'); outtext(t); outimage;
+   outint(rank('A'), 4); outchar(char(66)); outchar(isochar(67)); outimage;
+   if digit('7') and letter('q') and not letter('3') then outtext("classes ok"); outimage;
+   t :- "a" & "b" & notext & "cd"; outtext(t); outint(t.length, 3); outimage;
+   c := 'Z'; outchar(c); outtext(""""); outtext("x""y"); outimage;
+   outtext("!65!!66!"); outimage;
+   t :- copy("x"); t := "y"; outtext(t); outimage;
+   v :- blanks(3); v := ""; outtext("[" & v & "]"); outimage
+end

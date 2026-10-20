@@ -1,0 +1,56 @@
+begin
+   ! coroutines symetriques : deux joueurs de ping-pong ;
+   class joueur(nom, n); text nom; integer n;
+   begin ref(joueur) autre; integer i;
+      detach;
+      for i := 1 step 1 until n do
+      begin
+         outtext(nom); outint(i, 2); outimage;
+         resume(autre)
+      end
+   end;
+
+   ! semi-symetrique : generateur appele par call ;
+   class generateur;
+   begin integer valeur;
+      valeur := 1; detach;
+      while true do begin valeur := valeur * 2; detach end
+   end;
+
+   ref(joueur) a, b; ref(generateur) g; integer k;
+
+   begin
+      a :- new joueur("ping", 3);
+      b :- new joueur("pong", 3);
+      a.autre :- b; b.autre :- a;
+      resume(a);
+      outtext("retour au programme principal"); outimage
+   end;
+
+   g :- new generateur;
+   for k := 1 step 1 until 5 do begin outint(g.valeur, 4); call(g) end;
+   outimage;
+
+   ! exemple de la norme (7.4) ;
+   begin
+      ref(C1) X1; ref(C2) X2;
+      class C1; begin procedure P1; begin outtext("C1 detach"); outimage; detach; outtext("C1 repris"); outimage end; P1 end;
+      class C2;
+      begin
+         procedure P2; begin outtext("P2 detach"); outimage; detach; outtext("P2 repris"); outimage end;
+         begin ref(C3) X3;
+            class C3; begin outtext("C3 detach"); outimage; detach; P2; outtext("fin C3"); outimage end;
+            X3 :- new C3;
+            resume(X3);
+            outtext("fin S2"); outimage
+         end
+      end C2;
+      X1 :- new C1;
+      X2 :- new C2;
+      outtext("avant call(X2)"); outimage;
+      call(X2);
+      outtext("apres call(X2)"); outimage;
+      call(X1);
+      outtext("fin S1"); outimage
+   end
+end

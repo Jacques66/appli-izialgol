@@ -1,0 +1,18 @@
+ping 1
+pong 1
+ping 2
+pong 2
+ping 3
+pong 3
+retour au programme principal
+   1   2   4   8  16
+C1 detach
+C3 detach
+P2 detach
+avant call(X2)
+P2 repris
+fin C3
+fin S2
+apres call(X2)
+C1 repris
+fin S1

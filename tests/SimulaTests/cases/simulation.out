@@ -1,0 +1,14 @@
+   0.0 : arrivee du client 1
+   0.0 : debut service 1
+   2.0 : arrivee du client 2
+   3.0 : depart du client 1
+   3.0 : debut service 2
+   4.0 : arrivee du client 3
+   6.0 : depart du client 2
+   6.0 : debut service 3
+   6.0 : arrivee du client 4
+   9.0 : depart du client 3
+   9.0 : debut service 4
+  12.0 : depart du client 4
+clients servis : 4
+temps final : 50.0
