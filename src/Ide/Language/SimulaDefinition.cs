@@ -82,10 +82,26 @@ public sealed class SimulaDefinition : LanguageDefinition
                 tokens.Add(new Token(BuiltinSet.Contains(lw) ? TokenKind.Builtin : TokenKind.Identifier, st, i - st, lw));
                 continue;
             }
+            // Directive (%include "…", % commentaire) : ligne commencant par % en premiere colonne
+            if (c == '%' && (i == 0 || s[i - 1] == '\n'))
+            {
+                int st = i;
+                while (i < n && s[i] != '\n' && s[i] != '\r') i++;
+                tokens.Add(new Token(TokenKind.Pragma, st, i - st, ""));
+                continue;
+            }
             if (char.IsDigit(c) || (c == '.' && i + 1 < n && char.IsDigit(s[i + 1])))
             {
                 int st = i;
-                while (i < n && char.IsDigit(s[i])) i++;
+                while (i < n && (char.IsDigit(s[i]) || (s[i] == '_' && i > st))) i++;
+                // Entier en base : 2R1010, 8R777, 16RFF
+                if (i < n && (s[i] == 'R' || s[i] == 'r') && i + 1 < n && char.IsLetterOrDigit(s[i + 1]))
+                {
+                    i++;
+                    while (i < n && (char.IsLetterOrDigit(s[i]) || s[i] == '_')) i++;
+                    tokens.Add(new Token(TokenKind.Number, st, i - st, ""));
+                    continue;
+                }
                 if (i < n && s[i] == '.' && i + 1 < n && char.IsDigit(s[i + 1])) { i++; while (i < n && char.IsDigit(s[i])) i++; }
                 if (i < n && s[i] == '&')
                 {

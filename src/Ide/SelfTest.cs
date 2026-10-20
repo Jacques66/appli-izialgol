@@ -88,6 +88,51 @@ public static class SelfTest
         }
     }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int w, int h);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern bool DeleteObject(IntPtr obj);
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern bool DeleteDC(IntPtr hdc);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern IntPtr GetDC(IntPtr hwnd);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+    struct RECT { public int Left, Top, Right, Bottom; }
+
+    /// <summary>Capture d'une fenetre avec PrintWindow (inclut les controles Win32 comme WebBrowser).</summary>
+    public static void CaptureScreen(Window win, string path)
+    {
+        try
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+            GetWindowRect(hwnd, out var r);
+            int width = r.Right - r.Left, height = r.Bottom - r.Top;
+            var screen = GetDC(IntPtr.Zero);
+            var mem = CreateCompatibleDC(screen);
+            var bmp = CreateCompatibleBitmap(screen, width, height);
+            var old = SelectObject(mem, bmp);
+            PrintWindow(hwnd, mem, 2 /* PW_RENDERFULLCONTENT */);
+            SelectObject(mem, old);
+            var source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            DeleteObject(bmp); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
+            var enc = new PngBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(source));
+            using var fs = File.Create(path);
+            enc.Save(fs);
+            Info("capture : " + path);
+        }
+        catch (Exception ex) { Info("capture impossible : " + ex.Message); }
+    }
+
     static void Finish(MainWindow w, string name)
     {
         if (App.UnhandledErrors > 0)
@@ -396,6 +441,23 @@ public static class SelfTest
                 Info($"exemple {Path.GetFileName(sample)} : " + (outcome != null ? "compilation réussie" :
                     "échec — " + string.Join(" | ", w.ErrorItems.Take(2).Select(e => $"({e.Line},{e.Column}) {e.Message}"))));
                 w.CloseDocument(d, force: true);
+            }
+
+            // ---- 12c. Aide (rendu Markdown dans le navigateur integre)
+            w.CmdHelp.Execute("simula");
+            await Task.Delay(2500);
+            var help = Application.Current.Windows.OfType<Dialogs.HelpWindow>().FirstOrDefault();
+            Check(help != null && help.IsVisible, "fenêtre d'aide ouverte");
+            if (help != null)
+            {
+                bool hasDoc = PathLocator.DocsDirectory != null && File.Exists(Path.Combine(PathLocator.DocsDirectory, "simula.md"));
+                Check(!hasDoc || help.TocList.Items.Count > 3, $"sommaire de docs/simula.md ({help.TocList.Items.Count} titres)");
+                Check(help.Browser.Document != null, "page d'aide chargée");
+                CaptureScreen(help, Path.Combine(dir, "6-aide.png"));
+                help.ShowTopic("shortcuts");
+                await Task.Delay(800);
+                Check(help.TocList.Items.Count >= 5, "aide : raccourcis clavier");
+                help.Close();
             }
 
             // ---- 13. Session

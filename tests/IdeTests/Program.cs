@@ -504,6 +504,9 @@ static class Program
         Check(t2.Contains((TokenKind.Keyword, "else")), "else reste un mot-clé");
         Check(t2.Contains((TokenKind.Number, "2.5&-3")), "réel avec exposant &");
         Check(t2.Contains((TokenKind.Operator, ":=")), "affectation");
+        var t3 = Toks(d, "%include \"lib.sim\"\nx := 16RFF + 1_000;");
+        Check(t3[0] == (TokenKind.Pragma, "%include \"lib.sim\""), "directive %include");
+        Check(t3.Contains((TokenKind.Number, "16RFF")) && t3.Contains((TokenKind.Number, "1_000")), "entiers en base et avec _");
     }
 
     static void SimulaStructure()
