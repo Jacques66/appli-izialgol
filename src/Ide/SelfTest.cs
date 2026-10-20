@@ -474,7 +474,7 @@ public static class SelfTest
 
             // ---- 12a. Vrais compilateurs : execution et debogueur (avertissements, non bloquants)
             await RealCompilerScenario(w, LanguageDefinitions.Simula, RealSimula, "Somme :", 5, "n");
-            await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Somme :", 4, "n");
+            await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Somme :", 5, "n");
 
             // ---- 12b. Exemples (information)
             foreach (var sample in MainWindow.ListSamples().Take(40))
@@ -531,11 +531,12 @@ public static class SelfTest
         "BEGIN\r\n" +                                                // 1
         "   INT s := 0;\r\n" +                                       // 2
         "   PROC ajoute = (INT n) VOID:\r\n" +                       // 3
-        "      s +:= n;\r\n" +                                       // 4
-        "   FOR i TO 3 DO ajoute(i) OD;\r\n" +                       // 5
-        "   print((\"Somme :\", whole(s, 3), newline))\r\n" +        // 6
-        "END\r\n";                                                   // 7
-
+        "   BEGIN\r\n" +                                             // 4
+        "      s +:= n\r\n" +                                        // 5
+        "   END;\r\n" +                                              // 6
+        "   FOR i TO 3 DO ajoute(i) OD;\r\n" +                       // 7
+        "   print((\"Somme :\", whole(s, 3), newline))\r\n" +        // 8
+        "END\r\n";                                                   // 9
     static int _realWarnings;
 
     /// <summary>Avertissement « compilateur reel » : consigne, mais ne fait pas echouer l'auto-test.</summary>

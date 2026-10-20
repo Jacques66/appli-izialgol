@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Studio.IdeTests</RootNamespace>
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <!-- Runner est reference uniquement pour l'ordre de construction (pas d'assembly). -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <ItemGroup>

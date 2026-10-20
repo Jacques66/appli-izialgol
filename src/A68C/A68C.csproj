@@ -23,6 +23,8 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
     <Product>Simula 67 &amp; Algol 68 Studio</Product>
+    <!-- Runner est reference uniquement pour l'ordre de construction (pas d'assembly). -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
 </Project>
