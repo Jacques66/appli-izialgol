@@ -3,8 +3,8 @@ using System.Text;
 namespace Studio.Common;
 
 /// <summary>
-/// Format d'un .exe autonome : [Runner.exe][payload][langId : 16 octets UTF-8 completes par des 0]
-/// [longueur du payload : int64 little-endian][magic "S67A68EX" : 8 octets].
+/// Layout of a standalone .exe: [Runner.exe][payload][langId: 16 UTF-8 bytes, zero padded]
+/// [payload length: int64 little-endian][magic "S67A68EX": 8 bytes].
 /// </summary>
 public static class ExePackage
 {
@@ -21,14 +21,14 @@ public static class ExePackage
         output.Write(payload);
         var id = new byte[LangIdSize];
         var raw = Encoding.UTF8.GetBytes(languageId);
-        if (raw.Length > LangIdSize) throw new ArgumentException("identifiant de langage trop long");
+        if (raw.Length > LangIdSize) throw new ArgumentException("language id too long");
         raw.CopyTo(id, 0);
         output.Write(id);
         output.Write(BitConverter.GetBytes((long)payload.Length));
         output.Write(Magic);
     }
 
-    /// <summary>Lit le payload attache a un exe ; null s'il n'y en a pas.</summary>
+    /// <summary>Reads the payload appended to an exe; null if there is none.</summary>
     public static (string LanguageId, byte[] Payload)? Read(string exePath)
     {
         using var f = File.OpenRead(exePath);
@@ -47,7 +47,7 @@ public static class ExePackage
     }
 }
 
-/// <summary>IProgramIO sur la console Windows.</summary>
+/// <summary>IProgramIO over the Windows console.</summary>
 public sealed class ConsoleProgramIO : IProgramIO
 {
     public ConsoleProgramIO(string? workingDirectory = null)

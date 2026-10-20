@@ -1,5 +1,5 @@
-// Contrat commun entre les compilateurs (Simula 67, Algol 68) et les outils (IDE, CLI, Runner).
-// Toute implementation de langage expose un ILanguageService.
+// Shared contract between the compilers (Simula 67, Algol 68) and the tools (IDE, CLI, Runner).
+// Every language implementation exposes an ILanguageService.
 
 using System.Threading;
 
@@ -7,20 +7,20 @@ namespace Studio.Common;
 
 public enum Severity { Error, Warning, Info }
 
-/// <summary>Message du compilateur. Line et Column commencent a 1 (0 = inconnu).</summary>
+/// <summary>Compiler message. Line and Column are 1-based (0 = unknown).</summary>
 public sealed record Diagnostic(Severity Severity, string File, int Line, int Column, string Message)
 {
     public override string ToString() =>
-        $"{File}({Line},{Column}): {(Severity == Severity.Error ? "erreur" : Severity == Severity.Warning ? "avertissement" : "info")}: {Message}";
+        $"{File}({Line},{Column}): {(Severity == Severity.Error ? "error" : Severity == Severity.Warning ? "warning" : "info")}: {Message}";
 }
 
 public sealed record SourceFile(string Path, string Text);
 
 public sealed class CompileOptions
 {
-    /// <summary>Resolution des fichiers inclus/externes. Recoit (nom demande, chemin du fichier qui inclut) et rend le texte ou null.</summary>
+    /// <summary>Resolves included/external files. Receives (requested name, path of the including file) and returns the text or null.</summary>
     public Func<string, string, SourceFile?>? IncludeResolver { get; set; }
-    /// <summary>Genere les informations de mise au point (lignes, noms de variables).</summary>
+    /// <summary>Generates debugging information (lines, variable names).</summary>
     public bool Debug { get; set; } = true;
 }
 
@@ -32,38 +32,38 @@ public sealed class CompilationResult
         Program = program;
     }
     public IReadOnlyList<Diagnostic> Diagnostics { get; }
-    /// <summary>Null si la compilation a echoue.</summary>
+    /// <summary>Null when compilation failed.</summary>
     public ICompiledProgram? Program { get; }
     public bool Success => Program != null && !Diagnostics.Any(d => d.Severity == Severity.Error);
 }
 
 public interface ILanguageService
 {
-    /// <summary>Identifiant stable : "simula" ou "algol68".</summary>
+    /// <summary>Stable identifier: "simula" or "algol68".</summary>
     string Id { get; }
     string DisplayName { get; }
-    /// <summary>Extensions en minuscules avec le point, ex. ".sim".</summary>
+    /// <summary>Lower-case extensions including the dot, e.g. ".sim".</summary>
     IReadOnlyList<string> FileExtensions { get; }
     CompilationResult Compile(SourceFile main, CompileOptions options);
-    /// <summary>Recharge un programme a partir de ICompiledProgram.Serialize() (utilise par les .exe generes).</summary>
+    /// <summary>Reloads a program from ICompiledProgram.Serialize() (used by generated .exe files).</summary>
     ICompiledProgram Deserialize(byte[] payload);
 }
 
 public interface ICompiledProgram
 {
     string LanguageId { get; }
-    /// <summary>Forme serialisee embarquee dans les .exe autonomes.</summary>
+    /// <summary>Serialized form embedded in standalone .exe files.</summary>
     byte[] Serialize();
     IProgramExecution CreateExecution(IProgramIO io);
 }
 
-/// <summary>Entrees/sorties de la console du programme (console Windows ou panneau de l'IDE).</summary>
+/// <summary>Console input/output of the program (Windows console or IDE panel).</summary>
 public interface IProgramIO
 {
     void Write(string text);
-    /// <summary>Lit une ligne sans le terminateur ; bloque ; null en fin de fichier.</summary>
+    /// <summary>Reads a line without its terminator; blocks; null at end of file.</summary>
     string? ReadLine();
-    /// <summary>Repertoire de base pour les fichiers ouverts par le programme.</summary>
+    /// <summary>Base directory for the files opened by the program.</summary>
     string WorkingDirectory { get; }
 }
 
@@ -71,7 +71,7 @@ public sealed record StackFrameInfo(string Name, string File, int Line, int Colu
 
 public sealed record RuntimeErrorInfo(string Message, string File, int Line, int Column, IReadOnlyList<StackFrameInfo> Stack)
 {
-    public override string ToString() => $"{File}({Line},{Column}): erreur d'execution: {Message}";
+    public override string ToString() => $"{File}({Line},{Column}): runtime error: {Message}";
 }
 
 public sealed record ExecutionResult(int ExitCode, RuntimeErrorInfo? Error, bool Cancelled = false);
@@ -79,12 +79,12 @@ public sealed record ExecutionResult(int ExitCode, RuntimeErrorInfo? Error, bool
 public interface IProgramExecution
 {
     /// <summary>
-    /// Execute le programme jusqu'au bout sur le thread appelant. Ne leve pas d'exception :
-    /// les erreurs d'execution sont rendues dans ExecutionResult.Error.
-    /// L'annulation (bouton Stop) rend Cancelled = true.
+    /// Runs the program to completion on the calling thread. Throws no exception:
+    /// runtime errors are returned in ExecutionResult.Error.
+    /// Cancellation (Stop button) returns Cancelled = true.
     /// </summary>
     ExecutionResult Run(CancellationToken cancellationToken);
-    /// <summary>Mise au point. Il faut s'y abonner/configurer AVANT d'appeler Run.</summary>
+    /// <summary>Debugging. Subscribe/configure it BEFORE calling Run.</summary>
     IDebugger Debugger { get; }
 }
 
@@ -102,31 +102,31 @@ public sealed class VariableInfo
     public string Type { get; }
     public string Value { get; }
     public bool HasChildren { get; }
-    /// <summary>Opaque, reserve a l'implementation du langage (pour GetChildren).</summary>
+    /// <summary>Opaque, reserved for the language implementation (for GetChildren).</summary>
     public object? Handle { get; }
 }
 
 /// <summary>
-/// Modele : le thread d'execution (celui qui appelle Run) leve Paused puis se bloque jusqu'a
-/// Continue/StepInto/StepOver/StepOut/Stop. Pendant la pause, GetStack/GetVariables/GetChildren
-/// peuvent etre appeles depuis n'importe quel thread.
+/// Model: the execution thread (the one running the program) raises Paused, then blocks until
+/// Continue/StepInto/StepOver/StepOut or cancellation. While paused, GetStack/GetVariables/GetChildren
+/// may be called from any thread.
 /// </summary>
 public interface IDebugger
 {
-    /// <summary>Remplace les points d'arret d'un fichier. Appelable a tout moment (thread-safe).</summary>
+    /// <summary>Replaces the breakpoints of a file. May be called at any time (thread-safe).</summary>
     void SetBreakpoints(string file, IEnumerable<int> lines);
-    /// <summary>Si vrai, pause sur la premiere instruction (PauseReason.Entry).</summary>
+    /// <summary>If true, pause on the first statement (PauseReason.Entry).</summary>
     bool StopOnEntry { get; set; }
-    /// <summary>Si vrai, pause sur erreur d'execution (PauseReason.Exception) avant de terminer.</summary>
+    /// <summary>If true, pause on a runtime error (PauseReason.Exception) before terminating.</summary>
     bool BreakOnError { get; set; }
     void RequestPause();
     void Continue();
     void StepInto();
     void StepOver();
     void StepOut();
-    /// <summary>Leve sur le thread d'execution.</summary>
+    /// <summary>Raised on the execution thread.</summary>
     event Action<PauseInfo>? Paused;
-    /// <summary>Frame 0 = la plus recente. Valide seulement en pause.</summary>
+    /// <summary>Frame 0 = innermost. Only valid while paused.</summary>
     IReadOnlyList<StackFrameInfo> GetStack();
     IReadOnlyList<VariableInfo> GetVariables(int frameIndex);
     IReadOnlyList<VariableInfo> GetChildren(VariableInfo variable);
