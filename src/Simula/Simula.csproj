@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
@@ -8,6 +8,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>Studio.Simula</RootNamespace>
+    <NoWarn>$(NoWarn);CS8981;CS0162;CS0219;CS0168</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Prelude.sim" LogicalName="Studio.Simula.Prelude.sim" />
+  </ItemGroup>
 
 </Project>

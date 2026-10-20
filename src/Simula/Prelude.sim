@@ -1,0 +1,864 @@
+begin
+   comment ==================================================================
+           Environnement standard de Simula 67 Studio
+           ENVIRONMENT (chap. 9), BASICIO (chap. 10), SIMSET (chap. 11),
+           SIMULATION (chap. 12) de la norme SIMULA 1986.
+           Les identificateurs se terminant par __ sont internes.
+           ==================================================================;
+
+   integer maxint = 2147483647, minint = -2147483647 - 1, maxrank = 255;
+   real maxreal = 1.7976931348623157&308, minreal = -1.7976931348623157&308;
+   long real maxlongreal = 1.7976931348623157&&308, minlongreal = -1.7976931348623157&&308;
+   text simulaid = "Simula 67 Studio 1.0!!!Studio!!!Windows!!!x64!!!utilisateur!!!0!!!0!!!programme";
+
+   ref(infile) sysin_;
+   ref(printfile) sysout_;
+
+   ref(infile) procedure sysin; sysin :- sysin_;
+   ref(printfile) procedure sysout; sysout :- sysout_;
+
+   comment --- operations de base (9.1), traitees en ligne a l'appel;
+   integer procedure mod(i, j); integer i, j; mod := mod(i, j);
+   integer procedure rem(i, j); integer i, j; rem := rem(i, j);
+   real procedure abs(x); real x; abs := abs(x);
+   integer procedure sign(x); real x; sign := sign(x);
+   integer procedure entier(x); real x; entier := entier(x);
+   real procedure addepsilon(x); real x; addepsilon := addepsilon(x);
+   real procedure subepsilon(x); real x; subepsilon := subepsilon(x);
+
+   comment --- utilitaires de texte (9.2);
+   text procedure copy(t); text t; copy :- copy(t);
+   text procedure blanks(n); integer n; blanks :- blanks(n);
+   character procedure char(i); integer i; char := char(i);
+   character procedure isochar(i); integer i; isochar := isochar(i);
+   integer procedure rank(c); character c; rank := rank(c);
+   integer procedure isorank(c); character c; isorank := isorank(c);
+   boolean procedure digit(c); character c; digit := digit(c);
+   boolean procedure letter(c); character c; letter := letter(c);
+   character procedure lowten(c); character c; lowten := lowten(c);
+   character procedure decimalmark(c); character c; decimalmark := decimalmark(c);
+   text procedure upcase(t); text t; upcase :- upcase(t);
+   text procedure lowcase(t); text t; lowcase :- lowcase(t);
+
+   comment --- sequencement (9.3) : call et resume sont traites par le compilateur;
+   procedure call; ;
+   procedure resume; ;
+
+   comment --- fonctions mathematiques (9.4) et extremums (9.5);
+   real procedure sqrt(x); real x; sqrt := sqrt(x);
+   real procedure sin(x); real x; sin := sin(x);
+   real procedure cos(x); real x; cos := cos(x);
+   real procedure tan(x); real x; tan := tan(x);
+   real procedure cotan(x); real x; cotan := cotan(x);
+   real procedure arcsin(x); real x; arcsin := arcsin(x);
+   real procedure arccos(x); real x; arccos := arccos(x);
+   real procedure arctan(x); real x; arctan := arctan(x);
+   real procedure arctan2(y, x); real y, x; arctan2 := arctan2(y, x);
+   real procedure sinh(x); real x; sinh := sinh(x);
+   real procedure cosh(x); real x; cosh := cosh(x);
+   real procedure tanh(x); real x; tanh := tanh(x);
+   real procedure ln(x); real x; ln := ln(x);
+   real procedure log10(x); real x; log10 := log10(x);
+   real procedure exp(x); real x; exp := exp(x);
+   real procedure max(a, b); real a, b; max := max(a, b);
+   real procedure min(a, b); real a, b; min := min(a, b);
+
+   comment --- interrogations, erreurs, tableaux (9.6 - 9.8);
+   integer procedure sourceline; sourceline := sourceline;
+   procedure error(t); text t; error(t);
+   integer procedure upperbound(a, i); real array a; integer i; upperbound := upperbound(a, i);
+   integer procedure lowerbound(a, i); real array a; integer i; lowerbound := lowerbound(a, i);
+
+   comment --- tirages aleatoires (9.9);
+   boolean procedure draw(a, U); name U; long real a; integer U;
+   begin U := __rnext(U); draw := __rfrac(U) < a end;
+
+   integer procedure randint(a, b, U); name U; integer a, b, U;
+   begin
+      if b < a then error("randint : borne superieure inferieure a la borne inferieure");
+      U := __rnext(U);
+      randint := entier(__rfrac(U) * (b - a + 1.0)) + a
+   end;
+
+   long real procedure uniform(a, b, U); name U; long real a, b; integer U;
+   begin
+      if b < a then error("uniform : borne superieure inferieure a la borne inferieure");
+      U := __rnext(U);
+      uniform := a + (b - a) * __rfrac(U)
+   end;
+
+   long real procedure normal(a, b, U); name U; long real a, b; integer U;
+   begin U := __rnext(U); normal := a + b * __invnorm(__rfrac(U)) end;
+
+   long real procedure negexp(a, U); name U; long real a; integer U;
+   begin
+      if a <= 0 then error("negexp : le parametre doit etre positif");
+      U := __rnext(U);
+      negexp := - __lnr(__rfrac(U)) / a
+   end;
+
+   integer procedure Poisson(a, U); name U; long real a; integer U;
+   begin integer n; long real lim, p;
+      if a > 20 then
+      begin
+         U := __rnext(U);
+         n := entier(a + sqrt(a) * __invnorm(__rfrac(U)) + 0.5);
+         if n < 0 then n := 0;
+         Poisson := n
+      end
+      else
+      begin
+         lim := exp(-a);
+         U := __rnext(U); p := __rfrac(U);
+         while p >= lim do
+         begin n := n + 1; U := __rnext(U); p := p * __rfrac(U) end;
+         Poisson := n
+      end
+   end;
+
+   long real procedure Erlang(a, b, U); name U; long real a, b; integer U;
+   begin integer c, i; long real s;
+      if a <= 0 or b <= 0 then error("Erlang : les parametres doivent etre positifs");
+      c := entier(b);
+      for i := 1 step 1 until c do
+      begin U := __rnext(U); s := s + __lnr(__rfrac(U)) end;
+      if b > c then begin U := __rnext(U); s := s + (b - c) * __lnr(__rfrac(U)) end;
+      Erlang := - s / (a * b)
+   end;
+
+   integer procedure discrete(A, U); name U; real array A; integer U;
+   begin integer i, ub; long real u;
+      ub := upperbound(A, 1);
+      U := __rnext(U); u := __rfrac(U);
+      i := lowerbound(A, 1);
+      while i <= ub and then A(i) <= u do i := i + 1;
+      discrete := i
+   end;
+
+   long real procedure linear(A, B, U); name U; real array A, B; integer U;
+   begin integer i, la, lb, ua; long real u, d;
+      la := lowerbound(A, 1); ua := upperbound(A, 1); lb := lowerbound(B, 1);
+      U := __rnext(U); u := __rfrac(U);
+      i := la + 1;
+      while i < ua and then A(i) < u do i := i + 1;
+      d := A(i) - A(i - 1);
+      linear := if d = 0 then B(i - 1 - la + lb)
+                else B(i - 1 - la + lb) + (B(i - la + lb) - B(i - 1 - la + lb)) * (u - A(i - 1)) / d
+   end;
+
+   integer procedure histd(A, U); name U; real array A; integer U;
+   begin integer i, lb, ub; long real s, u, acc;
+      lb := lowerbound(A, 1); ub := upperbound(A, 1);
+      for i := lb step 1 until ub do s := s + A(i);
+      U := __rnext(U); u := __rfrac(U) * s;
+      i := lb; acc := A(lb);
+      while acc <= u and i < ub do begin i := i + 1; acc := acc + A(i) end;
+      histd := i
+   end;
+
+   comment --- calendrier (9.10) et divers (9.11);
+   text procedure datetime; datetime :- datetime;
+   long real procedure cputime; cputime := cputime;
+   long real procedure clocktime; clocktime := clocktime;
+
+   procedure histo(A, B, c, d); real array A, B; real c, d;
+   begin integer i, lba, lbb, ub;
+      lba := lowerbound(A, 1); lbb := lowerbound(B, 1); ub := upperbound(B, 1);
+      i := lbb;
+      while i <= ub and then c > B(i) do i := i + 1;
+      A(lba + i - lbb) := A(lba + i - lbb) + d
+   end;
+
+   procedure terminate_program; goto stop_;
+
+   comment ==================================================== SIMSET (11);
+   class simset;
+   begin
+      class linkage;
+      protected suc__, pred__;
+      begin ref(linkage) suc__, pred__;
+         ref(link) procedure suc; suc :- if suc__ in link then suc__ else none;
+         ref(link) procedure pred; pred :- if pred__ in link then pred__ else none;
+         ref(linkage) procedure prev; prev :- pred__;
+      end linkage;
+
+      linkage class link;
+      begin
+         procedure out;
+            if suc__ =/= none then
+            begin
+               suc__.pred__ :- pred__;
+               pred__.suc__ :- suc__;
+               suc__ :- pred__ :- none
+            end;
+         procedure follow(ptr); ref(linkage) ptr;
+         begin
+            out;
+            if ptr =/= none and then ptr.suc__ =/= none then
+            begin
+               pred__ :- ptr;
+               suc__ :- ptr.suc__;
+               suc__.pred__ :- ptr.suc__ :- this linkage
+            end
+         end follow;
+         procedure precede(ptr); ref(linkage) ptr;
+         begin
+            out;
+            if ptr =/= none and then ptr.suc__ =/= none then
+            begin
+               suc__ :- ptr;
+               pred__ :- ptr.pred__;
+               pred__.suc__ :- ptr.pred__ :- this linkage
+            end
+         end precede;
+         procedure into(S); ref(head) S; precede(S);
+      end link;
+
+      linkage class head;
+      begin
+         ref(link) procedure first; first :- suc;
+         ref(link) procedure last; last :- pred;
+         boolean procedure empty; empty := suc__ == this linkage;
+         integer procedure cardinal;
+         begin integer i; ref(link) ptr;
+            ptr :- first;
+            while ptr =/= none do begin i := i + 1; ptr :- ptr.suc end;
+            cardinal := i
+         end cardinal;
+         procedure clear; while first =/= none do first.out;
+         suc__ :- pred__ :- this linkage
+      end head;
+   end simset;
+
+   comment ==================================================== SIMULATION (12);
+   simset class simulation;
+   begin
+      ref(head) sqs__;
+
+      link class event_notice__(evtime__, proc__); long real evtime__; ref(process) proc__;
+      begin
+         ref(event_notice__) procedure suc; suc :- if suc__ is event_notice__ then suc__ else none;
+         ref(event_notice__) procedure pred; pred :- pred__;
+         procedure rank_in_sqs__(afore); boolean afore;
+         begin ref(event_notice__) evt;
+            evt :- sqs__.last;
+            while evt.evtime__ > evtime__ do evt :- evt.pred;
+            if afore then while evt.evtime__ = evtime__ do evt :- evt.pred;
+            follow(evt)
+         end;
+      end event_notice__;
+
+      ref(main_program__) main;
+      ref(event_notice__) procedure firstev__; firstev__ :- sqs__.first;
+      ref(process) procedure current; current :- firstev__.proc__;
+      long real procedure time; time := firstev__.evtime__;
+
+      link class process;
+      begin ref(event_notice__) event__;
+         boolean terminated__;
+         boolean procedure idle; idle := event__ == none;
+         boolean procedure terminated; terminated := terminated__;
+         long real procedure evtime;
+            if idle then error("evtime : le processus est passif (idle)")
+            else evtime := event__.evtime__;
+         ref(process) procedure nextev;
+            nextev :- if idle then none else if event__.suc == none then none else event__.suc.proc__;
+         detach;
+         inner;
+         terminated__ := true;
+         passivate;
+         error("un processus termine a ete reactive")
+      end process;
+
+      procedure activat__(reac, x, code, t, y, prio);
+         value code; ref(process) x, y; boolean reac, prio; text code; long real t;
+      inspect x do if not terminated__ then
+      begin ref(process) z; ref(event_notice__) ev;
+         if reac then ev :- event__
+         else if event__ =/= none then goto exit;
+         z :- current;
+         if code = "direct" then
+direct:     begin
+               event__ :- new event_notice__(time, x);
+               event__.precede(firstev__)
+            end
+         else if code = "delay" then
+            begin t := t + time; goto at_ end
+         else if code = "at" then
+at_:        begin
+               if t < time then t := time;
+               if t = time and prio then goto direct;
+               event__ :- new event_notice__(t, x);
+               event__.rank_in_sqs__(prio)
+            end
+         else if y == none or else y.event__ == none then event__ :- none
+         else
+            begin
+               if x == y then goto exit;
+               event__ :- new event_notice__(y.event__.evtime__, x);
+               if code = "before" then event__.precede(y.event__)
+               else event__.follow(y.event__)
+            end;
+         if ev =/= none then
+         begin
+            ev.out;
+            if sqs__.empty then error("reactivate : la liste des evenements (SQS) est vide")
+         end;
+         if z =/= current then resume(current);
+exit:
+      end activat__;
+
+      procedure hold(t); long real t;
+      inspect firstev__ do
+      begin
+         if t > 0 then evtime__ := evtime__ + t;
+         if suc =/= none and then suc.evtime__ <= evtime__ then
+         begin out; rank_in_sqs__(false); resume(current) end
+      end hold;
+
+      procedure passivate;
+      begin
+         inspect current do begin event__.out; event__ :- none end;
+         if sqs__.empty then error("passivate : plus aucun processus a activer (SQS vide)")
+         else resume(current)
+      end passivate;
+
+      procedure wait(S); ref(head) S;
+      begin current.into(S); passivate end;
+
+      procedure cancel(x); ref(process) x;
+         if x == current then passivate
+         else inspect x do if event__ =/= none then begin event__.out; event__ :- none end;
+
+      process class main_program__;
+      begin
+         while true do detach
+      end;
+
+      procedure accum(a, b, c, d); name a, b, c; long real a, b, c, d;
+      begin a := a + c * (time - b); b := time; c := c + d end;
+
+      sqs__ :- new head;
+      main :- new main_program__;
+      main.event__ :- new event_notice__(0, main);
+      main.event__.into(sqs__)
+   end simulation;
+
+   comment ==================================================== BASICIO (10);
+   class file(filename__); value filename__; text filename__;
+   begin boolean open__; text modes__; integer handle__, kind__;
+      text procedure filename; filename :- copy(filename__);
+      boolean procedure isopen; isopen := open__;
+      boolean procedure setaccess(mode); text mode;
+      begin text m;
+         m :- lowcase(copy(mode));
+         if m = "shared" or m = "noshared" or m = "append" or m = "noappend" or m = "create"
+            or m = "nocreate" or m = "anycreate" or m = "readonly" or m = "writeonly"
+            or m = "readwrite" or m = "rewind" or m = "norewind" or m = "purge" or m = "nopurge"
+            or (m.length > 9 and then m.sub(1, 9) = "bytesize:") then
+         begin modes__ :- modes__ & ";" & m; setaccess := true end
+      end setaccess;
+      if filename__ = notext then error("file : le nom de fichier est vide (notext)");
+   end file;
+
+   file class imagefile;
+   begin text image;
+      procedure setpos(i); integer i; image.setpos(i);
+      integer procedure pos; pos := image.pos;
+      boolean procedure more; more := image.more;
+      integer procedure length; length := image.length;
+   end imagefile;
+
+   imagefile class infile;
+   begin boolean endfile__;
+      boolean procedure endfile; endfile := endfile__;
+      boolean procedure open(fileimage); text fileimage;
+      if not open__ then
+      begin
+         handle__ := __fopen(if kind__ <> 0 then kind__ else 1, filename__, modes__);
+         if handle__ <> 0 then
+         begin
+            endfile__ := false;
+            image :- fileimage; image := notext; setpos(length + 1);
+            open := open__ := true
+         end
+      end open;
+      boolean procedure close;
+      if open__ then
+      begin
+         __fclose(handle__);
+         image :- notext; open__ := false;
+         close := endfile__ := true
+      end close;
+      procedure inimage;
+      if not open__ then error("inimage : fichier ferme")
+      else if endfile__ then error("inimage : la fin du fichier a deja ete atteinte")
+      else
+      begin
+         if __finimage(handle__, image) = 1 then begin endfile__ := true; image := "!25!" end;
+         setpos(1)
+      end inimage;
+      boolean procedure inrecord;
+      if not open__ then error("inrecord : fichier ferme")
+      else if endfile__ then error("inrecord : la fin du fichier a deja ete atteinte")
+      else
+      begin integer r;
+         r := __finrecord(handle__, image);
+         if r < 0 then begin endfile__ := true; setpos(1); image.putchar(char(25)) end
+         else begin setpos(r // 2 + 1); inrecord := mod(r, 2) = 1 end
+      end inrecord;
+      character procedure inchar;
+      begin if not more then inimage; inchar := image.getchar end;
+      boolean procedure lastitem;
+      begin character c;
+         c := ' ';
+         while not endfile__ and then (c = ' ' or else c = char(9)) do c := inchar;
+         lastitem := endfile__;
+         if c <> ' ' then setpos(pos - 1)
+      end lastitem;
+      text procedure intext(w); integer w;
+      begin text t;
+         intext :- t :- blanks(w);
+         while t.more do t.putchar(inchar)
+      end intext;
+      integer procedure inint;
+      if lastitem then error("inint : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         inint := t.getint;
+         setpos(pos + t.pos - 1)
+      end inint;
+      long real procedure inreal;
+      if lastitem then error("inreal : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         inreal := t.getreal;
+         setpos(pos + t.pos - 1)
+      end inreal;
+      integer procedure infrac;
+      if lastitem then error("infrac : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         infrac := t.getfrac;
+         setpos(pos + t.pos - 1)
+      end infrac;
+      endfile__ := true
+   end infile;
+
+   imagefile class outfile;
+   virtual: boolean procedure open is boolean procedure open(fileimage); text fileimage;;
+            boolean procedure close is boolean procedure close;;
+            procedure outimage is procedure outimage;;
+            procedure outrecord is procedure outrecord;;
+   begin
+      boolean procedure open(fileimage); text fileimage;
+      if not open__ then
+      begin
+         handle__ := __fopen(if kind__ <> 0 then kind__ else 2, filename__, modes__);
+         if handle__ <> 0 then
+         begin image :- fileimage; setpos(1); open := open__ := true end
+      end open;
+      boolean procedure close;
+      if open__ then
+      begin
+         if pos <> 1 then outimage;
+         __fclose(handle__);
+         image :- notext; open__ := false; close := true
+      end close;
+      procedure outimage;
+      if not open__ then error("outimage : fichier ferme")
+      else begin __foutimage(handle__, image); __blankimage(image) end;
+      procedure outrecord;
+      if not open__ then error("outrecord : fichier ferme")
+      else begin __foutrecord(handle__, image.sub(1, pos - 1)); setpos(1) end;
+      procedure breakoutimage;
+      if not open__ then error("breakoutimage : fichier ferme")
+      else begin __fbreak(handle__, image.sub(1, pos - 1)); __blankimage(image) end;
+      boolean procedure checkpoint; checkpoint := if open__ then __fflush(handle__) else false;
+      procedure outchar(c); character c;
+      begin if not more then outimage; image.putchar(c) end;
+      procedure outtext(t); text t;
+      begin
+         if pos > 1 and then t.length > length - pos + 1 then outimage;
+         t.setpos(1);
+         while t.more do begin if not more then outimage; __copychars(image, t) end
+      end outtext;
+      text procedure field__(w); integer w;
+      if w > length then error("item trop long pour l'image du fichier")
+      else
+      begin
+         if pos + w - 1 > length then outimage;
+         field__ :- image.sub(pos, w);
+         setpos(pos + w)
+      end;
+      procedure outint(i, w); integer i, w;
+      begin integer l;
+         l := __itemlen(0, 0, i, 0);
+         if w = 0 then field__(l).putint(i)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putint(i) else f.sub(1, l).putint(i) end
+         else field__(w).putint(i)
+      end outint;
+      procedure outfix(r, n, w); long real r; integer n, w;
+      begin integer l;
+         l := __itemlen(1, r, 0, n);
+         if w = 0 then field__(l).putfix(r, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putfix(r, n) else f.sub(1, l).putfix(r, n) end
+         else field__(w).putfix(r, n)
+      end outfix;
+      procedure outreal(r, n, w); long real r; integer n, w;
+      begin integer l;
+         l := __itemlen(2, r, 0, n);
+         if w = 0 then field__(l).putreal(r, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putreal(r, n) else f.sub(1, l).putreal(r, n) end
+         else field__(w).putreal(r, n)
+      end outreal;
+      procedure outfrac(i, n, w); integer i, n, w;
+      begin integer l;
+         l := __itemlen(3, 0, i, n);
+         if w = 0 then field__(l).putfrac(i, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putfrac(i, n) else f.sub(1, l).putfrac(i, n) end
+         else field__(w).putfrac(i, n)
+      end outfrac;
+   end outfile;
+
+   outfile class printfile;
+   begin integer line__, lines_per_page__, spacing__, page__;
+      integer procedure line; line := line__;
+      integer procedure page; page := page__;
+      boolean procedure open(fileimage); text fileimage;
+      if not open__ then
+      begin
+         handle__ := __fopen(if kind__ <> 0 then kind__ else 3, filename__, modes__);
+         if handle__ <> 0 then
+         begin
+            image :- fileimage; page__ := 0; line__ := 1; setpos(1);
+            open := open__ := true;
+            eject(1)
+         end
+      end open;
+      boolean procedure close;
+      if open__ then
+      begin
+         if pos <> 1 then outimage;
+         line__ := 0; spacing__ := 1; lines_per_page__ := 60;
+         __fclose(handle__);
+         image :- notext; open__ := false; close := true
+      end close;
+      integer procedure linesperpage(n); integer n;
+      begin
+         linesperpage := lines_per_page__;
+         lines_per_page__ := if n > 0 then n else if n < 0 then maxint else 60
+      end;
+      procedure spacing(n); integer n;
+         if 0 <= n and n <= lines_per_page__ then spacing__ := n
+         else error("spacing : parametre hors limites");
+      procedure eject(n); integer n;
+      if not open__ then error("eject : fichier ferme")
+      else if n <= 0 then error("eject : parametre hors limites")
+      else
+      begin
+         if n > lines_per_page__ then n := 1;
+         if n <= line__ then
+         begin
+            if page__ > 0 then __fnewpage(handle__);
+            page__ := page__ + 1;
+            line__ := 1
+         end;
+         __fblank(handle__, n - line__);
+         line__ := n
+      end eject;
+      procedure outimage;
+      if not open__ then error("outimage : fichier ferme")
+      else
+      begin
+         if line__ > lines_per_page__ then eject(1);
+         __foutimage(handle__, image);
+         if spacing__ > 1 then __fblank(handle__, spacing__ - 1);
+         line__ := line__ + (if spacing__ = 0 then 1 else spacing__);
+         __blankimage(image)
+      end outimage;
+      procedure outrecord;
+      if not open__ then error("outrecord : fichier ferme")
+      else
+      begin
+         if line__ > lines_per_page__ then eject(1);
+         __foutrecord(handle__, image.sub(1, pos - 1));
+         if spacing__ > 1 then __fblank(handle__, spacing__ - 1);
+         line__ := line__ + (if spacing__ = 0 then 1 else spacing__);
+         setpos(1)
+      end outrecord;
+      spacing__ := 1;
+      lines_per_page__ := 60
+   end printfile;
+
+   imagefile class directfile;
+   begin integer loc__, maxloc__; boolean endfile__, locked__;
+      integer procedure location; location := loc__;
+      boolean procedure endfile; endfile := endfile__;
+      boolean procedure locked; locked := locked__;
+      boolean procedure open(fileimage); text fileimage;
+      if not open__ then
+      begin
+         handle__ := __fopen(4, filename__, modes__);
+         if handle__ <> 0 then
+         begin
+            maxloc__ := __dmaxloc(handle__);
+            image :- fileimage; setpos(1);
+            open := open__ := true;
+            endfile__ := false;
+            locate(1)
+         end
+      end open;
+      boolean procedure close;
+      if open__ then
+      begin
+         image :- notext;
+         if locked__ then unlock;
+         loc__ := maxloc__ := 0;
+         __fclose(handle__);
+         open__ := false;
+         close := endfile__ := true
+      end close;
+      integer procedure lastloc;
+         if not open__ then error("lastloc : fichier ferme") else lastloc := __dlastloc(handle__);
+      integer procedure maxloc;
+         if not open__ then error("maxloc : fichier ferme") else maxloc := maxloc__;
+      procedure locate(i); integer i;
+         if i < 1 or i > maxloc__ then error("locate : parametre hors limites") else loc__ := i;
+      procedure inimage;
+      if not open__ then error("inimage : fichier ferme")
+      else
+      begin
+         setpos(1);
+         endfile__ := loc__ > lastloc;
+         if endfile__ then image := "!25!"
+         else if __dread(handle__, loc__, image) = 1 then
+         begin while more do image.putchar(char(0)) end;
+         locate(loc__ + 1)
+      end inimage;
+      procedure outimage;
+      if not open__ then error("outimage : fichier ferme")
+      else if loc__ > maxloc__ then error("outimage : debordement du fichier")
+      else
+      begin
+         __dwrite(handle__, loc__, image);
+         locate(loc__ + 1);
+         __blankimage(image)
+      end outimage;
+      boolean procedure deleteimage;
+      if open__ then
+      begin
+         if __ddelete(handle__, loc__) then begin deleteimage := true; locate(loc__ + 1) end
+      end;
+      character procedure inchar;
+      begin while not more do inimage; inchar := image.getchar end;
+      integer procedure lock(t, i, j); real t; integer i, j;
+      begin
+         lock := -1;
+         if t > 0 then begin if locked__ then unlock; locked__ := true; lock := 0 end
+      end;
+      boolean procedure unlock;
+      begin unlock := checkpoint; if locked__ then locked__ := false end;
+      boolean procedure checkpoint; checkpoint := open__;
+      boolean procedure lastitem;
+      begin character c;
+         c := ' ';
+         while not endfile__ and then (c = ' ' or else c = char(9)) do c := inchar;
+         lastitem := endfile__;
+         if c <> ' ' then setpos(pos - 1)
+      end lastitem;
+      text procedure intext(w); integer w;
+      begin text t;
+         intext :- t :- blanks(w);
+         while t.more do t.putchar(inchar)
+      end intext;
+      integer procedure inint;
+      if lastitem then error("inint : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         inint := t.getint;
+         setpos(pos + t.pos - 1)
+      end inint;
+      long real procedure inreal;
+      if lastitem then error("inreal : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         inreal := t.getreal;
+         setpos(pos + t.pos - 1)
+      end inreal;
+      integer procedure infrac;
+      if lastitem then error("infrac : fin de fichier")
+      else
+      begin text t;
+         t :- image.sub(pos, length - pos + 1);
+         infrac := t.getfrac;
+         setpos(pos + t.pos - 1)
+      end infrac;
+      procedure outchar(c); character c;
+      begin if not more then outimage; image.putchar(c) end;
+      procedure outtext(t); text t;
+      begin
+         if pos > 1 and then t.length > length - pos + 1 then outimage;
+         t.setpos(1);
+         while t.more do begin if not more then outimage; __copychars(image, t) end
+      end outtext;
+      text procedure field__(w); integer w;
+      if w > length then error("item trop long pour l'image du fichier")
+      else
+      begin
+         if pos + w - 1 > length then outimage;
+         field__ :- image.sub(pos, w);
+         setpos(pos + w)
+      end;
+      procedure outint(i, w); integer i, w;
+      begin integer l;
+         l := __itemlen(0, 0, i, 0);
+         if w = 0 then field__(l).putint(i)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putint(i) else f.sub(1, l).putint(i) end
+         else field__(w).putint(i)
+      end outint;
+      procedure outfix(r, n, w); long real r; integer n, w;
+      begin integer l;
+         l := __itemlen(1, r, 0, n);
+         if w = 0 then field__(l).putfix(r, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putfix(r, n) else f.sub(1, l).putfix(r, n) end
+         else field__(w).putfix(r, n)
+      end outfix;
+      procedure outreal(r, n, w); long real r; integer n, w;
+      begin integer l;
+         l := __itemlen(2, r, 0, n);
+         if w = 0 then field__(l).putreal(r, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putreal(r, n) else f.sub(1, l).putreal(r, n) end
+         else field__(w).putreal(r, n)
+      end outreal;
+      procedure outfrac(i, n, w); integer i, n, w;
+      begin integer l;
+         l := __itemlen(3, 0, i, n);
+         if w = 0 then field__(l).putfrac(i, n)
+         else if w < 0 then
+         begin text f; f :- field__(-w); if l > -w then f.putfrac(i, n) else f.sub(1, l).putfrac(i, n) end
+         else field__(w).putfrac(i, n)
+      end outfrac;
+      endfile__ := true
+   end directfile;
+
+   file class bytefile;
+   begin short integer bytesize__;
+      short integer procedure bytesize; bytesize := bytesize__;
+   end bytefile;
+
+   bytefile class inbytefile;
+   begin boolean endfile__;
+      boolean procedure endfile; endfile := endfile__;
+      boolean procedure open;
+      if not open__ then
+      begin
+         handle__ := __fopen(5, filename__, modes__);
+         if handle__ <> 0 then begin endfile__ := false; bytesize__ := 8; open := open__ := true end
+      end open;
+      boolean procedure close;
+      if open__ then begin __fclose(handle__); open__ := false; close := endfile__ := true end;
+      short integer procedure inbyte;
+      if endfile__ then error("inbyte : fin de fichier")
+      else
+      begin integer b;
+         b := __binbyte(handle__);
+         if b < 0 then endfile__ := true else inbyte := b
+      end inbyte;
+      text procedure intext(t); text t;
+      begin
+         t.setpos(1);
+         while t.more and not endfile__ do t.putchar(char(inbyte));
+         if endfile__ then t.setpos(t.pos - 1);
+         intext :- t.sub(1, t.pos - 1)
+      end intext;
+      endfile__ := true
+   end inbytefile;
+
+   bytefile class outbytefile;
+   begin
+      boolean procedure open;
+      if not open__ then
+      begin
+         handle__ := __fopen(6, filename__, modes__);
+         if handle__ <> 0 then begin bytesize__ := 8; open := open__ := true end
+      end open;
+      boolean procedure close;
+      if open__ then begin __fclose(handle__); open__ := false; close := true end;
+      procedure outbyte(x); short integer x;
+      if not open__ then error("outbyte : fichier ferme")
+      else __boutbyte(handle__, x);
+      procedure outtext(t); text t;
+      begin t.setpos(1); while t.more do outbyte(rank(t.getchar)) end;
+      boolean procedure checkpoint; checkpoint := if open__ then __fflush(handle__) else false;
+   end outbytefile;
+
+   bytefile class directbytefile;
+   begin integer loc__, maxloc__; boolean locked__;
+      boolean procedure endfile; endfile := open__ and then loc__ > lastloc;
+      integer procedure location; location := loc__;
+      integer procedure maxloc; maxloc := maxloc__;
+      boolean procedure locked; locked := locked__;
+      boolean procedure open;
+      if not open__ then
+      begin
+         handle__ := __fopen(7, filename__, modes__);
+         if handle__ <> 0 then begin loc__ := 1; maxloc__ := maxint - 1; bytesize__ := 8; open := open__ := true end
+      end open;
+      boolean procedure close;
+      if open__ then begin maxloc__ := 0; __fclose(handle__); open__ := false; close := true end;
+      integer procedure lastloc;
+         if not open__ then error("lastloc : fichier ferme") else lastloc := __blastloc(handle__);
+      procedure locate(p); integer p;
+         if p < 1 or p > maxloc__ then error("locate : parametre hors limites") else loc__ := p;
+      short integer procedure inbyte;
+      if not open__ then error("inbyte : fichier ferme")
+      else if loc__ <= lastloc then
+      begin inbyte := __bdread(handle__, loc__); loc__ := loc__ + 1 end;
+      procedure outbyte(x); short integer x;
+      if not open__ then error("outbyte : fichier ferme")
+      else if loc__ > maxloc__ then error("outbyte : debordement du fichier")
+      else begin __bdwrite(handle__, loc__, x); loc__ := loc__ + 1 end;
+      boolean procedure checkpoint; checkpoint := if open__ then __fflush(handle__) else false;
+      integer procedure lock(t, i, j); real t; integer i, j;
+      begin
+         lock := -1;
+         if t > 0 then begin if locked__ then unlock; locked__ := true; lock := 0 end
+      end;
+      boolean procedure unlock;
+      begin unlock := checkpoint; if locked__ then locked__ := false end;
+      text procedure intext(t); text t;
+      begin
+         t.setpos(1);
+         while t.more and not endfile do t.putchar(char(inbyte));
+         intext :- t.sub(1, t.pos - 1)
+      end intext;
+      procedure outtext(t); text t;
+      begin t.setpos(1); while t.more do outbyte(rank(t.getchar)) end;
+   end directbytefile;
+
+   comment ==================================================== programme;
+   sysin_ :- new infile("SYSIN");
+   sysin_.kind__ := 100;
+   sysout_ :- new printfile("SYSOUT");
+   sysout_.kind__ := 101;
+   sysin_.open(blanks(1024));
+   sysout_.open(blanks(132));
+   sysout_.linesperpage(-1);
+   inspect sysin_ do inspect sysout_ do __program__;
+stop_:
+   sysin_.close;
+   sysout_.close
+end
