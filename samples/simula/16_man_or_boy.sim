@@ -1,0 +1,21 @@
+! Test « man or boy » de Knuth : appel par nom et procedures imbriquees.
+  Resultat attendu pour k = 10 : -67 ;
+BEGIN
+    REAL PROCEDURE A(K, X1, X2, X3, X4, X5);
+    NAME X1, X2, X3, X4, X5;
+    INTEGER K;
+    REAL X1, X2, X3, X4, X5;
+    BEGIN
+        REAL PROCEDURE B;
+        BEGIN
+            K := K - 1;
+            B := A := A(K, B, X1, X2, X3, X4)
+        END;
+        IF K <= 0 THEN A := X4 + X5 ELSE B
+    END;
+    INTEGER I;
+    FOR I := 0 STEP 1 UNTIL 12 DO
+    BEGIN
+        OUTTEXT("k = "); OUTINT(I, 2); OUTTEXT(" : "); OUTFIX(A(I, 1, -1, -1, 1, 0), 0, 6); OUTIMAGE
+    END
+END
