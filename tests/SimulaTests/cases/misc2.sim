@@ -1,0 +1,47 @@
+begin
+   ! etiquette transmise en parametre ;
+   procedure saute(l, n); label l; integer n; if n > 2 then goto l;
+   ! classe locale a une classe, creee via une connexion ;
+   class usine;
+   begin
+      class produit(num); integer num; begin outtext("produit "); outint(num, 0); outimage end;
+      ref(produit) procedure fabrique(n); integer n; fabrique :- new produit(n);
+   end;
+   ref(usine) u; integer i; text t;
+   ref(outfile) of; ref(infile) inf; ref(printfile) pf;
+
+   for i := 1 step 1 until 10 do begin outint(i, 3); saute(sortie, i) end;
+sortie: outimage;
+
+   u :- new usine;
+   inspect u do begin new produit(1); fabrique(2) end;
+
+   ! outrecord / inrecord ;
+   of :- new outfile("rec.txt"); of.open(blanks(20));
+   of.outtext("abc"); of.outrecord; of.outtext("0123456789"); of.outrecord; of.close;
+   inf :- new infile("rec.txt"); inf.open(blanks(4));
+   inspect inf do
+   begin
+      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      close
+   end;
+   ! printfile : pages et interlignes ;
+   pf :- new printfile("print.txt"); pf.open(blanks(30));
+   pf.linesperpage(3);
+   for i := 1 step 1 until 5 do begin pf.outint(i, 2); pf.outimage end;
+   pf.spacing(2); pf.outtext("double"); pf.outimage;
+   outint(pf.page, 3); outint(pf.line, 3); outimage;
+   pf.close;
+   inf :- new infile("print.txt"); inf.open(blanks(30));
+   inspect inf do
+   begin
+      inimage;
+      while not endfile do begin t :- image.strip; outtext("[" & t & "]"); if t.length > 0 then outint(rank(t.sub(1,1).getchar), 4); outimage; inimage end;
+      close
+   end;
+   outtext(datetime.sub(5, 1)); outtext(datetime.sub(8, 1)); outimage;
+   outtext(if cputime >= 0 and clocktime >= 0 then "temps ok" else "?"); outimage
+end
