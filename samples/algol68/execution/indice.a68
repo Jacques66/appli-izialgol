@@ -1,0 +1,2 @@
+[3] INT a;
+FOR i TO 4 DO a[i] := i OD

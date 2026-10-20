@@ -1,0 +1,2 @@
+[5] INT a; FOR i TO 5 DO a[i] := i OD;
+print(a[2:7])

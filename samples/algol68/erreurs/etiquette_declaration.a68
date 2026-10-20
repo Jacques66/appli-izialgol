@@ -1,0 +1,5 @@
+BEGIN
+l: SKIP;
+   INT x = 1;
+   SKIP
+END

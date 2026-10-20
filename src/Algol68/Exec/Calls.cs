@@ -6,7 +6,7 @@ namespace Studio.Algol68.Exec;
 
 public static class Calls
 {
-    const int MaxCallDepth = 200000;
+    const int MaxCallDepth = 100000;
 
     /// <summary>Appel generique d'une valeur procedure.</summary>
     public static Value Invoke(ProcV p, Value[] args, Frame caller, Node site, int callerDepth)

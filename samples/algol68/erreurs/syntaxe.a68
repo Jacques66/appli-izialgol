@@ -1,0 +1,3 @@
+BEGIN
+   IF TRUE THEN print(1)
+END

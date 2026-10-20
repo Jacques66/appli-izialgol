@@ -1,0 +1,2 @@
+MODE L = UNION (VOID, REF L);
+SKIP

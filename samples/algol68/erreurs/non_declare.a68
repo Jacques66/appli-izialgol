@@ -1,0 +1,4 @@
+BEGIN
+   INT x := 1;
+   print(y)
+END

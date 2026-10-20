@@ -1,0 +1,2 @@
+OP PLUS = (INT a, b) INT: a + b;
+print(1 PLUS 2)

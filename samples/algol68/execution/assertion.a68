@@ -1,0 +1,2 @@
+INT x = 3;
+ASSERT (x > 5)

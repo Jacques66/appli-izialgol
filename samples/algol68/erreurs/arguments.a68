@@ -1,0 +1,2 @@
+PROC f = (INT a) INT: a;
+print(f(1, 2))

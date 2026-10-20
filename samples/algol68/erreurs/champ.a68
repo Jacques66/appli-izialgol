@@ -1,0 +1,2 @@
+STRUCT (INT a) s;
+print(b OF s)

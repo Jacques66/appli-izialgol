@@ -1,0 +1,2 @@
+UNION (INT, REAL) u := 1;
+CASE u IN (CHAR c): SKIP ESAC

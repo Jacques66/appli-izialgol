@@ -1,0 +1,3 @@
+MODE A = STRUCT (INT x);
+B b;
+SKIP

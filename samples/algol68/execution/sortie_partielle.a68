@@ -1,0 +1,3 @@
+print(("avant", newline));
+[2] INT t;
+print(t[3])

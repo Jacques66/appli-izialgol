@@ -1,0 +1,5 @@
+REF INT r;
+BEGIN
+   INT x := 1;
+   r := x
+END

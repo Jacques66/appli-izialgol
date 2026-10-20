@@ -58,7 +58,7 @@ static class Program
         var sw = Stopwatch.StartNew();
         foreach (var file in Directory.GetFiles(samples, "*.a68", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal))
         {
-            if (filter != null && !file.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
+            if (filter != null && !file.Replace('\\', '/').Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
             if (Path.GetFileName(Path.GetDirectoryName(file)!) == "include") continue;
             RunSample(file, samples);
         }

@@ -9,6 +9,14 @@ public sealed partial class Compiler
     /// <summary>Identification d'un operateur (RR 7.2) : portee la plus interne ou une definition convient (operandes firm).</summary>
     OpSym? IdentifyOp(string name, Mode?[] operands, Ast pos, bool report)
     {
+        bool exists = false;
+        for (var r0 = cur; r0 != null && !exists; r0 = r0.Parent) exists = r0.Ops.ContainsKey(name);
+        if (!exists)
+        {
+            if (report)
+                Error(pos, char.IsLetter(name[0]) ? $"« {name} » non declare : ni mode ni operateur connu" : $"operateur « {name} » non declare");
+            return null;
+        }
         if (operands.Any(m => m == null))
         {
             if (report) Error(pos, $"operande de « {name} » sans mode a priori (un affichage doit etre converti par un cast)");

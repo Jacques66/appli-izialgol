@@ -1,0 +1,2 @@
+SEMA a = LEVEL 0, b = LEVEL 0;
+PAR (DOWN a, DOWN b)
