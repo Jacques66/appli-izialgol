@@ -142,13 +142,13 @@ public sealed class SimDebugger : IDebugger
     public IReadOnlyList<StackFrameInfo> GetStack()
     {
         if (vm == null || pausedFrame == null) return Array.Empty<StackFrameInfo>();
-        return vm.StackInfo(pausedFrame, pausedPc).Where(s => s.File != "prelude.sim" || s.Name == "programme").ToList();
+        return vm.StackInfo(pausedFrame, pausedPc);
     }
 
     List<(Frame Frame, int Pc)> VisibleChain()
     {
         if (vm == null || pausedFrame == null) return new();
-        return vm.Chain(pausedFrame, pausedPc).Where(c => vm.PosOf(c.Frame, c.Pc).File != "prelude.sim" || c.Frame.Kind == FrameKind.Env).ToList();
+        return vm.Chain(pausedFrame, pausedPc).Where(c => vm.PosOf(c.Frame, c.Pc).File != "prelude.sim").ToList();
     }
 
     public IReadOnlyList<VariableInfo> GetVariables(int frameIndex)

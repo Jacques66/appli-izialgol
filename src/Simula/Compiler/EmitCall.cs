@@ -393,7 +393,7 @@ public sealed partial class SimCompiler
     void CheckArrayElem(ParamSym formal, SType t, SType elem, SrcPos pos)
     {
         if (elem.IsErr || t.IsErr) return;
-        bool ok = t.B == elem.B || (t.IsRef && elem.IsRef);
+        bool ok = t.B == elem.B || (t.IsRef && elem.IsRef) || (t.IsReal && elem.IsReal);
         if (t.IsRef && elem.IsRef && t.Q != null && elem.Q != null && !elem.Q.IsSubclassOf(t.Q)) ok = false;
         if (!ok) Err(pos, $"parametre '{formal.Orig}' : tableau de {t} attendu (trouve tableau de {elem})");
     }

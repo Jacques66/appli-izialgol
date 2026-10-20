@@ -81,23 +81,32 @@ public sealed partial class SimCompiler
         preludeFile = files.Count;
         files.Add("prelude.sim");
         prog.Files.AddRange(files);
+        // (les fichiers inclus ou externes sont ajoutes a la suite)
         CreateRoot();
 
         // programme utilisateur
         var ulex = new Lexer(user.Text, 0, Err);
+        int includeNesting = 0;
+        Func<string, List<Token>?>? handler = null;
+        handler = name =>
+        {
+            var sf = includeResolver?.Invoke(name, user.Path);
+            if (sf == null || ++includeNesting > 32) return null;
+            int fi = files.Count;
+            files.Add(sf.Path);
+            prog.Files.Add(sf.Path);
+            var lx = new Lexer(sf.Text, fi, Err) { IncludeHandler = handler };
+            var r = lx.Tokenize();
+            includeNesting--;
+            return r;
+        };
+        ulex.IncludeHandler = handler;
         var utoks = ulex.Tokenize();
         var uparser = new Parser(utoks, Err);
         var (userStmt, userExternals, userModules) = uparser.ParseProgram();
         if (userStmt == null && userModules.Count > 0)
         {
             Err(new SrcPos(0, 1, 1), "ce fichier est un module (declaration de classe ou de procedure) et non un programme principal ; il peut etre utilise par 'external class'/'external procedure'");
-        }
-        // inclusions %include
-        var incDecls = new List<Decl>();
-        foreach (var (name, pos) in ulex.Includes)
-        {
-            var sf = includeResolver?.Invoke(name, user.Path);
-            if (sf == null) { Err(pos, $"fichier inclus '{name}' introuvable"); continue; }
         }
 
         // prelude

@@ -1,0 +1,4 @@
+begin
+%include "inc_bonjour.sim"
+   bonjour("inclus")
+end

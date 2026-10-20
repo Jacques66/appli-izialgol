@@ -148,6 +148,7 @@ public sealed partial class SimCompiler
             }
             int fi = files.Count;
             files.Add(srcFile.Path);
+            prog.Files.Add(srcFile.Path);
             var lx = new Lexer(srcFile.Text, fi, Err);
             var toks = lx.Tokenize();
             var ps = new Parser(toks, Err);

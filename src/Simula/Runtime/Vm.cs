@@ -104,6 +104,7 @@ public sealed partial class Vm
         foreach (var (fr, pc) in Chain(top, topPc))
         {
             var (file, line, col) = PosOf(fr, pc);
+            if (file == "prelude.sim") continue;
             res.Add(new StackFrameInfo(FrameName(fr), file, line, col));
         }
         return res;
@@ -752,6 +753,7 @@ public sealed partial class Vm
                                 switch (o.State)
                                 {
                                     case ObjState.Attached:
+                                        if (!Operating(f, o)) throw new SimulaError($"detach d'un objet attache qui n'est pas en cours d'execution ({o.Class.Name})");
                                         f.Pc = pc; f.Sp = sp;
                                         o.React = f;
                                         o.State = ObjState.Detached;
@@ -870,6 +872,13 @@ public sealed partial class Vm
         Compiler.T.Lt => c < 0, Compiler.T.Le => c <= 0, Compiler.T.Eq => c == 0,
         Compiler.T.Ge => c >= 0, Compiler.T.Gt => c > 0, _ => c != 0
     };
+
+    static bool Operating(Frame f, SimObject o)
+    {
+        for (Frame? x = f; x != null; x = x.Dyn)
+            if (x == o) return true;
+        return false;
+    }
 
     static bool TextIdentical(TextRef? a, TextRef? b)
     {

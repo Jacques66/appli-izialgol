@@ -143,14 +143,23 @@ public sealed class Lexer
 
     public List<(string Name, SrcPos Pos)> Includes { get; } = new();
 
+    /// <summary>Inclusion textuelle (%include) : rend les lexemes du fichier inclus, ou null s'il est introuvable.</summary>
+    public Func<string, List<Token>?>? IncludeHandler;
+
     void Directive(string text, List<Token> list)
     {
         // %include "fichier"  ou  %include fichier
         var d = text.Length > 1 ? text.Substring(1).Trim() : "";
         if (d.StartsWith("include", StringComparison.OrdinalIgnoreCase) || d.StartsWith("insert", StringComparison.OrdinalIgnoreCase))
         {
+            var pos = Here;
             var arg = d.Substring(d.IndexOf(' ') < 0 ? d.Length : d.IndexOf(' ')).Trim().Trim('"', '\'');
-            if (arg.Length > 0) Includes.Add((arg, Here));
+            if (arg.Length == 0) { error(pos, "%include : nom de fichier attendu"); return; }
+            Includes.Add((arg, pos));
+            if (IncludeHandler == null) return;
+            var toks = IncludeHandler(arg);
+            if (toks == null) { error(pos, $"%include : fichier '{arg}' introuvable"); return; }
+            list.AddRange(toks.Where(t => t.Kind != T.EOF));
         }
     }
 
