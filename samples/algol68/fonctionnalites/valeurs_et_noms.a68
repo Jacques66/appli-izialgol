@@ -1,0 +1,20 @@
+# Valeurs et noms : copies lors des liaisons et affectations, relations d'identite #
+[3] INT a := (1, 2, 3);
+[] INT x = a;
+a[1] := 9;
+print((x[1], a[1], newline));
+MODE P = STRUCT ([2] INT v, STRING s);
+P p := ((1, 2), "ab"), q;
+q := p;
+v OF p := (7, 8); s OF p +:= "c";
+print((v OF q, s OF q, " ", v OF p, s OF p, newline));
+[2][2] INT rr := ((1, 2), (3, 4));
+[2][2] INT ss := rr;
+rr[1][1] := 100;
+print((ss[1][1], rr[1][1], newline));
+PROC f = ([] INT t) INT: (a[2] := 50; t[2]);
+print((f(a), a[2], newline));
+REF INT r1 = a[3], r2 = a[3];
+print((r1 :=: r2, r1 :=: a[1], newline));
+REF REF INT pp = LOC REF INT := r1;
+print((pp :=: r1, REF INT (pp) :=: r1, newline))
