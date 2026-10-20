@@ -67,12 +67,12 @@ public sealed class Parser
 
     void Expect(TK k, string what)
     {
-        if (Cur.Kind != k) throw Err($"{what} attendu, trouve {Cur}");
+        if (Cur.Kind != k) throw Err($"{what} attendu, trouvé {Cur}");
         Next();
     }
     void ExpectBold(string w)
     {
-        if (!IsBold(w)) throw Err($"« {w} » attendu, trouve {Cur}");
+        if (!IsBold(w)) throw Err($"« {w} » attendu, trouvé {Cur}");
         Next();
     }
     Token? lastReported;
@@ -191,7 +191,7 @@ public sealed class Parser
     {
         var s = ParseSerialBody();
         if (Cur.Kind != TK.EOF)
-            Report(Cur, $"symbole inattendu {Cur} apres la fin du programme (parenthese ou END en trop ?)");
+            Report(Cur, $"symbole inattendu {Cur} après la fin du programme (parenthese ou END en trop ?)");
         return s;
     }
 
@@ -216,7 +216,7 @@ public sealed class Parser
         while (true)
         {
             if (IsTerm(Cur) && serial.Phrases.Count > 0) break;
-            if (IsTerm(Cur)) { Report(Cur, $"unite attendue, trouve {Cur}"); break; }
+            if (IsTerm(Cur)) { Report(Cur, $"unité attendue, trouvé {Cur}"); break; }
             int start = pos;
             try
             {
@@ -227,7 +227,7 @@ public sealed class Parser
                 Report(e.Tok, e.Message);
                 Recover(start);
             }
-            if (Cur.Kind == TK.Semi) { Next(); if (IsTerm(Cur)) { Report(Cur, $"unite attendue apres « ; », trouve {Cur}"); break; } continue; }
+            if (Cur.Kind == TK.Semi) { Next(); if (IsTerm(Cur)) { Report(Cur, $"unité attendue après « ; », trouvé {Cur}"); break; } continue; }
             if (IsBold("EXIT"))
             {
                 serial.ExitAfter.Add(serial.Phrases.Count - 1);
@@ -235,7 +235,7 @@ public sealed class Parser
                 continue;
             }
             if (IsTerm(Cur) || Cur.Kind == TK.Comma) break;
-            Report(Cur, $"« ; » attendu, trouve {Cur}");
+            Report(Cur, $"« ; » attendu, trouvé {Cur}");
             Recover(pos);
             if (Cur.Kind == TK.Semi) { Next(); continue; }
             break;
@@ -339,14 +339,14 @@ public sealed class Parser
         if (t.Kind == TK.Op) { Next(); return (t.Text, t); }
         if (t.Kind == TK.Bold && !Keywords.Contains(t.Text)) { Next(); return (t.Text, t); }
         if (t.Kind == TK.Bold && t.Text is "AND" or "OR") { Next(); return (t.Text, t); }
-        throw Err($"symbole d'operateur attendu, trouve {t}");
+        throw Err($"symbole d'opérateur attendu, trouvé {t}");
     }
 
     /// <summary>Consomme '=' ; gere les cas ou l'operateur colle au '=' (OP +=, PRIO //=).</summary>
     void ExpectEqualsAfterOp(ref string name)
     {
         if (Cur.Kind == TK.Op && Cur.Text == "=") { Next(); return; }
-        throw Err($"« = » attendu, trouve {Cur}");
+        throw Err($"« = » attendu, trouvé {Cur}");
     }
 
     void ParseOneDeclaration(List<Ast> into)
@@ -359,9 +359,9 @@ public sealed class Parser
             while (true)
             {
                 var nt = Cur;
-                if (nt.Kind != TK.Bold || Keywords.Contains(nt.Text)) throw Err($"indicant de mode attendu, trouve {nt}");
+                if (nt.Kind != TK.Bold || Keywords.Contains(nt.Text)) throw Err($"indicant de mode attendu, trouvé {nt}");
                 Next();
-                if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu apres MODE {nt.Text}");
+                if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu après MODE {nt.Text}");
                 Next();
                 var decl = ParseDeclarer();
                 d.Items.Add((nt.Text, decl, new SkipAst().At<SkipAst>(nt)));
@@ -384,12 +384,12 @@ public sealed class Parser
                 else
                 {
                     (name, _) = ParseOpName();
-                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err("« = » attendu dans la declaration de priorite");
+                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err("« = » attendu dans la déclaration de priorité");
                     Next();
                 }
-                if (Cur.Kind != TK.IntDen) throw Err("priorite (chiffre 1 a 9) attendue");
+                if (Cur.Kind != TK.IntDen) throw Err("priorité (chiffre 1 a 9) attendue");
                 int p = (int)Cur.IntValue;
-                if (p < 1 || p > 9) Report(Cur, "la priorite doit etre comprise entre 1 et 9");
+                if (p < 1 || p > 9) Report(Cur, "la priorité doit être comprise entre 1 et 9");
                 Next();
                 d.Items.Add((name, p, new SkipAst().At<SkipAst>(nt)));
                 if (Cur.Kind == TK.Comma && (Peek().Kind == TK.Op || (Peek().Kind == TK.Bold && !Keywords.Contains(Peek().Text))) && !IsDeclarerStartAt(pos + 1))
@@ -427,7 +427,7 @@ public sealed class Parser
                 else
                 {
                     (name, _) = ParseOpName();
-                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu apres OP {name}");
+                    if (!(Cur.Kind == TK.Op && Cur.Text == "=")) throw Err($"« = » attendu après OP {name}");
                     Next();
                 }
                 var v = ParseUnit();
@@ -450,12 +450,12 @@ public sealed class Parser
             while (true)
             {
                 var nt = Cur;
-                if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouve {nt}");
+                if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouvé {nt}");
                 Next();
                 bool variable;
                 if (Cur.Kind == TK.Op && Cur.Text == "=") variable = false;
                 else if (Cur.Kind == TK.Becomes) variable = true;
-                else throw Err($"« = » ou « := » attendu apres PROC {nt.Text}");
+                else throw Err($"« = » ou « := » attendu après PROC {nt.Text}");
                 if (!first && variable != d.Variable)
                 {
                     into.Add(d);
@@ -479,7 +479,7 @@ public sealed class Parser
         while (true)
         {
             var nt = Cur;
-            if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouve {nt}");
+            if (nt.Kind != TK.Ident) throw Err($"identificateur attendu, trouvé {nt}");
             Next();
             if (Cur.Kind == TK.Op && Cur.Text == "=" && !hasLoc)
             {
@@ -492,7 +492,7 @@ public sealed class Parser
             {
                 UnitAst? init = null;
                 if (Cur.Kind == TK.Becomes) { Next(); init = ParseUnit(); }
-                else if (Cur.Kind == TK.Op && Cur.Text == "=") throw Err("une declaration LOC/HEAP ne peut pas etre une declaration d'identite");
+                else if (Cur.Kind == TK.Op && Cur.Text == "=") throw Err("une déclaration LOC/HEAP ne peut pas être une déclaration d'identite");
                 if (cur is not VarDeclAst vd) { if (cur != null) into.Add(cur); vd = new VarDeclAst { Declarer = declarer, Heap = heap }.At<VarDeclAst>(nt); cur = vd; }
                 vd.Items.Add((nt.Text, init, new SkipAst().At<SkipAst>(nt)));
             }
@@ -535,7 +535,7 @@ public sealed class Parser
             rd.Elem = ParseDeclarer();
             return rd;
         }
-        if (t.Kind != TK.Bold) throw Err($"declarant attendu, trouve {t}");
+        if (t.Kind != TK.Bold) throw Err($"déclarant attendu, trouvé {t}");
         switch (t.Text)
         {
             case "LONG":
@@ -545,7 +545,7 @@ public sealed class Parser
                     while (IsBold("LONG") || IsBold("SHORT")) { size += Cur.Text == "LONG" ? 1 : -1; Next(); }
                     var bt = Cur;
                     if (bt.Kind != TK.Bold || !(bt.Text is "INT" or "REAL" or "BITS" or "BYTES" or "COMPL" or "COMPLEX"))
-                        throw Err($"INT, REAL, BITS, BYTES ou COMPL attendu apres LONG/SHORT, trouve {bt}");
+                        throw Err($"INT, REAL, BITS, BYTES ou COMPL attendu après LONG/SHORT, trouvé {bt}");
                     Next();
                     return new PrimDeclarer { Name = bt.Text == "COMPLEX" ? "COMPL" : bt.Text, Size = size }.At<PrimDeclarer>(t);
                 }
@@ -573,12 +573,12 @@ public sealed class Parser
                 {
                     Next();
                     var sd = new StructDeclarer().At<StructDeclarer>(t);
-                    Expect(TK.LParen, "« ( » apres STRUCT");
+                    Expect(TK.LParen, "« ( » après STRUCT");
                     DeclarerAst? fm = null;
                     while (true)
                     {
                         if (Cur.Kind != TK.Ident || fm == null) fm = ParseDeclarer();
-                        if (Cur.Kind != TK.Ident) throw Err($"nom de champ attendu, trouve {Cur}");
+                        if (Cur.Kind != TK.Ident) throw Err($"nom de champ attendu, trouvé {Cur}");
                         var ft = Next();
                         sd.Fields.Add((fm, ft.Text, new SkipAst().At<SkipAst>(ft)));
                         if (Cur.Kind == TK.Comma) { Next(); continue; }
@@ -591,7 +591,7 @@ public sealed class Parser
                 {
                     Next();
                     var ud = new UnionDeclarer().At<UnionDeclarer>(t);
-                    Expect(TK.LParen, "« ( » apres UNION");
+                    Expect(TK.LParen, "« ( » après UNION");
                     while (true)
                     {
                         ud.Members.Add(ParseDeclarer());
@@ -612,7 +612,7 @@ public sealed class Parser
             Next();
             return new IndicantDeclarer { Name = t.Text }.At<IndicantDeclarer>(t);
         }
-        throw Err($"declarant attendu, trouve {t}");
+        throw Err($"déclarant attendu, trouvé {t}");
     }
 
     // ------------------------------------------------------------ unites
@@ -674,7 +674,7 @@ public sealed class Parser
 
     UnitAst ParseJumpTarget(Token t)
     {
-        if (Cur.Kind != TK.Ident) throw Err($"etiquette attendue apres GOTO, trouve {Cur}");
+        if (Cur.Kind != TK.Ident) throw Err($"étiquette attendue après GOTO, trouvé {Cur}");
         var l = Next();
         return new JumpAst { Label = l.Text }.At<JumpAst>(t);
     }
@@ -687,7 +687,7 @@ public sealed class Parser
         while (true)
         {
             if (Cur.Kind != TK.Ident || d == null) d = ParseDeclarer();
-            if (Cur.Kind != TK.Ident) throw Err("nom de parametre attendu");
+            if (Cur.Kind != TK.Ident) throw Err("nom de paramètre attendu");
             var nt = Next();
             rt.Params.Add(new ParamAst { Declarer = d, Name = nt.Text }.At<ParamAst>(nt));
             if (Cur.Kind == TK.Comma) { Next(); continue; }
@@ -733,7 +733,7 @@ public sealed class Parser
             int? prio = PrioOf(t.Text);
             if (prio == null)
             {
-                Report(t, $"operateur dyadique « {t.Text} » sans declaration de priorite (PRIO)");
+                Report(t, $"opérateur dyadique « {t.Text} » sans déclaration de priorité (PRIO)");
                 prio = 9;
             }
             if (prio.Value < minPrio) break;
@@ -895,13 +895,13 @@ public sealed class Parser
             // cast : declarant clause-close
             var d = ParseDeclarer();
             if (!(Cur.Kind == TK.LParen || IsBold("BEGIN")))
-                throw Err($"clause entre parentheses attendue apres le declarant du cast, trouve {Cur}");
+                throw Err($"clause entre parentheses attendue après le déclarant du cast, trouvé {Cur}");
             var e = ParsePrimaryBase();
             return new CastAst { Declarer = d, Enclosed = e }.At<CastAst>(t);
         }
         if (t.Kind == TK.Bold && !Keywords.Contains(t.Text))
-            throw Err($"operande attendu, trouve l'operateur {t}");
-        throw Err($"unite attendue, trouve {t}");
+            throw Err($"opérande attendu, trouvé l'opérateur {t}");
+        throw Err($"unité attendue, trouvé {t}");
     }
 
     UnitAst ParseBeginClause()
@@ -967,7 +967,7 @@ public sealed class Parser
         {
             // cas abrege
             var cs = new CaseAst { Selector = sel }.At<CaseAst>(t);
-            if (!IsCollateralCandidate(first)) throw Err("unite simple attendue dans la partie IN d'un cas");
+            if (!IsCollateralCandidate(first)) throw Err("unité simple attendue dans la partie IN d'un cas");
             cs.In.Add(((LabeledUnit)first.Phrases[0]).Unit);
             while (Cur.Kind == TK.Comma) { Next(); cs.In.Add(ParseUnit()); }
             if (Cur.Kind == TK.Bar) { Next(); cs.Out = ParseSerialBody(); }
@@ -994,7 +994,7 @@ public sealed class Parser
         try
         {
             var s = ParseSerialInner();
-            if (Cur.Kind != TK.Bar) throw Err("« | » attendu apres « |: »");
+            if (Cur.Kind != TK.Bar) throw Err("« | » attendu après « |: »");
             Next();
             // meme logique que ParseBriefChoice mais sans fermer
             if (LooksLikeConformityCase())
@@ -1125,7 +1125,7 @@ public sealed class Parser
         if (IsBold("FOR"))
         {
             Next();
-            if (Cur.Kind != TK.Ident) throw Err("identificateur attendu apres FOR");
+            if (Cur.Kind != TK.Ident) throw Err("identificateur attendu après FOR");
             lp.Var = Next().Text;
         }
         if (IsBold("FROM")) { Next(); lp.From = ParseUnit(); }
@@ -1170,7 +1170,7 @@ public sealed class Parser
             case CollateralAst c: par.Units.AddRange(c.Units); break;
             case ClosedAst cl: par.Units.Add(cl); break;
             case VacuumAst: break;
-            default: throw Err(t, "clause collaterale attendue apres PAR");
+            default: throw Err(t, "clause collaterale attendue après PAR");
         }
         return par;
     }

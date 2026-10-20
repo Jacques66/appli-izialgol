@@ -127,7 +127,7 @@ public sealed partial class Compiler
         if (raw is IndicantMode im && im.Target == null) return M.Any;
         Mode res;
         try { res = M.Intern(raw); }
-        catch (InvalidOperationException) { Error(d, "mode mal forme"); return M.Any; }
+        catch (InvalidOperationException) { Error(d, "mode mal formé"); return M.Any; }
         if (ContainsUnionDeclarer(d)) CheckUnions(res, d, new HashSet<Mode>(ReferenceEqualityComparer.Instance));
         return res;
     }
@@ -154,7 +154,7 @@ public sealed partial class Compiler
                     for (int j = 0; j < u.Members.Length; j++)
                         if (i != j && FindCoercion(u.Members[i], u.Members[j], Strength.Firm) != null)
                         {
-                            Error(at, $"union mal formee : les composantes {u.Members[i]} et {u.Members[j]} sont fermement liees");
+                            Error(at, $"union mal formée : les composantes {u.Members[i]} et {u.Members[j]} sont fermement liées");
                             return;
                         }
                 foreach (var x in u.Members) CheckUnions(x, at, seen);
@@ -175,10 +175,10 @@ public sealed partial class Compiler
             case IndicantDeclarer id:
                 {
                     var ms = LookupMode(id.Name);
-                    if (ms == null) { Error(d, $"mode « {id.Name} » non declare"); return M.Any; }
+                    if (ms == null) { Error(d, $"mode « {id.Name} » non déclaré"); return M.Any; }
                     if (ms.Mode != null) return ms.Mode;
                     if (ms.Placeholder != null) return ms.Placeholder;
-                    Error(d, $"mode « {id.Name} » utilise avant sa definition");
+                    Error(d, $"mode « {id.Name} » utilisé avant sa définition");
                     return M.Any;
                 }
             case RefDeclarer r: return new RefMode(BuildRaw(r.Sub));
@@ -190,14 +190,14 @@ public sealed partial class Compiler
                     if (s2 is FlexMode) return s2;
                     if (s2 is IndicantMode im2 && im2.Target is RowMode rr) return new FlexMode(rr);
                     if (s2 == M.Any) return M.Any;
-                    Error(d, "FLEX doit preceder un declarant de rangee");
+                    Error(d, "FLEX doit preceder un déclarant de rangée");
                     return sub;
                 }
             case ProcDeclarer pd: return new ProcMode(pd.Params.Select(BuildRaw).ToArray(), BuildRaw(pd.Result));
             case StructDeclarer sd:
                 {
                     var names = new HashSet<string>();
-                    foreach (var f in sd.Fields) if (!names.Add(f.Name)) Error(f.Pos, $"champ « {f.Name} » declare deux fois");
+                    foreach (var f in sd.Fields) if (!names.Add(f.Name)) Error(f.Pos, $"champ « {f.Name} » déclaré deux fois");
                     return new StructMode(sd.Fields.Select(f => (BuildRaw(f.Mode), f.Name)).ToArray());
                 }
             case UnionDeclarer ud:
@@ -271,7 +271,7 @@ public sealed partial class Compiler
                         var b = rd.Bounds[i];
                         if (b.Formal || b.Upb == null)
                         {
-                            if (!flex) Error(b, "bornes requises dans un declarant effectif (generateur ou declaration de variable)");
+                            if (!flex) Error(b, "bornes requises dans un déclarant effectif (générateur ou déclaration de variable)");
                             continue;
                         }
                         lw[i] = b.Lwb != null ? GenMeekInt(b.Lwb) : null;
@@ -328,7 +328,7 @@ public sealed partial class Compiler
             if (ph is ModeDeclAst md)
                 foreach (var (name, decl, pos) in md.Items)
                 {
-                    if (r.Modes.ContainsKey(name)) { Error(pos, $"mode « {name} » declare deux fois dans la meme portee"); continue; }
+                    if (r.Modes.ContainsKey(name)) { Error(pos, $"mode « {name} » déclaré deux fois dans la même portée"); continue; }
                     var ms = new ModeSym { Name = name, Range = r, Decl = decl, Pos = pos, Placeholder = new IndicantMode(name) };
                     r.Modes[name] = ms; newModes.Add(ms);
                 }
@@ -338,7 +338,7 @@ public sealed partial class Compiler
             if (ph is PrioDeclAst pd)
                 foreach (var (name, p, pos) in pd.Items)
                 {
-                    if (r.Prios.ContainsKey(name)) Error(pos, $"priorite de « {name} » declaree deux fois");
+                    if (r.Prios.ContainsKey(name)) Error(pos, $"priorité de « {name} » déclarée deux fois");
                     r.Prios[name] = p;
                 }
         // 3. etiquettes
@@ -346,7 +346,7 @@ public sealed partial class Compiler
             if (ph is LabeledUnit lu)
                 foreach (var l in lu.Labels)
                 {
-                    if (r.Labels.ContainsKey(l) || r.Ids.ContainsKey(l)) { Error(lu, $"etiquette « {l} » declaree deux fois"); continue; }
+                    if (r.Labels.ContainsKey(l) || r.Ids.ContainsKey(l)) { Error(lu, $"étiquette « {l} » déclarée deux fois"); continue; }
                     r.Labels[l] = new LabelSym { Name = l, Range = r, Pos = lu, Target = new JumpTarget { Label = l, RoutineLevel = routine.Level } };
                 }
         // 4. identificateurs et operateurs
@@ -379,14 +379,14 @@ public sealed partial class Compiler
                     {
                         Mode? pm = od.Mode != null ? ValueMode(od.Mode) : RoutineHeaderMode(val);
                         if (pm is not ProcMode procMode) { Error(pos, $"OP {name} : un texte de routine est attendu"); continue; }
-                        if (procMode.Params.Length is < 1 or > 2) { Error(pos, $"un operateur a un ou deux operandes (« {name} » en a {procMode.Params.Length})"); continue; }
-                        if (procMode.Params.Length == 2 && LookupPrio(name) == null) Error(pos, $"operateur dyadique « {name} » sans declaration de priorite");
+                        if (procMode.Params.Length is < 1 or > 2) { Error(pos, $"un opérateur a un ou deux opérandes (« {name} » en a {procMode.Params.Length})"); continue; }
+                        if (procMode.Params.Length == 2 && LookupPrio(name) == null) Error(pos, $"opérateur dyadique « {name} » sans déclaration de priorité");
                         var slot = new IdSym { Name = $"OP {name}", Range = r, Mode = procMode, Slot = routine.Alloc(), Pos = pos };
                         var op = new OpSym { Name = name, Range = r, Mode = procMode, Proc = slot, Pos = pos };
                         if (!r.Ops.TryGetValue(name, out var list)) r.Ops[name] = list = new List<OpSym>();
                         foreach (var o in list)
                             if (o.Mode.Params.Length == procMode.Params.Length && o.Mode.Params.Zip(procMode.Params).All(p => FirmlyRelated(p.First, p.Second)))
-                                Error(pos, $"operateur « {name} » deja declare pour des operandes de memes modes dans cette portee");
+                                Error(pos, $"opérateur « {name} » déjà déclaré pour des opérandes de mêmes modes dans cette portée");
                         list.Add(op);
                         val.SemCache = op;
                     }
@@ -403,7 +403,7 @@ public sealed partial class Compiler
 
     void DeclareId(Range r, string name, Mode mode, Ast pos)
     {
-        if (r.Ids.ContainsKey(name) || r.Labels.ContainsKey(name)) { Error(pos, $"« {name} » declare deux fois dans la meme portee"); return; }
+        if (r.Ids.ContainsKey(name) || r.Labels.ContainsKey(name)) { Error(pos, $"« {name} » déclaré deux fois dans la même portée"); return; }
         var s = new IdSym { Name = name, Range = r, Mode = mode, Slot = routine.Alloc(), Pos = pos };
         r.Ids[name] = s;
         routine.Info.Vars.Add(new DebugVar { Name = name, Slot = s.Slot, Mode = mode, FromLine = pos.Line, ToLine = int.MaxValue, File = pos.File });
@@ -424,7 +424,7 @@ public sealed partial class Compiler
         foreach (var ms in mods) ms.Placeholder!.Target = BuildRaw(ms.Decl!);
         foreach (var ms in mods)
         {
-            if (!WellFormed(ms.Placeholder!)) { Error(ms.Pos, $"mode « {ms.Name} » mal forme (recursion non protegee par REF/PROC et STRUCT/PROC)"); ms.Placeholder!.Target = M.Any; }
+            if (!WellFormed(ms.Placeholder!)) { Error(ms.Pos, $"mode « {ms.Name} » mal formé (récursion non protegee par REF/PROC et STRUCT/PROC)"); ms.Placeholder!.Target = M.Any; }
         }
         foreach (var ms in mods)
         {
@@ -435,7 +435,7 @@ public sealed partial class Compiler
                 if (m.Name == null) m.Name = ms.Name;
                 ms.Mode = m;
             }
-            catch (InvalidOperationException) { Error(ms.Pos, $"mode « {ms.Name} » mal forme"); ms.Mode = M.Any; }
+            catch (InvalidOperationException) { Error(ms.Pos, $"mode « {ms.Name} » mal formé"); ms.Mode = M.Any; }
         }
         foreach (var ms in mods) ms.Placeholder = null;
     }

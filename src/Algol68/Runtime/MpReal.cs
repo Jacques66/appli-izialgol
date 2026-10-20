@@ -156,7 +156,7 @@ public sealed class MpReal : IComparable<MpReal>
         return (M * Pow10(E - e)).CompareTo(o.M * Pow10(o.E - e));
     }
 
-    /// <summary>Partie entiere par defaut (ENTIER).</summary>
+    /// <summary>Partie entière par defaut (ENTIER).</summary>
     public BigInteger Floor()
     {
         if (E >= 0) return M * Pow10(E);
@@ -206,7 +206,7 @@ public sealed class MpReal : IComparable<MpReal>
 
     public static MpReal Sqrt(MpReal a)
     {
-        if (a.M.Sign < 0) throw new ArithmeticException("racine carree d'un nombre negatif");
+        if (a.M.Sign < 0) throw new ArithmeticException("racine carree d'un nombre négatif");
         if (a.IsZero) return a;
         int p = a.Digits + 6;
         // n = M * 10^t avec (E - t) pair et au moins 2p chiffres
@@ -435,7 +435,7 @@ public sealed class MpReal : IComparable<MpReal>
         int d = Math.Max(x.Digits, y.Digits);
         if (x.IsZero)
         {
-            if (y.IsZero) throw new ArithmeticException("arctan2(0, 0) indefini");
+            if (y.IsZero) throw new ArithmeticException("arctan2(0, 0) indéfini");
             var hp = Div(Pi(d), FromInt(2, d));
             return y.Sign > 0 ? hp : -hp;
         }
@@ -463,7 +463,7 @@ public sealed class MpReal : IComparable<MpReal>
     public static MpReal Pow(MpReal a, MpReal b)
     {
         if (a.IsZero) return b.Sign > 0 ? a : throw new ArithmeticException("0 ** x avec x <= 0");
-        if (a.Sign < 0) throw new ArithmeticException("puissance reelle d'un nombre negatif");
+        if (a.Sign < 0) throw new ArithmeticException("puissance réelle d'un nombre négatif");
         return Exp(Mul(b.WithDigits(b.Digits + 5), Ln(a.WithDigits(a.Digits + 5)))).WithDigits(Math.Max(a.Digits, b.Digits));
     }
 

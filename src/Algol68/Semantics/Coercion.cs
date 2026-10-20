@@ -205,7 +205,7 @@ public sealed partial class Compiler
         var steps = FindCoercion(from, to, s);
         if (steps == null)
         {
-            Error(pos, $"mode {from} ne peut pas etre converti en {to} dans un contexte {StrengthName(s)}");
+            Error(pos, $"mode {from} ne peut pas être converti en {to} dans un contexte {StrengthName(s)}");
             n.Mode = to;
             return n;
         }
@@ -387,6 +387,6 @@ public sealed partial class Compiler
     void CheckTransient(Node n, Ast pos, string usage)
     {
         if (IsTransient(n))
-            Error(pos, $"nom transitoire (tranche ou selection d'un nom FLEX) : il ne peut pas etre {usage}");
+            Error(pos, $"nom transitoire (tranche ou sélection d'un nom FLEX) : il ne peut pas être {usage}");
     }
 }

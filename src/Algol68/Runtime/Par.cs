@@ -67,7 +67,7 @@ public sealed class ParNode : Node
                     {
                         // toutes les branches sont bloquees sur des semaphores
                         group.Aborted = true; ctx.AbortedGroups++; ctx.RefreshAttention();
-                        first ??= RT.Err("interblocage : toutes les branches paralleles attendent un semaphore (DOWN)", this);
+                        first ??= RT.Err("interblocage : toutes les branches parallèles attendent un sémaphore (DOWN)", this);
                         Monitor.PulseAll(ctx.SchedLock);
                     }
                 }
@@ -109,7 +109,7 @@ public static class Par
 
     public static void Down(Frame f, Value s, Node at)
     {
-        var sema = s.O as SemaV ?? throw RT.Err("DOWN : semaphore non initialise", at);
+        var sema = s.O as SemaV ?? throw RT.Err("DOWN : sémaphore non initialisé", at);
         var ctx = f.Ctx;
         var g = ThreadCtx.Current.Group;
         lock (ctx.SchedLock)
@@ -125,7 +125,7 @@ public static class Par
                     // interblocage : aucun fil executable et aucun UP pendant l'attente
                     if (Par.Persists(ctx, () => ctx.RunnableThreads <= 0 && epoch == ctx.SemaEpoch && sema.Level <= 0))
                     {
-                            throw RT.Err("interblocage : tous les processus attendent un semaphore (DOWN)", at);
+                            throw RT.Err("interblocage : tous les processus attendent un sémaphore (DOWN)", at);
                     }
                 }
                 finally { ctx.RunnableThreads++; ctx.BlockedOnSema--; }
@@ -138,7 +138,7 @@ public static class Par
 
     public static void Up(Frame f, Value s, Node at)
     {
-        var sema = s.O as SemaV ?? throw RT.Err("UP : semaphore non initialise", at);
+        var sema = s.O as SemaV ?? throw RT.Err("UP : sémaphore non initialisé", at);
         var ctx = f.Ctx;
         lock (ctx.SchedLock)
         {

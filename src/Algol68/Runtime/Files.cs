@@ -37,7 +37,7 @@ public sealed class FileV
     public string Term = "";
     public FormatState? Fmt;
     public readonly object Lock = new();
-    public override string ToString() => Opened ? $"fichier « {Idf} »" : "fichier ferme";
+    public override string ToString() => Opened ? $"fichier « {Idf} »" : "fichier fermé";
 }
 
 public sealed partial class Transput
@@ -79,7 +79,7 @@ public sealed partial class Transput
         if (r.A == null) throw RT.Err("fichier NIL", at);
         var v = r.A[r.I];
         if (v.O is FileV f) return f;
-        throw RT.Err("fichier non initialise (utilisez open, establish, create ou associate)", at);
+        throw RT.Err("fichier non initialisé (utilisez open, establish, create ou associate)", at);
     }
 
     // ------------------------------------------------------------------ ouverture / fermeture
@@ -92,7 +92,7 @@ public sealed partial class Transput
         return f;
     }
 
-    static ChannelV GetChannel(Value v, Node at) => v.O as ChannelV ?? throw RT.Err("canal non initialise", at);
+    static ChannelV GetChannel(Value v, Node at) => v.O as ChannelV ?? throw RT.Err("canal non initialisé", at);
 
     void StoreFile(Value refFile, FileV f, Node at)
     {
@@ -144,7 +144,7 @@ public sealed partial class Transput
         {
             StoreFile(refFile, f, at);
             f.Opened = false;
-            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"impossible de creer le fichier « {idf} » : {e.Message}", at);
+            if (!OpenError(fr, refFile, f, at)) throw RT.Err($"impossible de créer le fichier « {idf} » : {e.Message}", at);
             return 1;
         }
         f.Modified = true;
@@ -162,10 +162,10 @@ public sealed partial class Transput
     public void Associate(Value refFile, Value refString, Node at)
     {
         var rs = refString.O as RefV ?? throw RT.Err("REF STRING attendu", at);
-        if (rs.A == null) throw RT.Err("associate : chaine NIL", at);
+        if (rs.A == null) throw RT.Err("associate : chaîne NIL", at);
         var f = new FileV
         {
-            Channel = new ChannelV { Name = "chaine associee", Get = true, Put = true, Reset = true, Set = true, Kind = 4 },
+            Channel = new ChannelV { Name = "chaîne associée", Get = true, Put = true, Reset = true, Set = true, Kind = 4 },
             Kind = FileKind.Assoc, Idf = "", Opened = true, AssocRef = rs,
         };
         var cur = rs.A[rs.I];
@@ -198,7 +198,7 @@ public sealed partial class Transput
             if (scratch) { if (f.FullPath != null && File.Exists(f.FullPath)) File.Delete(f.FullPath); }
             else Flush(f);
         }
-        catch (Exception e) { throw RT.Err($"erreur a la fermeture de « {f.Idf} » : {e.Message}", at); }
+        catch (Exception e) { throw RT.Err($"erreur à la fermeture de « {f.Idf} » : {e.Message}", at); }
         f.Opened = false;
         lock (openFiles) openFiles.Remove(f);
     }
@@ -228,7 +228,7 @@ public sealed partial class Transput
     void SetWriteMood(FileV f, Node at)
     {
         CheckOpen(f, at);
-        if (!f.Channel.Put) throw RT.Err($"le canal de « {f.Idf} » ne permet pas l'ecriture", at);
+        if (!f.Channel.Put) throw RT.Err($"le canal de « {f.Idf} » ne permet pas l'écriture", at);
         if (f.ReadMood && f.Kind == FileKind.Disk && !f.WriteMood)
         {
             // passage en ecriture
@@ -280,7 +280,7 @@ public sealed partial class Transput
                 f.AssocRef!.A![f.AssocRef.I] = RT.StrValue(f.Book.ToString());
                 break;
             default:
-                throw RT.Err($"ecriture impossible sur « {f.Idf} »", at);
+                throw RT.Err($"écriture impossible sur « {f.Idf} »", at);
         }
         foreach (char c in s)
         {

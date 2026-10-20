@@ -22,14 +22,14 @@ public static class RowOps
     public static RowV GetRow(Value v, Node at)
     {
         if (v.O is RowV r) return r;
-        if (ReferenceEquals(v.O, Value.Uninit) || v.O == null) throw RT.Err("rangee non initialisee", at);
-        throw RT.Err("rangee attendue", at);
+        if (ReferenceEquals(v.O, Value.Uninit) || v.O == null) throw RT.Err("rangée non initialisée", at);
+        throw RT.Err("rangée attendue", at);
     }
 
     /// <summary>Applique indices et trimmers a un descripteur ; rend (rangee resultante, index d'element si tous indices).</summary>
     public static (RowV? row, int idx) Slice(RowV r, SliceIndexer[] ix, Frame f, Node at)
     {
-        if (ix.Length != r.Dims) throw RT.Err($"nombre d'indices ({ix.Length}) different du nombre de dimensions ({r.Dims})", at);
+        if (ix.Length != r.Dims) throw RT.Err($"nombre d'indices ({ix.Length}) différent du nombre de dimensions ({r.Dims})", at);
         int offset = r.Offset;
         var lw = new List<int>(); var up = new List<int>(); var st = new List<int>();
         for (int d = 0; d < ix.Length; d++)
@@ -69,7 +69,7 @@ public sealed class Subscript1NameNode : Node
     {
         var rr = Unsafe.As<RefV>(prim.EvalObj(f));
         if (rr == null || rr.A == null) throw RT.Err("indexation d'un nom NIL", this);
-        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangee non initialisee", this);
+        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
         long i = index.EvalInt(f);
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
@@ -89,12 +89,12 @@ public sealed class Subscript1DerefNode : Node
     {
         var rr = Unsafe.As<RefV>(prim.EvalObj(f));
         if (rr == null || rr.A == null) throw RT.Err("indexation d'un nom NIL", this);
-        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangee non initialisee", this);
+        var row = rr.A[rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
         long i = index.EvalInt(f);
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
         var v = row.GetAt(idx);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"element [{i}] non initialise", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"élément [{i}] non initialisé", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, elemMode) : v; }
@@ -117,7 +117,7 @@ public sealed class Subscript1ValueNode : Node
         int idx = row.Index1(i);
         if (idx < 0) throw RowOps.OutOfBounds(i, row.Lwb[0], row.Upb[0], 0, this);
         var v = row.GetAt(idx);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"element [{i}] non initialise", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"élément [{i}] non initialisé", this);
         return v;
     }
     public override Value Eval(Frame f) => Get(f);
@@ -137,7 +137,7 @@ public sealed class SliceNode : Node
         if (onName)
         {
             var rr = RT.CheckNil(prim.EvalObj(f) as RefV, this);
-            row = rr.A![rr.I].O as RowV ?? throw RT.Err("rangee non initialisee", this);
+            row = rr.A![rr.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
             scope = rr.Scope;
         }
         else row = RowOps.GetRow(prim.Eval(f), this);
@@ -150,7 +150,7 @@ public sealed class SliceNode : Node
                 return Value.Obj(new RefV(a, j, scope));
             }
             var v = row.GetAt(idx);
-            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("element non initialise", this);
+            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("élément non initialisé", this);
             return v;
         }
         return onName ? Value.Obj(RefV.NewCell(Value.Obj(res), scope)) : Value.Obj(res);
@@ -168,8 +168,8 @@ public sealed class SelectNameNode : Node
     RefV Get(Frame f)
     {
         var r = Unsafe.As<RefV>(sec.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("selection dans un nom NIL", this);
-        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisee", this);
+        if (r == null || r.A == null) throw RT.Err("sélection dans un nom NIL", this);
+        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisée", this);
         return new RefV(s, field, r.Scope);
     }
 }
@@ -182,10 +182,10 @@ public sealed class SelectDerefNode : Node
     Value Get(Frame f)
     {
         var r = Unsafe.As<RefV>(sec.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("selection dans un nom NIL", this);
-        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisee", this);
+        if (r == null || r.A == null) throw RT.Err("sélection dans un nom NIL", this);
+        var s = r.A[r.I].O as Value[] ?? throw RT.Err("structure non initialisée", this);
         var v = s[field];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialise", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialisé", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, fmode) : v; }
@@ -202,9 +202,9 @@ public sealed class SelectValueNode : Node
     Value Get(Frame f)
     {
         var sv = sec.Eval(f);
-        var s = sv.O as Value[] ?? throw RT.Err("structure non initialisee", this);
+        var s = sv.O as Value[] ?? throw RT.Err("structure non initialisée", this);
         var v = s[field];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialise", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("champ non initialisé", this);
         return v;
     }
     public override Value Eval(Frame f) => Get(f);
@@ -224,7 +224,7 @@ public sealed class SelectRowNode : Node
         if (onName)
         {
             var r = RT.CheckNil(sec.EvalObj(f) as RefV, this);
-            row = r.A![r.I].O as RowV ?? throw RT.Err("rangee non initialisee", this);
+            row = r.A![r.I].O as RowV ?? throw RT.Err("rangée non initialisée", this);
             scope = r.Scope;
         }
         else row = RowOps.GetRow(sec.Eval(f), this);

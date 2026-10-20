@@ -64,8 +64,8 @@ static class Program
         }
         if (filter == null || "internes".Contains(filter)) InternalTests.Run();
         Console.WriteLine();
-        Console.WriteLine($"Resultat : {passed} reussi(s), {failed} echoue(s) en {sw.Elapsed.TotalSeconds:F1} s");
-        foreach (var f in failures) Console.WriteLine("  ECHEC " + f);
+        Console.WriteLine($"Résultat : {passed} réussi(s), {failed} échoué(s) en {sw.Elapsed.TotalSeconds:F1} s");
+        foreach (var f in failures) Console.WriteLine("  ÉCHEC " + f);
         return failed == 0 ? 0 : 1;
     }
 
@@ -80,7 +80,7 @@ static class Program
         failed++;
         failures.Add(name);
         Console.WriteLine();
-        Console.WriteLine($"ECHEC  {name}\n{why}");
+        Console.WriteLine($"ÉCHEC  {name}\n{why}");
     }
 
     static string Norm(string s) => s.Replace("\r\n", "\n");
@@ -127,7 +127,7 @@ static class Program
                 var (lno, text) = ParseExpect(line);
                 if (!cr.Diagnostics.Any(d => d.Severity == Severity.Error && d.Message.Contains(text, StringComparison.OrdinalIgnoreCase) && (lno == 0 || d.Line == lno)))
                 {
-                    Fail(name, $"diagnostic attendu non trouve : {line}\nobtenus :\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
+                    Fail(name, $"diagnostic attendu non trouvé : {line}\nobtenus :\n" + string.Join("\n", cr.Diagnostics.Select(d => "  " + d)));
                     return;
                 }
             }
@@ -144,18 +144,18 @@ static class Program
         output = Norm(output);
         if (expRte != null)
         {
-            if (res.Error == null) { Fail(name, "erreur d'execution attendue, aucune obtenue\nsortie :\n" + output); return; }
+            if (res.Error == null) { Fail(name, "erreur d'exécution attendue, aucune obtenue\nsortie :\n" + output); return; }
             var lines = expRte.Split('\n').Where(l => l.Trim().Length > 0).ToList();
             var (lno, text) = ParseExpect(lines[0]);
             if (!res.Error.Message.Contains(text, StringComparison.OrdinalIgnoreCase) || (lno != 0 && res.Error.Line != lno))
-            { Fail(name, $"erreur d'execution attendue : {lines[0]}\nobtenue : {res.Error} ({res.Error.Message})"); return; }
+            { Fail(name, $"erreur d'exécution attendue : {lines[0]}\nobtenue : {res.Error} ({res.Error.Message})"); return; }
             if (expOut != null && output != expOut) { Fail(name, Diff(expOut, output)); return; }
             Pass(name);
             return;
         }
         if (res.Error != null || res.Cancelled)
         {
-            Fail(name, $"erreur d'execution : {res.Error?.ToString() ?? "annule (delai depasse ?)"}\n" +
+            Fail(name, $"erreur d'exécution : {res.Error?.ToString() ?? "annule (delai depasse ?)"}\n" +
                 (res.Error != null ? string.Join("\n", res.Error.Stack.Select(s => $"    a {s.Name} {s.File}({s.Line},{s.Column})")) : "") + "\nsortie :\n" + output);
             return;
         }

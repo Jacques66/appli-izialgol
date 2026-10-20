@@ -135,7 +135,7 @@ public sealed partial class Transput
             finally { Monitor.Enter(f.Lock); }
             if (res.N != 0) return;
         }
-        throw RT.Err($"caractere inattendu en lecture formatee : « {(got < 0 ? "fin de fichier" : ((char)got).ToString())} » au lieu de « {expected} »", at);
+        throw RT.Err($"caractère inattendu en lecture formatee : « {(got < 0 ? "fin de fichier" : ((char)got).ToString())} » au lieu de « {expected} »", at);
     }
 
     // ------------------------------------------------------------------ parcours du format
@@ -167,7 +167,7 @@ public sealed partial class Transput
                     continue;
                 }
                 // fin du format
-                if (++wraps > 2 || !st.Root.F.HasPatterns) throw RT.Err("format epuise : aucun motif disponible pour la valeur suivante", at);
+                if (++wraps > 2 || !st.Root.F.HasPatterns) throw RT.Err("format épuisé : aucun motif disponible pour la valeur suivante", at);
                 bool mended = false;
                 var old = f.Fmt;
                 if (f.OnFormatEnd != null)
@@ -177,7 +177,7 @@ public sealed partial class Transput
                 }
                 if (mended)
                 {
-                    if (ReferenceEquals(f.Fmt, old)) throw RT.Err("format epuise et non remplace par on format end", at);
+                    if (ReferenceEquals(f.Fmt, old)) throw RT.Err("format épuisé et non remplacé par on format end", at);
                     st = f.Fmt!;
                     continue;
                 }
@@ -203,7 +203,7 @@ public sealed partial class Transput
             if (pic.Pattern.Kind == PatternKind.Format)
             {
                 DoInsertion(fr, refFile, f, pic.Pattern.Lead, env, read, at);
-                var fv2 = pic.Pattern.FormatUnit!.Eval(env).O as FormatV ?? throw RT.Err("motif de format : format non initialise", at);
+                var fv2 = pic.Pattern.FormatUnit!.Eval(env).O as FormatV ?? throw RT.Err("motif de format : format non initialisé", at);
                 st.L.Push(new FormatState.Level { Pieces = fv2.F.Pieces, FV = fv2, NestedPic = pic });
                 continue;
             }
@@ -254,7 +254,7 @@ public sealed partial class Transput
             SetWriteMood(f, at);
             foreach (var it in items)
             {
-                if (it.O is not UnionV u) throw RT.Err("element d'impression non initialise", at);
+                if (it.O is not UnionV u) throw RT.Err("élément d'impression non initialisé", at);
                 if (u.M == null || u.M is PrimMode { Kind: Prim.Format })
                 {
                     AssociateFormat(fr, refFile, f, (FormatV)u.V.O!, false, at);
@@ -268,7 +268,7 @@ public sealed partial class Transput
 
     void PutFormatted(Frame fr, Value refFile, FileV f, Mode m, Value v, Node at)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"impression d'une valeur non initialisee (mode {m})", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"impression d'une valeur non initialisée (mode {m})", at);
         switch (m)
         {
             case UnionMode:
@@ -437,7 +437,7 @@ public sealed partial class Transput
                 Monitor.Exit(f.Lock);
                 try { mended = CallEvent(fr, f.OnValueError, refFile, at); } finally { Monitor.Enter(f.Lock); }
             }
-            if (!mended) throw RT.Err($"erreur de valeur : la valeur de mode {m} ne peut pas etre ecrite avec ce motif de format", at);
+            if (!mended) throw RT.Err($"erreur de valeur : la valeur de mode {m} ne peut pas être écrite avec ce motif de format", at);
         }
         DoInsertion(fr, refFile, f, pic.Ins, env, false, at);
     }
@@ -584,7 +584,7 @@ public sealed partial class Transput
 
     bool EditReal(Frame fr, Value refFile, FileV f, CFrame[] frames, Mode m, Value v, Frame env, Node at)
     {
-        // dissection : moule de signe + partie entiere | point | fraction | e + exposant
+        // dissection : moule de signe + partie entière | point | fraction | e + exposant
         int ePos = Array.FindIndex(frames, x => x.Marker == 'e');
         var mant = ePos >= 0 ? frames[..ePos] : frames;
         var expo = ePos >= 0 ? frames[(ePos + 1)..] : Array.Empty<CFrame>();
@@ -681,7 +681,7 @@ public sealed partial class Transput
             SetReadMood(f, at);
             foreach (var it in items)
             {
-                if (it.O is not UnionV u) throw RT.Err("element de lecture non initialise", at);
+                if (it.O is not UnionV u) throw RT.Err("élément de lecture non initialisé", at);
                 if (u.M is PrimMode { Kind: Prim.Format })
                 {
                     AssociateFormat(fr, refFile, f, (FormatV)u.V.O!, true, at);
@@ -707,13 +707,13 @@ public sealed partial class Transput
         {
             case StructMode sm when !IsCompl(sm):
                 {
-                    var fl = arr[idx].O as Value[] ?? throw RT.Err("structure non initialisee", at);
+                    var fl = arr[idx].O as Value[] ?? throw RT.Err("structure non initialisée", at);
                     for (int i = 0; i < sm.Fields.Length; i++) GetFormattedInto(fr, refFile, f, sm.Fields[i].Mode, fl, i, at);
                     return;
                 }
             case RowMode rm when rm.Elem is not PrimMode { Kind: Prim.Char }:
                 {
-                    var row = arr[idx].O as RowV ?? throw RT.Err("rangee non initialisee", at);
+                    var row = arr[idx].O as RowV ?? throw RT.Err("rangée non initialisée", at);
                     foreach (int k in row.Indices()) { var (a2, i2) = row.SlotAt(k); GetFormattedInto(fr, refFile, f, rm.Elem, a2, i2, at); }
                     return;
                 }

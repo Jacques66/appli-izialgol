@@ -149,13 +149,13 @@ public static partial class Prelude
         Proc("bytespack", M.Bytes, new[] { S }, (f, a, at) =>
         {
             var s = Str(a[0], at);
-            if (s.Length > BytesWidth) throw RT.Err($"bytes pack : chaine de {s.Length} caracteres pour {BytesWidth} octets", at);
+            if (s.Length > BytesWidth) throw RT.Err($"bytes pack : chaîne de {s.Length} caractères pour {BytesWidth} octets", at);
             return Value.Obj(s.PadRight(BytesWidth, '\0'));
         });
         Proc("longbytespack", M.LongBytes, new[] { S }, (f, a, at) =>
         {
             var s = Str(a[0], at);
-            if (s.Length > LongBytesWidth) throw RT.Err($"long bytes pack : chaine de {s.Length} caracteres pour {LongBytesWidth} octets", at);
+            if (s.Length > LongBytesWidth) throw RT.Err($"long bytes pack : chaîne de {s.Length} caractères pour {LongBytesWidth} octets", at);
             return Value.Obj(s.PadRight(LongBytesWidth, '\0'));
         });
 

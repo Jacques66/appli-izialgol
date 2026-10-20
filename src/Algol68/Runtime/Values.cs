@@ -15,7 +15,7 @@ public struct Value
     public object? O;
 
     public static readonly object Uninit = new UninitMarker();
-    sealed class UninitMarker { public override string ToString() => "<non initialise>"; }
+    sealed class UninitMarker { public override string ToString() => "<non initialisé>"; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static Value I(long n) => new() { N = n };
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static Value R(double d) => new() { N = BitConverter.DoubleToInt64Bits(d) };
@@ -74,7 +74,7 @@ public sealed class RowV
     {
         long n = 1;
         for (int d = 0; d < lwb.Length; d++) n *= Math.Max(0, (long)upb[d] - lwb[d] + 1);
-        if (n > int.MaxValue / 2) throw new A68Error("rangee trop grande");
+        if (n > int.MaxValue / 2) throw new A68Error("rangée trop grande");
         return (int)n;
     }
 
@@ -123,7 +123,7 @@ public sealed class RowV
         Value[] arr = Data; int i = idx;
         foreach (int f in Path)
         {
-            if (arr[i].O is not Value[] s) throw new A68Error("selection dans une structure non initialisee");
+            if (arr[i].O is not Value[] s) throw new A68Error("sélection dans une structure non initialisée");
             arr = s; i = f;
         }
         return (arr, i);
@@ -203,14 +203,14 @@ public sealed class RowV
             for (int i = 0; i < n; i++)
             {
                 var v = Data[o + i * s];
-                if (v.IsUninit) throw new A68Error("caractere non initialise dans une chaine");
+                if (v.IsUninit) throw new A68Error("caractère non initialisé dans une chaîne");
                 sb.Append((char)v.N);
             }
             return sb.ToString();
         }
         foreach (var v in Elements())
         {
-            if (v.IsUninit) throw new A68Error("caractere non initialise dans une chaine");
+            if (v.IsUninit) throw new A68Error("caractère non initialisé dans une chaîne");
             sb.Append((char)v.N);
         }
         return sb.ToString();
@@ -243,7 +243,7 @@ public sealed class ProcV
     public ProcMode? FullMode;
     // saut (etiquette utilisee comme PROC VOID)
     public Exec.JumpTarget? Jump;
-    public override string ToString() => Routine != null ? $"routine {Routine.Name}" : Builtin != null ? $"primitive {Name}" : "procedure";
+    public override string ToString() => Routine != null ? $"routine {Routine.Name}" : Builtin != null ? $"primitive {Name}" : "procédure";
 }
 
 /// <summary>Cadre d'activation (une routine ou le programme principal).</summary>

@@ -87,7 +87,7 @@ public sealed class SlotNode : Node
     public override Value Eval(Frame f)
     {
         var v = Up(f, Hops).S[Slot];
-        if (v.O == null && NeedsObj) throw RT.Err($"« {Name} » utilise avant d'etre defini", this);
+        if (v.O == null && NeedsObj) throw RT.Err($"« {Name} » utilisé avant d'être défini", this);
         return v;
     }
     public bool NeedsObj;
@@ -108,9 +108,9 @@ public sealed class DerefNode : Node
     Value Get(Frame f)
     {
         var rf = Unsafe.As<RefV>(r.EvalObj(f));
-        if (rf == null || rf.A == null) throw RT.Err("dereferencement de NIL", this);
+        if (rf == null || rf.A == null) throw RT.Err("déréférencement de NIL", this);
         var v = rf.A[rf.I];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("valeur non initialisee", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("valeur non initialisée", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, valMode) : v; }
@@ -132,11 +132,11 @@ public sealed class DerefSlotNode : Node
     Value Get(Frame f)
     {
         var o = Up(f, hops).S[slot].O;
-        if (o == null) throw RT.Err($"« {Name} » utilise avant sa declaration", this);
+        if (o == null) throw RT.Err($"« {Name} » utilisé avant sa déclaration", this);
         var rf = Unsafe.As<RefV>(o);
-        if (rf.A == null) throw RT.Err("dereferencement de NIL", this);
+        if (rf.A == null) throw RT.Err("déréférencement de NIL", this);
         var v = rf.A[rf.I];
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"valeur non initialisee (« {Name} »)", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"valeur non initialisée (« {Name} »)", this);
         return v;
     }
     public override Value Eval(Frame f) { var v = Get(f); return copy ? RT.DeepCopy(v, valMode) : v; }
@@ -164,13 +164,13 @@ public sealed class AssignNode : Node
     RefV Do(Frame f)
     {
         var r = Unsafe.As<RefV>(dest.EvalObj(f));
-        if (r == null || r.A == null) throw RT.Err("affectation a NIL", this);
+        if (r == null || r.A == null) throw RT.Err("affectation à NIL", this);
         var v = src.Eval(f);
-        if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portee dans une affectation", this);
+        if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portée dans une affectation", this);
         if (composite) RT.AssignInto(r.A, r.I, v, valMode, this);
         else
         {
-            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisee", this);
+            if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisée", this);
             r.A[r.I] = v;
         }
         return r;
@@ -189,10 +189,10 @@ public sealed class AssignSlotNode : Node
     RefV Do(Frame f)
     {
         var r = Unsafe.As<RefV>(Up(f, hops).S[slot].O);
-        if (r == null) throw RT.Err("variable utilisee avant sa declaration", this);
-        if (r.A == null) throw RT.Err("affectation a NIL", this);
+        if (r == null) throw RT.Err("variable utilisée avant sa déclaration", this);
+        if (r.A == null) throw RT.Err("affectation à NIL", this);
         var v = src.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisee", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("affectation d'une valeur non initialisée", this);
         r.A[r.I] = v;
         return r;
     }
@@ -292,11 +292,11 @@ public sealed class VarDeclNode : Node
         if (init != null)
         {
             var v = init.Eval(f);
-            if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portee dans l'initialisation", this);
+            if (scopeCheck && RT.ScopeOf(v, valMode) > r.Scope) throw RT.Err("violation de portée dans l'initialisation", this);
             if (composite) RT.AssignInto(r.A!, 0, v, valMode, this);
             else
             {
-                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("initialisation avec une valeur non initialisee", this);
+                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("initialisation avec une valeur non initialisée", this);
                 r.A![0] = v;
             }
         }
@@ -314,7 +314,7 @@ public sealed class IdentityDeclNode : Node
     public override void Exec(Frame f)
     {
         var v = value.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("declaration d'identite avec une valeur non initialisee", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("déclaration d'identite avec une valeur non initialisée", this);
         f.S[slot] = copy ? RT.DeepCopy(v, mode) : v;
     }
 }
@@ -395,7 +395,7 @@ public sealed class SerialNode : Node
         if (ScopeLimitLevel >= 0 && YieldMode != null)
         {
             int lim = f.Depth + ScopeLimitLevel;
-            if (RT.ScopeOf(v, YieldMode) >= lim) throw RT.Err("violation de portee : le resultat de la clause designe une valeur locale", this);
+            if (RT.ScopeOf(v, YieldMode) >= lim) throw RT.Err("violation de portée : le résultat de la clause designe une valeur locale", this);
         }
         return v;
     }
@@ -445,7 +445,7 @@ public sealed class ConformityNode : Node
     Value Run(Frame f, bool want)
     {
         var sv = Sel.Eval(f);
-        if (sv.O is not UnionV u) throw RT.Err("clause de conformite sur une valeur unie non initialisee", this);
+        if (sv.O is not UnionV u) throw RT.Err("clause de conformite sur une valeur unie non initialisée", this);
         for (int c = 0; c < Cases.Length; c++)
         {
             foreach (var m in Accept[c])
@@ -483,7 +483,7 @@ public sealed class LoopNode : Node
         for (long i = from; ; i += by)
         {
             if (hasTo && (by >= 0 ? i > to : i < to)) break;
-            if (i > int.MaxValue || i < int.MinValue) throw RT.Err("debordement du compteur de boucle", this);
+            if (i > int.MaxValue || i < int.MinValue) throw RT.Err("débordement du compteur de boucle", this);
             if (ctx.Attention) ctx.OnAttention(f, this);
             if (slot >= 0) s[slot].N = i;
             if (w != null && !w.EvalBool(f)) break;
@@ -538,7 +538,7 @@ public sealed class RowDisplayNode : Node
         {
             for (int d = 0; d < sd; d++) { lwb[d + 1] = subs[0].Lwb[d]; upb[d + 1] = subs[0].Upb[d]; }
             foreach (var s in subs)
-                if (!s.SameBounds(subs[0])) throw RT.Err("affichage de rangee : les sous-rangees n'ont pas les memes bornes", this);
+                if (!s.SameBounds(subs[0])) throw RT.Err("affichage de rangée : les sous-rangées n'ont pas les mêmes bornes", this);
         }
         else for (int d = 0; d < sd; d++) { lwb[d + 1] = 1; upb[d + 1] = 0; }
         var row = RowV.Make(lwb, upb, default);
@@ -658,7 +658,7 @@ public sealed class UniteNode : Node
     public override Value Eval(Frame f)
     {
         var v = a.Eval(f);
-        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("union d'une valeur non initialisee", this);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err("union d'une valeur non initialisée", this);
         return Value.Obj(new UnionV(member, v));
     }
 }

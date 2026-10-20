@@ -14,12 +14,12 @@ public sealed partial class Compiler
         if (!exists)
         {
             if (report)
-                Error(pos, char.IsLetter(name[0]) ? $"« {name} » non declare : ni mode ni operateur connu" : $"operateur « {name} » non declare");
+                Error(pos, char.IsLetter(name[0]) ? $"« {name} » non déclaré : ni mode ni opérateur connu" : $"opérateur « {name} » non déclaré");
             return null;
         }
         if (operands.Any(m => m == null))
         {
-            if (report) Error(pos, $"operande de « {name} » sans mode a priori (un affichage doit etre converti par un cast)");
+            if (report) Error(pos, $"opérande de « {name} » sans mode a priori (un affichage doit être converti par un cast)");
             return null;
         }
         if (operands.Any(m => m == M.Any)) return null;
@@ -47,8 +47,8 @@ public sealed partial class Compiler
         {
             string ms = string.Join(" et ", operands.Select(m => m!.ToString()));
             Error(pos, operands.Length == 2
-                ? $"operateur « {name} » non defini pour les operandes de modes {ms}"
-                : $"operateur monadique « {name} » non defini pour un operande de mode {ms}");
+                ? $"opérateur « {name} » non défini pour les opérandes de modes {ms}"
+                : $"opérateur monadique « {name} » non défini pour un opérande de mode {ms}");
         }
         return null;
     }
@@ -69,7 +69,7 @@ public sealed partial class Compiler
         }
         var l = Gen(d.Left, op.Mode.Params[0], Strength.Firm);
         var r = Gen(d.Right, op.Mode.Params[1], Strength.Firm);
-        CheckTransient(l, d.Left, "operande"); CheckTransient(r, d.Right, "operande");
+        CheckTransient(l, d.Left, "opérande"); CheckTransient(r, d.Right, "opérande");
         return (ApplyOp(op, new[] { l, r }, d), op.Mode.Result);
     }
 
@@ -82,7 +82,7 @@ public sealed partial class Compiler
             return (new ConstNode(default).At<ConstNode>(m), M.Any);
         }
         var a = Gen(m.Operand, op.Mode.Params[0], Strength.Firm);
-        CheckTransient(a, m.Operand, "operande");
+        CheckTransient(a, m.Operand, "opérande");
         return (ApplyOp(op, new[] { a }, m), op.Mode.Result);
     }
 
@@ -97,7 +97,7 @@ public sealed partial class Compiler
         {
             NoteFree(op.Range);
             if (!op.Proc!.Declared && op.Range.Routine == routine && suppressDeclCheck == 0)
-                Error(pos, $"operateur « {op.Name} » utilise avant sa declaration");
+                Error(pos, $"opérateur « {op.Name} » utilisé avant sa déclaration");
             var slot = new SlotNode(HopsTo(op.Range), op.Proc.Slot) { Name = "OP " + op.Name, NeedsObj = true };
             slot.SetPos(pos);
             var modes = new Mode[args.Length];

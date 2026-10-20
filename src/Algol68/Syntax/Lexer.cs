@@ -117,7 +117,7 @@ public sealed class Lexer
     {
         if (!includeStack.Add(file.Path))
         {
-            Error(file.Path, 1, 1, $"inclusion recursive du fichier « {file.Path} »");
+            Error(file.Path, 1, 1, $"inclusion récursive du fichier « {file.Path} »");
             return;
         }
         var s = new Src { Text = file.Text, File = file.Path };
@@ -229,7 +229,7 @@ public sealed class Lexer
                     }
                     sb.Append(d);
                 }
-                if (!ok) Error(s.File, line, col, "chaine non terminee");
+                if (!ok) Error(s.File, line, col, "chaîne non terminee");
                 Add(Tok(TK.StringDen, sb.ToString()));
                 continue;
             }
@@ -303,7 +303,7 @@ public sealed class Lexer
                 Add(uni == "OR" ? Tok(TK.Bold, "OR") : Tok(TK.Op, uni));
                 continue;
             }
-            Error(s.File, line, col, $"caractere inattendu « {c} »");
+            Error(s.File, line, col, $"caractère inattendu « {c} »");
             s.Next();
         }
     }
@@ -397,7 +397,7 @@ public sealed class Lexer
             var sb = new StringBuilder();
             while (IsRadixDigit(s.Peek(), 16)) sb.Append(s.Next());
             if (radix != 2 && radix != 4 && radix != 8 && radix != 16)
-                Error(s.File, line, col, $"base {radix} invalide pour une denotation de bits (2, 4, 8 ou 16)");
+                Error(s.File, line, col, $"base {radix} invalide pour une dénotation de bits (2, 4, 8 ou 16)");
             BigInteger v = BigInteger.Zero;
             foreach (char ch in sb.ToString())
             {

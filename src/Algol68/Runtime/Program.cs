@@ -83,7 +83,7 @@ public sealed class Execution : IProgramExecution
         var t = new Thread(() => result = Body(), 512 * 1024 * 1024) { Name = "Algol68 principal", IsBackground = true };
         t.Start();
         t.Join();
-        return result ?? new ExecutionResult(1, new RuntimeErrorInfo("erreur interne : execution interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>()));
+        return result ?? new ExecutionResult(1, new RuntimeErrorInfo("erreur interne : exécution interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>()));
     }
 
     ExecutionResult Body()
@@ -106,8 +106,8 @@ public sealed class Execution : IProgramExecution
         }
         catch (CancelledException) { return new ExecutionResult(130, null, true); }
         catch (StopException s) { return new ExecutionResult(s.Code, null); }
-        catch (ParAbortException) { return new ExecutionResult(1, new RuntimeErrorInfo("execution parallele interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
-        catch (JumpException j) { return new ExecutionResult(1, new RuntimeErrorInfo($"saut vers l'etiquette « {j.Target.Label} » qui n'est plus accessible", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
+        catch (ParAbortException) { return new ExecutionResult(1, new RuntimeErrorInfo("exécution parallèle interrompue", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
+        catch (JumpException j) { return new ExecutionResult(1, new RuntimeErrorInfo($"saut vers l'étiquette « {j.Target.Label} » qui n'est plus accessible", program.MainFile, 0, 0, Array.Empty<StackFrameInfo>())); }
         catch (Exception e) when (e is not ThreadAbortException)
         {
             var err = new A68Error(InternalMessage(e));
@@ -121,11 +121,11 @@ public sealed class Execution : IProgramExecution
 
     static string InternalMessage(Exception e) => e switch
     {
-        StackOverflowException or InsufficientExecutionStackException => "debordement de pile (recursion trop profonde)",
-        OutOfMemoryException => "memoire insuffisante",
-        IOException io => "erreur d'entree-sortie : " + io.Message,
-        UnauthorizedAccessException ua => "acces refuse : " + ua.Message,
-        _ => $"erreur interne de l'environnement d'execution ({e.GetType().Name} : {e.Message})",
+        StackOverflowException or InsufficientExecutionStackException => "débordement de pile (récursion trop profonde)",
+        OutOfMemoryException => "mémoire insuffisante",
+        IOException io => "erreur d'entrée-sortie : " + io.Message,
+        UnauthorizedAccessException ua => "accès refusé : " + ua.Message,
+        _ => $"erreur interne de l'environnement d'exécution ({e.GetType().Name} : {e.Message})",
     };
 
     bool Filter(A68Error e, ThreadCtx ts)

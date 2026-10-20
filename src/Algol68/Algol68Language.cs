@@ -51,7 +51,7 @@ public sealed class Algol68Language : ILanguageService
             list.Add(d);
             if (list.Count >= MaxDiagnostics)
             {
-                list.Add(new Diagnostic(Severity.Info, d.File, d.Line, d.Column, "trop d'erreurs : analyse arretee"));
+                list.Add(new Diagnostic(Severity.Info, d.File, d.Line, d.Column, "trop d'erreurs : analyse arrêtée"));
                 break;
             }
         }

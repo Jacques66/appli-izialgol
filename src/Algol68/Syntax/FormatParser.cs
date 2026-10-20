@@ -40,7 +40,7 @@ internal sealed class FormatParser
         {
             f.Pieces = ParsePieces(false);
             SkipWs();
-            if (p < text.Length) throw Err($"caractere inattendu « {Peek()} » dans le format");
+            if (p < text.Length) throw Err($"caractère inattendu « {Peek()} » dans le format");
         }
         catch (FmtError e)
         {
@@ -121,7 +121,7 @@ internal sealed class FormatParser
                     int al = line, ac = col;
                     var r2 = ParseReplicator();
                     SkipWs();
-                    var e2 = ParseInsertionElem(r2, al, ac) ?? throw Err($"insertion attendue apres une collection, trouve « {Peek()} »");
+                    var e2 = ParseInsertionElem(r2, al, ac) ?? throw Err($"insertion attendue après une collection, trouvé « {Peek()} »");
                     after.Add(e2);
                 }
                 coll.After = ToInsertion(after);
@@ -144,7 +144,7 @@ internal sealed class FormatParser
                     continue;
                 }
                 if (!(c is 'd' or 'z' or 'a' or '.' or 'e' or 'i' or 'D' or 'Z' or 'A' or 'E' or 'I'))
-                    throw Err($"cadre supprimable attendu apres « s », trouve « {c} »");
+                    throw Err($"cadre supprimable attendu après « s », trouvé « {c} »");
             }
             c = char.ToLowerInvariant(c);
             switch (c)
@@ -153,7 +153,7 @@ internal sealed class FormatParser
                     NextCh(); e3.Kind = c; break;
                 case 'r':
                     NextCh();
-                    if (rep.Dynamic != null || !rep.Present) throw Err("la base d'un motif de bits doit etre un nombre (2r, 4r, 8r, 16r)");
+                    if (rep.Dynamic != null || !rep.Present) throw Err("la base d'un motif de bits doit être un nombre (2r, 4r, 8r, 16r)");
                     e3.Kind = 'r'; e3.Radix = rep.Static;
                     if (e3.Radix is not (2 or 4 or 8 or 16)) throw Err($"base {e3.Radix} invalide pour un motif de bits");
                     e3.Rep = new ReplicatorAst();
@@ -182,7 +182,7 @@ internal sealed class FormatParser
                 case 'c':
                     {
                         NextCh(); SkipWs();
-                        if (Peek() != '(') throw Err("« ( » attendu apres « c » (motif de choix)");
+                        if (Peek() != '(') throw Err("« ( » attendu après « c » (motif de choix)");
                         NextCh();
                         e3.Kind = 'c';
                         while (true)
@@ -199,7 +199,7 @@ internal sealed class FormatParser
                 case 'f':
                     {
                         NextCh(); SkipWs();
-                        if (Peek() != '(') throw Err("« ( » attendu apres « f » (motif de format)");
+                        if (Peek() != '(') throw Err("« ( » attendu après « f » (motif de format)");
                         e3.Kind = 'f';
                         e3.Unit = ParseEnclosedUnit();
                         break;
@@ -216,7 +216,7 @@ internal sealed class FormatParser
                         break;
                     }
                 default:
-                    throw Err($"caractere « {Peek()} » inattendu dans le format");
+                    throw Err($"caractère « {Peek()} » inattendu dans le format");
             }
             elems.Add(e3);
         }
@@ -250,7 +250,7 @@ internal sealed class FormatParser
             int el = line, ec = col;
             var rep = ParseReplicator();
             SkipWs();
-            var e = ParseInsertionElem(rep, el, ec) ?? throw Err($"litteral attendu dans un motif de choix, trouve « {Peek()} »");
+            var e = ParseInsertionElem(rep, el, ec) ?? throw Err($"litteral attendu dans un motif de choix, trouvé « {Peek()} »");
             elems.Add(e);
         }
         return ToInsertion(elems);
@@ -262,7 +262,7 @@ internal sealed class FormatParser
         var sb = new StringBuilder();
         while (true)
         {
-            if (p >= text.Length) throw Err("chaine non terminee dans le format");
+            if (p >= text.Length) throw Err("chaîne non terminee dans le format");
             char c = NextCh();
             if (c == '"')
             {
@@ -375,7 +375,7 @@ internal sealed class FormatParser
         if (specials.Count > 0)
         {
             if (specials.Count > 1 || pat.Frames.Count > 0)
-                throw new FmtError("un motif de choix, de format ou general ne peut pas etre combine avec d'autres cadres", l, c);
+                throw new FmtError("un motif de choix, de format ou général ne peut pas être combine avec d'autres cadres", l, c);
             var s = specials[0];
             switch (s.Kind)
             {
@@ -402,7 +402,7 @@ internal sealed class FormatParser
         bool hasPE = frames.Any(f => f.Marker is '.' or 'e');
         if (hasA)
         {
-            if (frames.Any(f => f.Marker != 'a')) throw new FmtError("un motif de chaine ne contient que des cadres « a »", l, c);
+            if (frames.Any(f => f.Marker != 'a')) throw new FmtError("un motif de chaîne ne contient que des cadres « a »", l, c);
             return PatternKind.String;
         }
         if (hasB)
@@ -413,7 +413,7 @@ internal sealed class FormatParser
         if (hasR)
         {
             if (frames[0].Marker != 'r' || frames.Skip(1).Any(f => f.Marker is not ('d' or 'z')))
-                throw new FmtError("motif de bits mal forme (forme attendue : 2r8d)", l, c);
+                throw new FmtError("motif de bits mal formé (forme attendue : 2r8d)", l, c);
             return PatternKind.Bits;
         }
         if (hasI)
@@ -433,6 +433,6 @@ internal sealed class FormatParser
         if (points > 1) throw new FmtError("plusieurs cadres « . » dans un motif", l, c);
         if (exps > 1) throw new FmtError("plusieurs cadres « e » dans un motif", l, c);
         if (signs > (exps > 0 ? 2 : 1)) throw new FmtError("trop de cadres de signe dans un motif", l, c);
-        if (frames.All(f => f.Marker is '+' or '-')) throw new FmtError("motif numerique sans chiffre", l, c);
+        if (frames.All(f => f.Marker is '+' or '-')) throw new FmtError("motif numérique sans chiffre", l, c);
     }
 }

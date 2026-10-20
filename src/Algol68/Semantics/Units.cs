@@ -202,7 +202,7 @@ public sealed partial class Compiler
     {
         if (target.IsVoid) return new ConstNode(default).At<ConstNode>(at);
         var r = target.AsRow;
-        if (r == null) { if (target != M.Any) Error(at, $"() (rangee vide) en contexte de mode {target}"); return new ConstNode(default); }
+        if (r == null) { if (target != M.Any) Error(at, $"() (rangée vide) en contexte de mode {target}"); return new ConstNode(default); }
         int dims = r.Dims;
         return new SkipNode(() =>
         {
@@ -215,7 +215,7 @@ public sealed partial class Compiler
     Node GenJump(string label, Mode target, Ast at)
     {
         var ls = LookupLabel(label);
-        if (ls == null) { Error(at, $"etiquette « {label} » non declaree"); return new ConstNode(default); }
+        if (ls == null) { Error(at, $"étiquette « {label} » non déclarée"); return new ConstNode(default); }
         NoteFree(ls.Range);
         int hops = HopsTo(ls.Range);
         if (target is ProcMode pm && pm.Params.Length == 0 && pm.Result.IsVoid)
@@ -276,12 +276,12 @@ public sealed partial class Compiler
         int size = Math.Max(0, d.Size);
         if (size == 0)
         {
-            if (d.Value > int.MaxValue) { Error(d, $"denotation entiere {d.Value} superieure a max int ({int.MaxValue})"); return (new ConstNode(Value.I(0)), M.Int); }
+            if (d.Value > int.MaxValue) { Error(d, $"dénotation entière {d.Value} supérieure a max int ({int.MaxValue})"); return (new ConstNode(Value.I(0)), M.Int); }
             return (new ConstNode(Value.I((long)d.Value)).At<ConstNode>(d), M.Int);
         }
         if (size > 2) size = 2;
         var max = Prelude.MaxLongInt(size, this);
-        if (d.Value > max) Error(d, $"denotation trop grande pour {(size == 1 ? "LONG INT" : "LONG LONG INT")}");
+        if (d.Value > max) Error(d, $"dénotation trop grande pour {(size == 1 ? "LONG INT" : "LONG LONG INT")}");
         return (new ConstNode(Value.Obj(d.Value)).At<ConstNode>(d), M.IntOf(size));
     }
 
@@ -291,7 +291,7 @@ public sealed partial class Compiler
         if (size == 0)
         {
             if (!double.TryParse(d.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) || double.IsInfinity(v))
-            { Error(d, $"denotation reelle {d.Text} hors limites"); v = 0; }
+            { Error(d, $"dénotation réelle {d.Text} hors limites"); v = 0; }
             return (new ConstNode(Value.R(v)).At<ConstNode>(d), M.Real);
         }
         var mp = MpReal.Parse(d.Text, Prelude.RealDigits(size, this));
@@ -302,7 +302,7 @@ public sealed partial class Compiler
     {
         int size = Math.Max(0, Math.Min(2, d.Size));
         int width = Prelude.BitsWidthOf(size, this);
-        if (d.Value.GetBitLength() > width) Error(d, $"denotation de bits {d.Text} trop large pour {width} bits");
+        if (d.Value.GetBitLength() > width) Error(d, $"dénotation de bits {d.Text} trop large pour {width} bits");
         if (size == 0) return (new ConstNode(Value.I((long)(d.Value & uint.MaxValue))).At<ConstNode>(d), M.Bits);
         return (new ConstNode(Value.Obj(d.Value)).At<ConstNode>(d), M.BitsOf(size));
     }
@@ -314,7 +314,7 @@ public sealed partial class Compiler
         var s = LookupId(id.Name);
         if (s == null)
         {
-            Error(id, $"identificateur « {id.Name} » non declare");
+            Error(id, $"identificateur « {id.Name} » non déclaré");
             return (new ConstNode(default).At<ConstNode>(id), M.Any);
         }
         return (SymNode(s, id), s.Mode);
@@ -329,7 +329,7 @@ public sealed partial class Compiler
             if (s.Builtin != null) return new ConstNode(Value.Obj(new ProcV { Builtin = s.Builtin, Name = s.Name })).At<ConstNode>(at);
         }
         if (!s.Declared && s.Range.Routine == routine && suppressDeclCheck == 0 && !s.IsLoopVar)
-            Error(at, $"« {s.Name} » utilise avant sa declaration");
+            Error(at, $"« {s.Name} » utilisé avant sa déclaration");
         NoteFree(s.Range);
         var n = new SlotNode(HopsTo(s.Range), s.Slot) { Name = s.Name, NeedsObj = s.Mode is not PrimMode };
         n.SetPos(at);
@@ -354,7 +354,7 @@ public sealed partial class Compiler
             {
                 if (pm.Params.Length > 0)
                 {
-                    if (a.Brackets && report) Error(a, "appel de procedure avec des crochets [ ]");
+                    if (a.Brackets && report) Error(a, "appel de procédure avec des crochets [ ]");
                     Mode res = pm.Result;
                     if (trims > 0)
                     {
@@ -384,7 +384,7 @@ public sealed partial class Compiler
             }
             break;
         }
-        if (report) Error(a, $"{A} n'est ni une procedure ni une rangee : appel ou tranche impossible");
+        if (report) Error(a, $"{A} n'est ni une procédure ni une rangée : appel ou tranche impossible");
         return new ApplyInfo(ApplyKind.Error, null, M.Any);
     }
 
@@ -446,7 +446,7 @@ public sealed partial class Compiler
     Node GenSlice(ApplyAst a, ApplyInfo info)
     {
         var row = info.Row!;
-        if (a.Args.Count != row.Dims) Error(a, $"{a.Args.Count} indice(s) pour une rangee a {row.Dims} dimension(s)");
+        if (a.Args.Count != row.Dims) Error(a, $"{a.Args.Count} indice(s) pour une rangée a {row.Dims} dimension(s)");
         var prim = Gen(a.Primary, info.PrimTarget!, Strength.Weak);
         bool onName = info.Kind == ApplyKind.SliceName;
         var ix = new SliceIndexer[a.Args.Count];
@@ -479,7 +479,7 @@ public sealed partial class Compiler
     SelInfo ClassifySelection(SelectionAst sel, bool report)
     {
         var A = Apriori(sel.Secondary);
-        if (A == null) { if (report) Error(sel, "selection dans une valeur sans mode a priori"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
+        if (A == null) { if (report) Error(sel, "sélection dans une valeur sans mode a priori"); return new SelInfo(SelKind.Error, null, M.Any, -1); }
         if (A == M.Any) return new SelInfo(SelKind.Error, null, M.Any, -1);
         var cur = A;
         for (int g = 0; g < 32; g++)
@@ -516,7 +516,7 @@ public sealed partial class Compiler
             if (cur is ProcMode pm && pm.Params.Length == 0) { cur = pm.Result; continue; }
             break;
         }
-        if (report) Error(sel, $"selection « {sel.Field} OF » dans une valeur de mode {A} qui n'est pas une structure");
+        if (report) Error(sel, $"sélection « {sel.Field} OF » dans une valeur de mode {A} qui n'est pas une structure");
         return new SelInfo(SelKind.Error, null, M.Any, -1);
     }
 
@@ -547,7 +547,7 @@ public sealed partial class Compiler
         var dt = DeprocAll(a);
         if (dt is not RefMode rm)
         {
-            if (dt != M.Any) Error(asg.Dest, $"la destination d'une affectation doit etre un nom (mode REF ...), pas {a}");
+            if (dt != M.Any) Error(asg.Dest, $"la destination d'une affectation doit être un nom (mode REF ...), pas {a}");
             Gen(asg.Source, M.Any, Strength.Strong);
             return (new ConstNode(default).At<ConstNode>(asg), M.Any);
         }
@@ -555,7 +555,7 @@ public sealed partial class Compiler
         var sub = rm.Sub;
         var valMode = M.Normalize(sub);
         var src = Gen(asg.Source, valMode, Strength.Strong);
-        CheckTransient(src, asg.Source, "affecte");
+        CheckTransient(src, asg.Source, "affecté");
         bool scopeCheck = valMode.HasNames;
         Node n;
         if (dest is SlotNode sn && !sub.NeedsCopy && !scopeCheck) n = new AssignSlotNode(sn.Hops, sn.Slot, src);
@@ -608,7 +608,7 @@ public sealed partial class Compiler
             for (int i = 0; i < rt.Params.Count; i++)
             {
                 var p = rt.Params[i];
-                if (!names.Add(p.Name)) Error(p, $"parametre « {p.Name} » declare deux fois");
+                if (!names.Add(p.Name)) Error(p, $"paramètre « {p.Name} » déclaré deux fois");
                 var s = new IdSym { Name = p.Name, Range = pr, Mode = pm.Params[i], Slot = ctx.Alloc(), Declared = true, Pos = p };
                 pr.Ids[p.Name] = s;
                 info.Vars.Add(new DebugVar { Name = p.Name, Slot = s.Slot, Mode = s.Mode, FromLine = rt.Line, ToLine = int.MaxValue, File = rt.File });
@@ -681,21 +681,21 @@ public sealed partial class Compiler
                 }
                 else
                 {
-                    if (i == last) Error(ph, "une clause doit se terminer par une unite, pas par une declaration");
-                    if (seenLabel) Error(ph, "une declaration ne peut pas suivre une unite etiquetee dans la meme clause");
+                    if (i == last) Error(ph, "une clause doit se terminer par une unité, pas par une déclaration");
+                    if (seenLabel) Error(ph, "une déclaration ne peut pas suivre une unité étiquetée dans la même clause");
                     foreach (var n in GenDeclaration((DeclarationAst)ph))
                     {
                         stmts.Add(Stmt(n)); yields.Add(false); completes.Add(false);
                     }
                 }
-                if (i < last && s.ExitAfter.Contains(i) && ph is not LabeledUnit) Error(ph, "EXIT doit suivre une unite");
+                if (i < last && s.ExitAfter.Contains(i) && ph is not LabeledUnit) Error(ph, "EXIT doit suivre une unité");
             }
             if (stmts.Count == 0) { stmts.Add(new ConstNode(default)); yields.Add(true); completes.Add(true); }
             // EXIT suivi d'une partie sans etiquette : inaccessible
             for (int i = 0; i < s.ExitAfter.Count; i++)
             {
                 int k = s.ExitAfter[i] + 1;
-                if (k <= last && s.Phrases[k] is LabeledUnit nl && nl.Labels.Count == 0) Error(nl, "unite inaccessible apres EXIT (une etiquette est requise)");
+                if (k <= last && s.Phrases[k] is LabeledUnit nl && nl.Labels.Count == 0) Error(nl, "unité inaccessible après EXIT (une étiquette est requise)");
             }
             serial.Stmts = stmts.ToArray(); serial.Yields = yields.ToArray(); serial.Completes = completes.ToArray();
             serial.HasLabels = hasLabels;
@@ -726,7 +726,7 @@ public sealed partial class Compiler
                     if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     if (val is RoutineTextAst) pendingRoutineName = name;
                     var v = Gen(val, s.Mode, Strength.Strong);
-                    CheckTransient(v, val, "lie a un identificateur");
+                    CheckTransient(v, val, "lié à un identificateur");
                     pendingRoutineName = null;
                     s.Declared = true;
                     yield return new IdentityDeclNode(s.Slot, v, s.Mode, s.Mode.NeedsCopy && !IsFresh(v)).At<IdentityDeclNode>(pos);
@@ -743,7 +743,7 @@ public sealed partial class Compiler
                     {
                         if (init is RoutineTextAst) pendingRoutineName = name;
                         iv = Gen(init, M.Normalize(sub), Strength.Strong);
-                        CheckTransient(iv, init, "affecte");
+                        CheckTransient(iv, init, "affecté");
                         pendingRoutineName = null;
                     }
                     s.Declared = true;

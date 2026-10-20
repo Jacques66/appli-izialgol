@@ -35,7 +35,7 @@ public static class Calls
         if (++ts.CallDepth > MaxCallDepth || !RuntimeHelpers.TryEnsureSufficientExecutionStack())
         {
             ts.CallDepth--;
-            throw RT.Err("debordement de pile (recursion trop profonde)", site);
+            throw RT.Err("débordement de pile (récursion trop profonde)", site);
         }
         nf.Caller = ts.Top;
         ts.Top = nf;
@@ -44,7 +44,7 @@ public static class Calls
         {
             var v = nf.Info.Body.Eval(nf);
             if (nf.Info.CheckResultScope && RT.ScopeOf(v, nf.Info.ResultMode!) >= nf.Depth)
-                throw RT.Err($"violation de portee : la routine « {nf.Info.Name} » rend une valeur locale", site);
+                throw RT.Err($"violation de portée : la routine « {nf.Info.Name} » rend une valeur locale", site);
             return v;
         }
         finally
@@ -66,7 +66,7 @@ public sealed class CallNode : Node
     }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procedure non initialisee", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procédure non initialisée", this);
         if (p.Routine != null && p.Bound == null && p.Jump == null)
         {
             var r = p.Routine;
@@ -74,7 +74,7 @@ public sealed class CallNode : Node
             for (int i = 0; i < args.Length; i++)
             {
                 var v = args[i].Eval(f);
-                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"argument {i + 1} non initialise", this);
+                if (ReferenceEquals(v.O, Value.Uninit)) throw RT.Err($"argument {i + 1} non initialisé", this);
                 nf.S[i] = copyArg[i] ? RT.DeepCopy(v, argModes[i]) : v;
             }
             return Calls.Run(nf, this);
@@ -109,7 +109,7 @@ public sealed class DeprocNode : Node
     public DeprocNode(Node proc, int siteLevel) { this.proc = proc; this.siteLevel = siteLevel; SetPos(proc); }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procedure non initialisee", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("appel d'une procédure non initialisée", this);
         if (p.Routine != null && p.Bound == null)
         {
             var nf = new Frame(p.Routine, p.Env, f.Depth + siteLevel + 1, f.Ctx);
@@ -143,7 +143,7 @@ public sealed class PartialCallNode : Node
     public PartialCallNode(Node proc, Node?[] args, ProcMode full) { this.proc = proc; this.args = args; this.full = full; }
     public override Value Eval(Frame f)
     {
-        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("procedure non initialisee", this);
+        var p = proc.EvalObj(f) as ProcV ?? throw RT.Err("procédure non initialisée", this);
         int n = full.Params.Length;
         var bound = new Value[n]; var mask = new bool[n];
         if (p.Bound != null)

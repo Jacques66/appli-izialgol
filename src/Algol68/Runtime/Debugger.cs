@@ -231,7 +231,7 @@ public sealed class Debugger : IDebugger
                     int k = 0;
                     foreach (int idx in row.Indices())
                     {
-                        if (k++ >= 1000) { res.Add(new VariableInfo("...", "", $"({row.Count - 1000} elements de plus)")); break; }
+                        if (k++ >= 1000) { res.Add(new VariableInfo("...", "", $"({row.Count - 1000} éléments de plus)")); break; }
                         res.Add(Describe("[" + IndexText(row, idx) + "]", elem, row.GetAt(idx)));
                     }
                 }
@@ -274,7 +274,7 @@ public sealed class Debugger : IDebugger
 
     public static string ValueText(Mode m, Value v, int depth)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) return "<non initialise>";
+        if (ReferenceEquals(v.O, Value.Uninit)) return "<non initialisé>";
         try
         {
             switch (m)
@@ -311,8 +311,8 @@ public sealed class Debugger : IDebugger
                     {
                         if (v.O is not RowV row) return "?";
                         var elem = m.AsRow!.Elem;
-                        if (elem is PrimMode { Kind: Prim.Char }) { try { return "\"" + row.AsString() + "\""; } catch { return "<chaine partielle>"; } }
-                        return RT.BoundsText(row) + $" ({row.Count} elements)";
+                        if (elem is PrimMode { Kind: Prim.Char }) { try { return "\"" + row.AsString() + "\""; } catch { return "<chaîne partielle>"; } }
+                        return RT.BoundsText(row) + $" ({row.Count} éléments)";
                     }
                 case UnionMode:
                     return v.O is UnionV u ? $"({u.M}) " + ValueText(u.M, u.V, depth + 1) : "?";

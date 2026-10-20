@@ -14,27 +14,27 @@ public static class RT
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value CheckInit(Value v, Node at)
     {
-        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("valeur non initialisee", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("valeur non initialisée", at);
         return v;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RefV CheckNil(RefV? r, Node at)
     {
-        if (r == null || r.A == null) throw Err("dereferencement de NIL", at);
+        if (r == null || r.A == null) throw Err("déréférencement de NIL", at);
         return r;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long CheckInt(long v, Node at)
     {
-        if (v > int.MaxValue || v < int.MinValue) throw Err("debordement d'entier (INT)", at);
+        if (v > int.MaxValue || v < int.MinValue) throw Err("débordement d'entier (INT)", at);
         return v;
     }
 
     public static double CheckReal(double d, Node at)
     {
-        if (double.IsNaN(d) || double.IsInfinity(d)) throw Err("debordement ou resultat indefini (REAL)", at);
+        if (double.IsNaN(d) || double.IsInfinity(d)) throw Err("débordement ou résultat indéfini (REAL)", at);
         return d;
     }
 
@@ -111,7 +111,7 @@ public static class RT
                     var src = (RowV)CheckInit(v, at).O!;
                     if (a[i].O is not RowV cur) { a[i] = Value.Obj(CopyRow(src, rm.Elem)); return; }
                     if (!cur.SameBounds(src))
-                        throw Err($"affectation de rangees de bornes differentes ({BoundsText(src)} dans {BoundsText(cur)})", at);
+                        throw Err($"affectation de rangées de bornes différentes ({BoundsText(src)} dans {BoundsText(cur)})", at);
                     AssignRowElements(cur, src, rm.Elem, at);
                     return;
                 }
@@ -180,7 +180,7 @@ public static class RT
     public static void CheckScope(Value v, Mode m, int limit, Node at)
     {
         int s = ScopeOf(v, m);
-        if (s > limit) throw Err("violation de portee : la valeur ne vit pas assez longtemps pour cette affectation ou ce resultat", at);
+        if (s > limit) throw Err("violation de portée : la valeur ne vit pas assez longtemps pour cette affectation ou ce résultat", at);
     }
 
     /// <summary>Valeur produite par SKIP pour un mode.</summary>
@@ -225,7 +225,7 @@ public static class RT
     {
         if (v.O is RowV r) return r.AsString();
         if (v.O == null) return ((char)v.N).ToString();
-        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("chaine non initialisee", at);
+        if (ReferenceEquals(v.O, Value.Uninit)) throw Err("chaîne non initialisée", at);
         return v.O.ToString() ?? "";
     }
 

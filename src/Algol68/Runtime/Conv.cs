@@ -174,7 +174,7 @@ public static class Conv
     {
         int dg = x.Digits + after + 30;
         var y = MpReal.Add(x.WithDigits(dg), Half10(after, dg));
-        // partie entiere et chiffres
+        // partie entière et chiffres
         var (ds, e10) = y.DecimalDigits();
         if (y.IsZero) { ds = "0"; e10 = 0; }
         // representation decimale exacte : chiffres ds, premier chiffre de poids 10^e10

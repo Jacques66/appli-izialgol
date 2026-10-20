@@ -37,7 +37,7 @@ static class InternalTests
         var cr = Compile(src, name + ".a68");
         if (!cr.Success) { Program.Fail("interne/" + name, string.Join("\n", cr.Diagnostics)); return; }
         var (_, res, _) = Program.Execute(cr.Program!, null);
-        if (res.Error == null) { Program.Fail("interne/" + name, "erreur d'execution attendue"); return; }
+        if (res.Error == null) { Program.Fail("interne/" + name, "erreur d'exécution attendue"); return; }
         if (!res.Error.Message.Contains(fragment, StringComparison.OrdinalIgnoreCase) || (line != 0 && res.Error.Line != line))
         { Program.Fail("interne/" + name, $"attendu « {fragment} » ligne {line}, obtenu {res.Error}"); return; }
         Program.Pass("interne/" + name);
@@ -88,7 +88,7 @@ static class InternalTests
                 }
                 return 0;
             });
-            Check("debogueur-point-arret-corps-unite", res.Error == null && Lines(p) == "3,3" && p.All(x => x.reason == PauseReason.Breakpoint),
+            Check("debogueur-point-arret-corps-unité", res.Error == null && Lines(p) == "3,3" && p.All(x => x.reason == PauseReason.Breakpoint),
                 $"pauses : {Lines(p)} erreur : {res.Error}");
             Check("debogueur-variables", vars == "n=1|s=0;p=routine p", "variables : " + vars);
             Check("debogueur-pile", stack == "p@3;programme principal@4", "pile : " + stack);
@@ -144,7 +144,7 @@ static class InternalTests
                 kids += "|" + string.Join(";", d.GetChildren(vv).Select(c => $"{c.Name}={c.Value}"));
                 return 0;
             });
-            Check("debogueur-enfants", kids == "x=4;v=[1:3] (3 elements)|[1]=1;[2]=2;[3]=3", "enfants : " + kids);
+            Check("debogueur-enfants", kids == "x=4;v=[1:3] (3 éléments)|[1]=1;[2]=2;[3]=3", "enfants : " + kids);
         }
     }
 
@@ -224,7 +224,7 @@ static class InternalTests
             Check("debogueur-par", res.Error == null && Lines(p) == "3" && o == "         +3\n", $"pauses {Lines(p)} sortie {o} {res.Error}");
         }
         // impression de structure avec champ non initialise
-        ExpectRuntimeError("champ-non-initialise", "STRUCT (INT a, b) s;\na OF s := 1;\nprint(s)\n", "non initialisee", 3);
+        ExpectRuntimeError("champ-non-initialisé", "STRUCT (INT a, b) s;\na OF s := 1;\nprint(s)\n", "non initialisée", 3);
         // valeurs exactes de quelques conversions (algorithmes a68g)
         Expect("conversions", "print((whole(0, 0), whole(-5, 3), fixed(2.5, 0, 0), fixed(-0.25, 0, 2), float(0.0, 10, 3, 2), newline))",
             "0 -53-.25 +0.000e+0\n");
@@ -260,7 +260,7 @@ static class InternalTests
                 catch (Exception e) { bad.Add($"{Path.GetFileName(f)} #{k} : exception {e.GetType().Name} {e.Message}"); }
             }
         }
-        Check("robustesse-compilateur", bad.Count == 0, $"{bad.Count}/{cases} cas en echec :\n" + string.Join("\n", bad.Take(15)));
+        Check("robustesse-compilateur", bad.Count == 0, $"{bad.Count}/{cases} cas en échec :\n" + string.Join("\n", bad.Take(15)));
     }
 
     public static void Run()

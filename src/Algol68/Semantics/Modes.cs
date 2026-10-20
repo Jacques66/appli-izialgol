@@ -262,7 +262,7 @@ public sealed class ModeTable
     public Mode Intern(Mode root)
     {
         if (root.Canonical) return root;
-        if (root is IndicantMode im) return im.Target != null ? Intern(im.Target) : throw new InvalidOperationException("indicant non resolu");
+        if (root is IndicantMode im) return im.Target != null ? Intern(im.Target) : throw new InvalidOperationException("indicant non résolu");
         // noeuds non canoniques atteignables
         var nodes = new List<Mode>();
         var seen = new HashSet<Mode>(ReferenceEqualityComparer.Instance);
@@ -456,7 +456,7 @@ public sealed class ModeTable
                     sb.Append(s.Kind switch
                     {
                         SpecialKind.Skip => "SKIP", SpecialKind.Nil => "NIL", SpecialKind.Jump => "saut", SpecialKind.Vacuum => "()",
-                        SpecialKind.Rows => "ROWS", SpecialKind.OutType => "SIMPLOUT", SpecialKind.InType => "SIMPLIN", SpecialKind.Label => "etiquette", _ => "?"
+                        SpecialKind.Rows => "ROWS", SpecialKind.OutType => "SIMPLOUT", SpecialKind.InType => "SIMPLIN", SpecialKind.Label => "étiquette", _ => "?"
                     });
                     break;
                 case IndicantMode im: sb.Append(im.Ind); break;
