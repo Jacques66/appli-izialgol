@@ -1,0 +1,33 @@
+# Clause parallele et semaphores : producteur / consommateur avec tampon borne #
+BEGIN
+   INT taille = 3;
+   [0:taille - 1] INT tampon;
+   INT entree := 0, sortie := 0;
+   SEMA libres = LEVEL taille, pleins = LEVEL 0, exclusion = LEVEL 1;
+   INT n = 20;
+   [1:n] INT recus;
+   PROC produire = VOID:
+      FOR i TO n DO
+         DOWN libres; DOWN exclusion;
+         tampon[entree] := i * i; entree := (entree + 1) MOD taille;
+         UP exclusion; UP pleins
+      OD;
+   PROC consommer = VOID:
+      FOR i TO n DO
+         DOWN pleins; DOWN exclusion;
+         recus[i] := tampon[sortie]; sortie := (sortie + 1) MOD taille;
+         UP exclusion; UP libres
+      OD;
+   PAR (produire, consommer);
+   INT somme := 0;
+   FOR i TO n DO somme +:= recus[i] OD;
+   print((somme, newline));
+   BOOL ordre := TRUE;
+   FOR i TO n DO ordre := ordre AND recus[i] = i * i OD;
+   print((ordre, LEVEL libres, LEVEL pleins, newline));
+   INT compteur := 0;
+   SEMA mutex = LEVEL 1;
+   PROC incrementer = VOID: TO 1000 DO DOWN mutex; compteur +:= 1; UP mutex OD;
+   PAR BEGIN incrementer, incrementer, incrementer END;
+   print((compteur, newline))
+END

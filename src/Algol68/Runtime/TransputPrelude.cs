@@ -132,8 +132,9 @@ public static partial class Prelude
         });
 
         // bits pack / bytes pack
-        for (int s = 0; s <= 2; s++)
+        for (int s0 = 0; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             int w = BitsWidthOf(s);
             Proc(LongPrefix(s) + "bitspack", M.BitsOf(s), new[] { M.RowBool }, (f, a, at) =>

@@ -1,0 +1,24 @@
+# Prelude standard : enquetes d'environnement, fonctions mathematiques, aleatoire #
+BEGIN
+   print((max int, int width, real width, exp width, newline));
+   print((max real > 1e300, small real > 0, small real < 1e-15, 1 + small real > 1, newline));
+   print((ABS null character, ABS blank, flip, flop, errorchar, newline));
+   print((sqrt(16), exp(0), ln(1), newline));
+   print((fixed(sin(pi / 2), 0, 6), " ", fixed(cos(0), 0, 6), " ", fixed(arctan(1) * 4, 0, 6), newline));
+   print((fixed(arcsin(1), 0, 4), " ", fixed(arccos(-1), 0, 4), " ", fixed(tan(pi / 4), 0, 4), " ", fixed(log(1000), 0, 4), newline));
+   print((int lengths, real lengths, bits lengths, bytes lengths, newline));
+   print((int shorths, real shorths, newline));
+   print((max abs char, newline));
+   first random(42);
+   REAL r1 = random;
+   print((r1 >= 0 AND r1 < 1, newline));
+   INT seed := 7;
+   REAL nr = next random(seed);
+   print((nr >= 0 AND nr < 1, seed /= 7, newline));
+   print((ENTIER 3.7, ENTIER -3.2, ROUND 3.5, ROUND -3.5, newline));
+   print((exp width, long exp width, long long exp width, newline));
+   print((pi, newline));
+   print((whole(max int, 0), " ", whole(-max int, 0), newline));
+   print((float(pi, 10, 4, 2), " ", float(-pi * 1000, 12, 3, 3), newline));
+   print((fixed(-1.5, 6, 2), "|", fixed(1.5, -6, 2), "|", whole(-42, 6), "|", whole(42, -6), newline))
+END

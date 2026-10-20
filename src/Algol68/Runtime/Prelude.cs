@@ -280,8 +280,9 @@ public static partial class Prelude
         Op1("LENG", M.LongInt, I, (v, at) => Value.Obj((BigInteger)v.N));
         Op1("SHORTEN", I, M.LongInt, (v, at) => BigV((BigInteger)v.O!, 0, at));
         // LONG INT, LONG LONG INT
-        for (int s = 1; s <= 2; s++)
+        for (int s0 = 1; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             var L = M.IntOf(s); var LR = M.RealOf(s);
             BigInteger G(Value v) => (BigInteger)v.O!;
@@ -379,8 +380,9 @@ public static partial class Prelude
             return Value.R(d);
         });
         // LONG REAL, LONG LONG REAL
-        for (int s = 1; s <= 2; s++)
+        for (int s0 = 1; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             var L = M.RealOf(s); var LI = M.IntOf(s);
             var ra = new RA(s, RealDigits(s));
@@ -428,8 +430,9 @@ public static partial class Prelude
     static void BuildComplOps(ModeTable M)
     {
         var I = M.Int; var B = M.Bool;
-        for (int s = 0; s <= 2; s++)
+        for (int s0 = 0; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             var C = s == 0 ? M.Compl : s == 1 ? M.LongCompl : M.LongLongCompl;
             var R = M.RealOf(s); var LI = M.IntOf(s);
@@ -531,8 +534,9 @@ public static partial class Prelude
         Op("-:= MINUSAB", RR, new[] { RR, Ii }, a => new RealPlusAb(a[0], new WidenIntRealNode(a[1]), 1));
         Op("*:= TIMESAB", RR, new[] { RR, Ii }, a => new RealPlusAb(a[0], new WidenIntRealNode(a[1]), 2));
         Op("/:= DIVAB", RR, new[] { RR, Ii }, a => new RealPlusAb(a[0], new WidenIntRealNode(a[1]), 3));
-        for (int s = 1; s <= 2; s++)
+        for (int s0 = 1; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             var L = M.IntOf(s); var RL = M.Ref(L);
             BigInteger G(Value v) => (BigInteger)v.O!;
@@ -633,8 +637,9 @@ public static partial class Prelude
     static void BuildBitsBytesOps(ModeTable M)
     {
         var I = M.Int; var B = M.Bool;
-        for (int s = 0; s <= 2; s++)
+        for (int s0 = 0; s0 <= 2; s0++)
         {
+            int s = s0;
             int size = s;
             var Bt = M.BitsOf(s);
             var LI = M.IntOf(s);
@@ -657,7 +662,7 @@ public static partial class Prelude
             }
             Op2("SHL UP ^ **", Bt, Bt, I, (x, y, at) => Shift(x, y.N, at));
             Op2("SHR DOWN", Bt, Bt, I, (x, y, at) => Shift(x, -y.N, at));
-            Op1("ABS", LI, Bt, (v, at) => size == 0 ? Value.I((long)(uint)v.N & int.MaxValue | ((uint)v.N > int.MaxValue ? ((long)(uint)v.N) : 0)) : Value.Obj(G(v)));
+            Op1("ABS", LI, Bt, (v, at) => size == 0 ? Value.I((long)(int)(uint)v.N) : Value.Obj(G(v))); // a68g : interpretation signee sur 32 bits
             Op1("BIN", Bt, LI, (v, at) =>
             {
                 var b = Big(v, size);
@@ -694,8 +699,9 @@ public static partial class Prelude
         }
         // ABS (BITS) INT : interpretation non signee limitee a INT (a68g : valeur sur 32 bits)
         // BYTES
-        for (int s = 0; s <= 1; s++)
+        for (int s0 = 0; s0 <= 1; s0++)
         {
+            int s = s0;
             var By = s == 0 ? M.Bytes : M.LongBytes;
             int w = s == 0 ? BytesWidth : LongBytesWidth;
             string G(Value v, Node at) => v.O as string ?? throw RT.Err("octets non initialises", at);
@@ -768,8 +774,9 @@ public static partial class Prelude
         Const("tabchar", M.Char, Value.I('\t')); Const("tabcharacter", M.Char, Value.I('\t'));
         Const("pi", M.Real, Value.R(Math.PI));
         Const("maxbits", M.Bits, Value.I(uint.MaxValue));
-        for (int s = 1; s <= 2; s++)
+        for (int s0 = 1; s0 <= 2; s0++)
         {
+            int s = s0;
             string p = LongPrefix(s);
             var ra = new RA(s, RealDigits(s));
             Const(p + "maxint", M.IntOf(s), Value.Obj(MaxLongInt(s)));
@@ -796,8 +803,9 @@ public static partial class Prelude
 
     static void BuildMath(ModeTable M)
     {
-        for (int s = 0; s <= 2; s++)
+        for (int s0 = 0; s0 <= 2; s0++)
         {
+            int s = s0;
             var R = M.RealOf(s);
             var ra = new RA(s, RealDigits(s));
             string p = LongPrefix(s);

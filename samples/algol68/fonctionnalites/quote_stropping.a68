@@ -1,0 +1,11 @@
+'COMMENT' Programme ecrit en stropping QUOTE (detecte automatiquement) 'COMMENT'
+'BEGIN'
+   'INT' somme := 0;
+   'FOR' i 'TO' 10 'DO' somme +:= i 'OD';
+   'PROC' carre = ('REAL' x) 'REAL': x * x;
+   print((somme, newline));
+   print((carre(1.5), newline));
+   'IF' somme > 50 'THEN' print(("grand", newline)) 'ELSE' print(("petit", newline)) 'FI';
+   'STRING' Mot := "Quote";
+   print((mot, newline)) # les identificateurs ne distinguent pas la casse #
+'END'

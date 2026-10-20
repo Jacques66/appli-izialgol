@@ -1,0 +1,25 @@
+# BITS et BYTES : operateurs logiques, decalages, ELEM, SET, CLEAR, bits pack, bytes pack #
+BEGIN
+   BITS a = 2r1100, b = 2r1010;
+   print((ABS (a AND b), ABS (a OR b), ABS (a XOR b), newline));
+   print((ABS (a SHL 2), ABS (a SHR 2), ABS (a UP 1), ABS (a DOWN 3), newline));
+   print((ABS NOT 2r0, ABS 16rff, ABS 8r17, ABS 4r33, newline));
+   print((2 ELEM a, 29 ELEM a, newline));
+   print((BIN 5, newline));
+   print((a = 2r1100, a /= b, a <= 2r1110, 2r1110 >= a, newline));
+   print((bits width, newline));
+   BITS c = bits pack((TRUE, FALSE, TRUE));
+   print((ABS c, newline));
+   [] BOOL bb = c;
+   print((bb[30:32], UPB bb, newline));
+   LONG BITS lb = LONG 2r1;
+   print((whole(ABS (lb SHL 100), 0), " ", long bits width, newline));
+   print((ABS (32 SET 2r0), ABS (29 CLEAR a), newline));
+   BYTES by = bytes pack("Algol");
+   print((3 ELEM by, " ", bytes width, newline));
+   print((by = bytes pack("Algol"), by < bytes pack("B"), newline));
+   STRING s = by;
+   print((UPB s, s[1:5], newline));
+   LONG BYTES lby = LENG by;
+   print((long bytes width, 5 ELEM lby, newline))
+END

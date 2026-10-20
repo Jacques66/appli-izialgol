@@ -61,14 +61,15 @@ public sealed class ParNode : Node
             {
                 while (remaining > 0)
                 {
-                    if (ctx.RunnableThreads <= 0 && ctx.BlockedOnSema > 0)
+                    long epoch = ctx.SemaEpoch;
+                    Monitor.Wait(ctx.SchedLock, 50);
+                    if (first == null && Par.Persists(ctx, () => remaining > 0 && ctx.RunnableThreads <= 0 && ctx.BlockedOnSema > 0 && epoch == ctx.SemaEpoch))
                     {
                         // toutes les branches sont bloquees sur des semaphores
                         group.Aborted = true; ctx.AbortedGroups++; ctx.RefreshAttention();
                         first ??= RT.Err("interblocage : toutes les branches paralleles attendent un semaphore (DOWN)", this);
                         Monitor.PulseAll(ctx.SchedLock);
                     }
-                    Monitor.Wait(ctx.SchedLock, 50);
                 }
             }
             finally { ctx.RunnableThreads++; }
@@ -94,6 +95,18 @@ public sealed class ParNode : Node
 
 public static class Par
 {
+    /// <summary>Vrai si la condition (verrou tenu) reste vraie pendant 150 ms (filtre les reveils en cours).</summary>
+    public static bool Persists(ExecContext ctx, Func<bool> cond)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (sw.ElapsedMilliseconds < 150)
+        {
+            if (!cond()) return false;
+            Monitor.Wait(ctx.SchedLock, 25);
+        }
+        return cond();
+    }
+
     public static void Down(Frame f, Value s, Node at)
     {
         var sema = s.O as SemaV ?? throw RT.Err("DOWN : semaphore non initialise", at);
@@ -107,9 +120,13 @@ public static class Par
                 ctx.BlockedOnSema++;
                 try
                 {
-                    if (ctx.RunnableThreads <= 0)
-                        throw RT.Err("interblocage : tous les processus attendent un semaphore (DOWN)", at);
+                    long epoch = ctx.SemaEpoch;
                     Monitor.Wait(ctx.SchedLock, 50);
+                    // interblocage : aucun fil executable et aucun UP pendant l'attente
+                    if (Par.Persists(ctx, () => ctx.RunnableThreads <= 0 && epoch == ctx.SemaEpoch && sema.Level <= 0))
+                    {
+                            throw RT.Err("interblocage : tous les processus attendent un semaphore (DOWN)", at);
+                    }
                 }
                 finally { ctx.RunnableThreads++; ctx.BlockedOnSema--; }
                 if (ctx.CancelRequested) throw new CancelledException();
@@ -126,6 +143,7 @@ public static class Par
         lock (ctx.SchedLock)
         {
             sema.Level++;
+            ctx.SemaEpoch++;
             Monitor.PulseAll(ctx.SchedLock);
         }
     }

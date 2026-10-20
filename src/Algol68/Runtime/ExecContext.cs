@@ -48,6 +48,7 @@ public sealed class ExecContext
     public readonly object SchedLock = new();
     public int RunnableThreads = 1;
     public int BlockedOnSema;
+    public long SemaEpoch;
     public int ThreadCounter;
 
     public ExecContext(CompiledProgram program, IProgramIO io)

@@ -1,0 +1,53 @@
+# Fichiers : establish, put, close, open, get, getf, fin de fichier, associate, positions, make term #
+BEGIN
+   FILE f;
+   IF establish(f, "essai.txt", stand back channel) /= 0 THEN print("echec") FI;
+   put(f, ("ligne un", newline));
+   put(f, (12, 3.5, newline));
+   putf(f, ($"valeur "g(0)l$, 99));
+   close(f);
+   open(f, "essai.txt", stand back channel);
+   STRING s; INT i; REAL r;
+   get(f, (s, newline));
+   get(f, (i, r, newline));
+   print((s, "|", i, "|", r, newline));
+   INT v;
+   getf(f, ($"valeur "g$, v));
+   print((v, newline));
+   INT lus := 0;
+   BEGIN
+      on logical file end(f, (REF FILE ff) BOOL: GOTO fin);
+      DO get(f, (s, newline)); lus +:= 1 OD;
+   fin:
+      print(("lignes restantes : ", whole(lus, 0), newline))
+   END;
+   close(f);
+   STRING tampon := "";
+   FILE g;
+   associate(g, tampon);
+   put(g, ("abc", 42));
+   print((tampon, newline));
+   FILE h; STRING source := "17 23 bonjour";
+   associate(h, source);
+   INT a, b; STRING mot;
+   get(h, (a, b, mot));
+   print((a + b, "[", mot, "]", newline));
+   FILE p; STRING buf := "";
+   associate(p, buf);
+   put(p, ("12345", newline, "ab"));
+   print((line number(p), char number(p), newline));
+   FILE q; STRING src := "un,deux;trois";
+   associate(q, src);
+   make term(q, ",;");
+   STRING m1, m2, m3; CHAR sep;
+   get(q, (m1, sep, m2, sep, m3));
+   print((m1, "/", m2, "/", m3, newline));
+   FILE e;
+   IF open(e, "essai.txt", stand back channel) = 0 THEN
+      STRING premiere;
+      get(e, premiere);
+      print((premiere, newline));
+      scratch(e)
+   FI;
+   print((put possible(stand out), get possible(stand out), get possible(stand in), newline))
+END

@@ -158,6 +158,7 @@ public sealed partial class Transput
     string ScanInteger(Frame fr, Value refFile, FileV f, Node at)
     {
         int ch = SkipSpacesAndLines(fr, refFile, f, at);
+        if (ch < 0) { EofDuringRead(fr, refFile, f, at); return ""; }
         var sb = new StringBuilder();
         if (ch == '+' || ch == '-') { sb.Append((char)ch); ch = ReadChar(f); while (ch == ' ') ch = ReadChar(f); }
         while (ch >= 0 && char.IsDigit((char)ch)) { sb.Append((char)ch); ch = ReadChar(f); }
@@ -168,6 +169,7 @@ public sealed partial class Transput
     string ScanReal(Frame fr, Value refFile, FileV f, Node at)
     {
         int ch = SkipSpacesAndLines(fr, refFile, f, at);
+        if (ch < 0) { EofDuringRead(fr, refFile, f, at); return ""; }
         var sb = new StringBuilder();
         if (ch == '+' || ch == '-') { sb.Append((char)ch); ch = ReadChar(f); while (ch == ' ') ch = ReadChar(f); }
         while (ch >= 0 && char.IsDigit((char)ch)) { sb.Append((char)ch); ch = ReadChar(f); }
@@ -186,6 +188,14 @@ public sealed partial class Transput
         UnreadLast(f, ch);
         return sb.ToString();
     }
+
+    void EofDuringRead(Frame fr, Value refFile, FileV f, Node at)
+    {
+        Monitor.Exit(f.Lock);
+        try { LogicalFileEnd(fr, refFile, f, at); } finally { Monitor.Enter(f.Lock); }
+        throw new EofMended();
+    }
+    sealed class EofMended : Exception { }
 
     void ValueError(Frame fr, Value refFile, FileV f, Mode m, string text, Node at)
     {
@@ -248,7 +258,8 @@ public sealed partial class Transput
         if (refMode is not RefMode rm) throw RT.Err($"lecture dans une valeur de mode {refMode} (un nom est attendu)", at);
         var r = target.O as RefV ?? throw RT.Err("nom attendu en lecture", at);
         if (r.A == null) throw RT.Err("lecture dans NIL", at);
-        ReadInto(fr, refFile, f, rm.Sub, r.A, r.I, at);
+        try { ReadInto(fr, refFile, f, rm.Sub, r.A, r.I, at); }
+        catch (EofMended) { }
     }
 
     void ReadInto(Frame fr, Value refFile, FileV f, Mode m, Value[] arr, int idx, Node at)
@@ -274,6 +285,7 @@ public sealed partial class Transput
                     case Prim.Bool:
                         {
                             int ch = SkipSpacesAndLines(fr, refFile, f, at);
+                            if (ch < 0) { EofDuringRead(fr, refFile, f, at); return; }
                             if (ch == 'T') arr[idx] = Value.B(true);
                             else if (ch == 'F') arr[idx] = Value.B(false);
                             else ValueError(fr, refFile, f, m, ch < 0 ? "" : ((char)ch).ToString(), at);

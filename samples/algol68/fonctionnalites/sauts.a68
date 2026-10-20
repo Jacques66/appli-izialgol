@@ -1,0 +1,33 @@
+# Sauts : GOTO, GO TO, etiquette seule, EXIT, sortie de procedure et de recursion, etiquette comme PROC VOID #
+BEGIN
+   INT i := 0;
+   BEGIN
+   debut: i +:= 1;
+      IF i < 3 THEN GOTO debut FI;
+      print((i, newline));
+      GO TO suite;
+      print("jamais");
+   suite: print(("suite", newline))
+   END;
+   BEGIN
+      PROC chercher = (INT x) VOID: (x > 5 | trouve | print(("petit ", whole(x, 0), newline)));
+      chercher(2);
+      chercher(9);
+      print("jamais");
+   trouve: print(("trouve", newline))
+   END;
+   INT v = (TRUE | 10 EXIT un: 20);
+   print((v, newline));
+   BEGIN
+      PROC appeler = (PROC VOID p) VOID: (print(("avant", newline)); p; print("jamais"));
+      appeler(sortie);
+      print("jamais");
+   sortie: print(("sortie", newline))
+   END;
+   BEGIN
+      INT profondeur := 0;
+      PROC descendre = (INT n) VOID: (profondeur := n; (n = 50 | fini); descendre(n + 1));
+      descendre(1);
+   fini: print((profondeur, newline))
+   END
+END

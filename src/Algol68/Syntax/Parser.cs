@@ -104,6 +104,9 @@ public sealed class Parser
     static bool IsCloser(Token t) => t.Kind is TK.RParen or TK.RBrack || (t.Kind == TK.Bold && t.Text is "END" or "FI" or "ESAC" or "OD");
     static bool IsSerialTerminator(Token t) => t.Kind is TK.EOF or TK.RParen or TK.RBrack or TK.Bar or TK.BarColon ||
         (t.Kind == TK.Bold && t.Text is "END" or "FI" or "THEN" or "ELSE" or "ELIF" or "ESAC" or "IN" or "OUT" or "OUSE" or "OD" or "DO" or "UNTIL");
+    bool doTerminates;
+    /// <summary>Terminateur de la suite en cours (DO ne termine que la partie WHILE).</summary>
+    bool IsTerm(Token t) => IsSerialTerminator(t) && (doTerminates || !(t.Kind == TK.Bold && t.Text == "DO"));
 
     void PushScope(int from)
     {
@@ -183,12 +186,8 @@ public sealed class Parser
     public SerialAst ParseProgram()
     {
         var s = ParseSerialBody();
-        while (Cur.Kind != TK.EOF)
-        {
-            Report(Cur, $"symbole inattendu {Cur} apres la fin du programme");
-            // tenter de continuer
-            Next();
-        }
+        if (Cur.Kind != TK.EOF)
+            Report(Cur, $"symbole inattendu {Cur} apres la fin du programme (parenthese ou END en trop ?)");
         return s;
     }
 
@@ -199,13 +198,21 @@ public sealed class Parser
         finally { PopScope(); }
     }
 
-    SerialAst ParseSerialInner()
+    SerialAst ParseSerialInner(bool doTerm = false)
+    {
+        bool saveDo = doTerminates;
+        doTerminates = doTerm;
+        try { return ParseSerialInnerCore(); }
+        finally { doTerminates = saveDo; }
+    }
+
+    SerialAst ParseSerialInnerCore()
     {
         var serial = new SerialAst().At<SerialAst>(Cur);
         while (true)
         {
-            if (IsSerialTerminator(Cur) && serial.Phrases.Count > 0) break;
-            if (IsSerialTerminator(Cur)) { Report(Cur, $"unite attendue, trouve {Cur}"); break; }
+            if (IsTerm(Cur) && serial.Phrases.Count > 0) break;
+            if (IsTerm(Cur)) { Report(Cur, $"unite attendue, trouve {Cur}"); break; }
             int start = pos;
             try
             {
@@ -216,14 +223,14 @@ public sealed class Parser
                 Report(e.Tok, e.Message);
                 Recover(start);
             }
-            if (Cur.Kind == TK.Semi) { Next(); if (IsSerialTerminator(Cur)) { Report(Cur, $"unite attendue apres « ; », trouve {Cur}"); break; } continue; }
+            if (Cur.Kind == TK.Semi) { Next(); if (IsTerm(Cur)) { Report(Cur, $"unite attendue apres « ; », trouve {Cur}"); break; } continue; }
             if (IsBold("EXIT"))
             {
                 serial.ExitAfter.Add(serial.Phrases.Count - 1);
                 Next();
                 continue;
             }
-            if (IsSerialTerminator(Cur) || Cur.Kind == TK.Comma) break;
+            if (IsTerm(Cur) || Cur.Kind == TK.Comma) break;
             Report(Cur, $"« ; » attendu, trouve {Cur}");
             Recover(pos);
             if (Cur.Kind == TK.Semi) { Next(); continue; }
@@ -234,11 +241,11 @@ public sealed class Parser
 
     void Recover(int start)
     {
-        if (pos == start && Cur.Kind != TK.EOF && !IsSerialTerminator(Cur)) Next();
+        if (pos == start && Cur.Kind != TK.EOF && !IsTerm(Cur)) Next();
         int depth = 0;
         while (Cur.Kind != TK.EOF)
         {
-            if (depth == 0 && (Cur.Kind == TK.Semi || IsSerialTerminator(Cur))) return;
+            if (depth == 0 && (Cur.Kind == TK.Semi || IsTerm(Cur))) return;
             if (IsOpener(Cur)) depth++;
             else if (IsCloser(Cur)) { if (depth == 0) return; depth--; }
             Next();
@@ -258,7 +265,7 @@ public sealed class Parser
             lu.Labels.Add(Cur.Text);
             Next(); Next();
         }
-        if (lu.Labels.Count > 0 && IsSerialTerminator(Cur))
+        if (lu.Labels.Count > 0 && IsTerm(Cur))
         {
             lu.Unit = new SkipAst().At<SkipAst>(Cur);
         }
@@ -1127,7 +1134,7 @@ public sealed class Parser
         {
             Next();
             PushScope(pos); pushed = true;
-            lp.While = ParseSerialInner();
+            lp.While = ParseSerialInner(true);
         }
         try
         {

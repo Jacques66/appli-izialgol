@@ -1,0 +1,28 @@
+# Longues precisions : LONG INT (35 chiffres), LONG LONG INT (70 chiffres), LONG REAL, LONG LONG REAL #
+BEGIN
+   LONG INT a := LONG 123456789012345678;
+   print((a * a, newline));
+   print((long max int, newline));
+   LONG LONG INT p := LONG LONG 1;
+   TO 200 DO p *:= LONG LONG 2 OD;
+   print((whole(p, 0), newline));
+   LONG LONG INT f := LONG LONG 1;
+   FOR i TO 50 DO f *:= LENG LENG i OD;
+   print((whole(f, 0), newline));
+   print((long pi, newline));
+   print((long sqrt(LONG 2), newline));
+   print((long exp(LONG 1), newline));
+   print((LONG 1 / LONG 3, newline));
+   print((long small real, newline));
+   print((long long pi, newline));
+   print((SHORTEN long pi, newline));
+   print((whole(ENTIER (LONG 2.5), 0), " ", whole(ROUND (LONG 2.5), 0), " ", whole(ROUND long pi, 0), newline));
+   LONG REAL x = LENG 0.5;
+   print((x * LONG 4, newline));
+   print((long int width, long real width, long long real width, newline));
+   print((fixed(long pi, 0, 30), newline));
+   print((long sin(long pi / LONG 6), newline));
+   print((long ln(long exp(LONG 2)), newline));
+   LONG BITS lb = LONG 16rff;
+   print((whole(ABS lb, 0), newline))
+END

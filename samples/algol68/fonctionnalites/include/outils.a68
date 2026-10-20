@@ -1,0 +1,3 @@
+# fichier inclus par inclusion.a68 #
+PROC carre = (INT x) INT: x * x;
+OP CUBE = (INT x) INT: x * x * x;

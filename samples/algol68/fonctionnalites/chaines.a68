@@ -1,0 +1,41 @@
+# Chaines de caracteres (STRING = FLEX [1:0] CHAR) #
+BEGIN
+   STRING s := "Algol";
+   s +:= " 68";
+   print((s, " ", UPB s, newline));
+   print((s[1:5] + "!", newline));
+   print(("ab" * 3, 3 * "xy", "z" * 2, newline));
+   print(("abc" < "abd", "abc" = "abc", "b" > "abc", "" < "a", newline));
+   INT pos;
+   IF char in string("g", pos, s) THEN print((pos, newline)) FI;
+   IF string in string("68", pos, s) THEN print((pos, newline)) FI;
+   IF NOT char in string("z", pos, s) THEN print(("absent", newline)) FI;
+   IF last char in string("l", pos, "hello") THEN print((pos, newline)) FI;
+   STRING t = "a""b";
+   print((t, UPB t, newline));
+   STRING m := "Bonjour";
+   FOR i TO UPB m DO m[i] := to upper(m[i]) OD;
+   print((m, newline));
+   print((REPR (ABS "a" + 1), newline));
+   STRING v := "";
+   FOR c FROM ABS "a" TO ABS "e" DO v +:= REPR c OD;
+   print((v, UPB "", newline));
+   print(("a" + "b", newline));
+   [] STRING mots = ("poire", "abricot", "pomme", "banane");
+   [UPB mots] STRING tri := mots;
+   FOR i TO UPB tri DO
+      FOR j FROM i + 1 TO UPB tri DO
+         IF tri[j] < tri[i] THEN STRING x = tri[i]; tri[i] := tri[j]; tri[j] := x FI
+      OD
+   OD;
+   FOR i TO UPB tri DO print((tri[i], " ")) OD; print(newline);
+   print((mots[1], newline));
+   STRING sub = s[3:5];
+   print((LWB sub, UPB sub, sub, newline));
+   print(("con" "caten" "ation", newline));
+   STRING ligne := "  espaces  ";
+   INT d := 1, f := UPB ligne;
+   WHILE d <= f ANDF ligne[d] = " " DO d +:= 1 OD;
+   WHILE f >= d ANDF ligne[f] = " " DO f -:= 1 OD;
+   print(("[", ligne[d:f], "]", newline))
+END

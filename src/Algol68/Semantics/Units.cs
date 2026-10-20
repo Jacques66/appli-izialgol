@@ -657,12 +657,14 @@ public sealed partial class Compiler
             serial.SetPos(s);
             var stmts = new List<Node>(); var yields = new List<bool>(); var completes = new List<bool>();
             bool hasLabels = false;
+            bool seenLabel = false;
             int last = s.Phrases.Count - 1;
             for (int i = 0; i <= last; i++)
             {
                 var ph = s.Phrases[i];
                 if (ph is LabeledUnit lu)
                 {
+                    if (lu.Labels.Count > 0) seenLabel = true;
                     foreach (var l in lu.Labels)
                         if (r.Labels.TryGetValue(l, out var ls)) { ls.Target.Serial = serial; ls.Target.Index = stmts.Count; hasLabels = true; }
                     bool y = i == last || s.ExitAfter.Contains(i);
@@ -672,6 +674,7 @@ public sealed partial class Compiler
                 else
                 {
                     if (i == last) Error(ph, "une clause doit se terminer par une unite, pas par une declaration");
+                    if (seenLabel) Error(ph, "une declaration ne peut pas suivre une unite etiquetee dans la meme clause");
                     foreach (var n in GenDeclaration((DeclarationAst)ph))
                     {
                         stmts.Add(Stmt(n)); yields.Add(false); completes.Add(false);

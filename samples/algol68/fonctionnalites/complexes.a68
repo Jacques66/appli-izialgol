@@ -1,0 +1,27 @@
+# Nombres complexes : COMPL, LONG COMPL, operateurs, elargissement #
+BEGIN
+   COMPL z = 3 I 4, w = 1 I -2;
+   print((z + w, newline));
+   print((z * w, newline));
+   print((z / w, newline));
+   print((ABS z, RE z, IM z, newline));
+   print((CONJ z, newline));
+   print((ARG (0 I 1), newline));
+   print((z ** 2, newline));
+   print((z = 3 I 4, z /= w, 3 = 3 I 0, newline));
+   print((-z, newline));
+   COMPL s = complex sqrt(z);
+   print((fixed(re OF s, 0, 6), " ", fixed(im OF s, 0, 6), newline));
+   COMPL acc := 0;
+   FOR k TO 4 DO acc +:= k I k OD;
+   acc +:= 1;
+   print((re OF acc, im OF acc, newline));
+   LONG COMPL lz = LONG 1 I LONG 1;
+   print((ABS lz, newline));
+   printf(($g(0, 2)"+", g(0, 2)"i"l$, z));
+   printf(($-d.2di-d.2d l$, w));
+   [] COMPL racines = (1, 0 I 1, -1, 0 I -1);
+   COMPL produit := 1;
+   FOR k TO UPB racines DO produit *:= racines[k] OD;
+   print((fixed(RE produit, 0, 1), " ", fixed(IM produit, 0, 1), newline))
+END

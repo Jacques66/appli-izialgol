@@ -1,0 +1,35 @@
+# Unions et clauses de conformite #
+BEGIN
+   MODE NOMBRE = UNION (INT, REAL, COMPL);
+   PROC decrire = (NOMBRE n) STRING:
+      CASE n IN
+         (INT i): "entier " + whole(i, 0),
+         (REAL r): "reel " + fixed(r, 0, 2),
+         (COMPL z): "complexe " + fixed(re OF z, 0, 1) + "+" + fixed(im OF z, 0, 1) + "i"
+      ESAC;
+   [] NOMBRE valeurs = (1, 2.5, 3 I 4, -7);
+   FOR k TO UPB valeurs DO print((decrire(valeurs[k]), newline)) OD;
+   MODE SCALAIRE = UNION (INT, REAL), TOUT = UNION (SCALAIRE, STRING, BOOL);
+   [] TOUT divers = (42, "texte", TRUE, 1.5);
+   FOR k TO UPB divers DO
+      CASE divers[k] IN
+         (SCALAIRE s): print(("scalaire ", (s | (INT i): whole(i, 0) | "reel"))),
+         (STRING t): print(("chaine ", t)),
+         (BOOL b): print(("booleen ", b))
+      ESAC;
+      print(newline)
+   OD;
+   UNION (INT, CHAR, VOID) u := EMPTY;
+   CASE u IN (INT): print("int") OUSE u IN (CHAR c): print(c) OUT print("vide") ESAC;
+   print(newline);
+   u := "x";
+   print(((u | (VOID): "rien", (INT i): "entier" | "car"), newline));
+   UNION (INT, STRING) w := "abc";
+   print(((w | (STRING s): UPB s, (INT i): i), newline));
+   w := 3;
+   print(((w | (STRING s): UPB s, (INT i): i), newline));
+   [] UNION (INT, STRING) liste = (1, "deux", 3);
+   INT n := 0;
+   FOR k TO UPB liste DO (liste[k] | (INT i): n +:= i) OD;
+   print((n, newline))
+END

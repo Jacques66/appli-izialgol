@@ -302,7 +302,7 @@ public sealed partial class Transput
                 }
         }
         var (pic, fv) = NextPicture(fr, refFile, f, false, at);
-        if (m is StructMode cs && IsCompl(cs) && pic.Pattern!.Kind is not (PatternKind.Complex or PatternKind.General or PatternKind.GeneralH))
+        if (m is StructMode cs && IsCompl(cs) && pic.Pattern!.Kind is not PatternKind.Complex)
         {
             // a68g : un complexe ecrit avec un motif reel occupe deux motifs
             var fl = (Value[])v.O!;
