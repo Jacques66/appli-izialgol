@@ -125,6 +125,8 @@ avec chiffres de garde).
 - **Équivalence structurelle** (RR 7.3) : deux modes de même structure sont le même mode,
   y compris pour les modes récursifs ; les unions sont aplaties et l'ordre de leurs
   composantes est indifférent.
+- **Unions** : une union ne peut pas contenir deux composantes fermement liées
+  (`UNION (INT, REF INT)` est refusé, RR 4.7.1).
 - **Modes bien formés** (RR 7.4) : tout cycle doit passer par un `REF` ou `PROC` *et* par un
   `STRUCT` ou `PROC` ; `MODE M = STRUCT (INT i, M m)` et `MODE L = UNION (VOID, REF L)` sont
   refusés.
@@ -201,7 +203,15 @@ le nom d'une variable locale comme résultat d'une routine ou d'un bloc, provoqu
 dont elle utilise un identificateur : une routine qui n'utilise que des globaux peut être
 rendue en résultat (`PROC fabrique = (BOOL d) PROC (INT) INT: …`).
 
-### 5.2 Opérateurs
+### 5.2 Noms transitoires
+
+Une tranche ou une sélection multiple d'un nom `FLEX` (`s[2]`, `s[2:3]` pour un `STRING s`)
+est un **nom transitoire** (RR 2.1.3.6.c) : il peut servir de destination
+(`s[2] := "B"`), être déréférencé (`CHAR c = s[2]`), mais il ne peut être ni lié à un
+identificateur (`REF CHAR c = s[2]`), ni affecté à une variable, ni rendu par une
+routine, ni servir d'opérande d'un opérateur (`s[2] +:= …`), comme dans le RR et a68g.
+
+### 5.3 Opérateurs
 
 - `OP` symboliques et gras, monadiques et dyadiques, avec ou sans parenthèse de mode
   (`OP MAX = (INT a, b) INT: …`, `OP (INT, INT) INT MAX = …`).

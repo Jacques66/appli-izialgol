@@ -1,0 +1,15 @@
+# Nombres parfaits inferieurs a 10000 : somme des diviseurs #
+BEGIN
+   PROC somme diviseurs = (INT n) INT:
+   BEGIN
+      INT s := 1;
+      FOR d FROM 2 WHILE d * d <= n DO
+         IF n MOD d = 0 THEN s +:= d; IF d * d /= n THEN s +:= n % d FI FI
+      OD;
+      s
+   END;
+   FOR n FROM 2 TO 10000 DO
+      IF somme diviseurs(n) = n THEN print((whole(n, 0), " ")) FI
+   OD;
+   print(newline)
+END
