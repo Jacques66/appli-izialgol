@@ -1,4 +1,4 @@
-avant
-partiel
-erreur d'execution (div0.sim:5): division entiere (//) par zero
+before
+partial
+runtime error (div0.sim:5): integer division (//) by zero
 

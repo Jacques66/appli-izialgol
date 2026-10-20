@@ -1,32 +1,32 @@
-! Coroutines : un producteur et un consommateur qui se passent la main (resume) ;
+! Coroutines: a producer and a consumer hand control to each other (resume) ;
 begin
-   ref(producteur) prod; ref(consommateur) cons;
-   integer tampon;
+   ref(producer) prod; ref(consumer) cons;
+   integer buffer;
 
-   class producteur;
+   class producer;
    begin integer i;
       detach;
       for i := 1 step 1 until 5 do
       begin
-         tampon := i * i;
-         outtext("produit   "); outint(tampon, 3); outimage;
+         buffer := i * i;
+         outtext("produced "); outint(buffer, 3); outimage;
          resume(cons)
       end
    end;
 
-   class consommateur;
+   class consumer;
    begin integer total;
       detach;
       while true do
       begin
-         total := total + tampon;
-         outtext("consomme  "); outint(tampon, 3); outtext("   total "); outint(total, 3); outimage;
+         total := total + buffer;
+         outtext("consumed "); outint(buffer, 3); outtext("   total "); outint(total, 3); outimage;
          resume(prod)
       end
    end;
 
-   prod :- new producteur;
-   cons :- new consommateur;
+   prod :- new producer;
+   cons :- new consumer;
    resume(prod);
-   outtext("fin de la production"); outimage
+   outtext("production finished"); outimage
 end

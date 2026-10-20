@@ -1,6 +1,6 @@
-somme = 60
+sum = 60
 4.500
-ligne : [Bonjour le monde]
+line: [Bonjour le monde]
 xy
    1   2   3   4
-fin de fichier
+end of file

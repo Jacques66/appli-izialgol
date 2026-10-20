@@ -1,0 +1,9 @@
+external class stack;
+external integer procedure square;
+begin
+   ref(stack) p; integer i;
+   p :- new stack(10);
+   for i := 1 step 1 until 5 do p.push(square(i));
+   while not p.is_empty do outint(p.pop, 4);
+   outimage
+end

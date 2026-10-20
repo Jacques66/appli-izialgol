@@ -1,10 +1,10 @@
   1  2  3
-produit 1
-produit 2
-complet  4 [abc]
-partiel  5 [0123]
-partiel  5 [4567]
-complet  3 [89]
+product 1
+product 2
+complete  4 [abc]
+partial  5 [0123]
+partial  5 [4567]
+complete  3 [89]
   2  5
 [ 1]  32
 [ 2]  32
@@ -14,4 +14,4 @@ complet  3 [89]
 [double] 100
 []
 --
-temps ok
+time ok

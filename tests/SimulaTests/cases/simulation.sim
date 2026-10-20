@@ -1,46 +1,46 @@
 simulation begin
-   ref(head) file_attente;
-   integer servis;
+   ref(head) waiting_line;
+   integer served;
 
-   process class client(numero); integer numero;
+   process class customer(number); integer number;
    begin
-      outfix(time, 1, 6); outtext(" : arrivee du client "); outint(numero, 0); outimage;
-      wait(file_attente);
-      outfix(time, 1, 6); outtext(" : depart du client "); outint(numero, 0); outimage;
-      servis := servis + 1
+      outfix(time, 1, 6); outtext(": arrival of customer "); outint(number, 0); outimage;
+      wait(waiting_line);
+      outfix(time, 1, 6); outtext(": departure of customer "); outint(number, 0); outimage;
+      served := served + 1
    end;
 
-   process class guichet;
-   begin ref(client) c;
+   process class desk;
+   begin ref(customer) c;
       while true do
       begin
-         if file_attente.empty then passivate
+         if waiting_line.empty then passivate
          else
          begin
-            c :- file_attente.first;
+            c :- waiting_line.first;
             c.out;
-            outfix(time, 1, 6); outtext(" : debut service "); outint(c.numero, 0); outimage;
+            outfix(time, 1, 6); outtext(": service starts for "); outint(c.number, 0); outimage;
             hold(3);
             activate c
          end
       end
    end;
 
-   process class generateur;
+   process class generator;
    begin integer i;
       for i := 1 step 1 until 4 do
       begin
-         activate new client(i);
-         if guichet1.idle then activate guichet1;
+         activate new customer(i);
+         if desk1.idle then activate desk1;
          hold(2)
       end
    end;
 
-   ref(guichet) guichet1;
-   file_attente :- new head;
-   guichet1 :- new guichet;
-   activate new generateur;
+   ref(desk) desk1;
+   waiting_line :- new head;
+   desk1 :- new desk;
+   activate new generator;
    hold(50);
-   outtext("clients servis : "); outint(servis, 0); outimage;
-   outtext("temps final : "); outfix(time, 1, 0); outimage
+   outtext("customers served: "); outint(served, 0); outimage;
+   outtext("final time: "); outfix(time, 1, 0); outimage
 end

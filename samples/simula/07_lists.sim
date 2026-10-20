@@ -1,0 +1,28 @@
+! Doubly linked lists with the standard class SIMSET ;
+simset begin
+   link class person(pname, age); text pname; integer age;;
+   ref(head) group;
+   ref(person) p;
+
+   procedure insert_sorted(x); ref(person) x;
+   begin ref(person) q;
+      q :- group.first;
+      while q =/= none and then q.age <= x.age do q :- q.suc;
+      if q == none then x.into(group) else x.precede(q)
+   end;
+
+   group :- new head;
+   insert_sorted(new person("Alice", 34));
+   insert_sorted(new person("Bruno", 27));
+   insert_sorted(new person("Chloe", 41));
+   insert_sorted(new person("David", 19));
+   outtext("Members by increasing age ("); outint(group.cardinal, 0); outtext("):"); outimage;
+   p :- group.first;
+   while p =/= none do
+   begin
+      outtext("  "); outtext(p.pname); outint(p.age, 4); outimage;
+      p :- p.suc
+   end;
+   group.first.out;
+   outtext("After removing the youngest, first: "); outtext(group.first qua person.pname); outimage
+end

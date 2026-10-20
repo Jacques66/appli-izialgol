@@ -14,11 +14,11 @@ public sealed partial class Vm
     }
 
     internal SimFile GetFile(int h) =>
-        files.TryGetValue(h, out var f) ? f : throw new SimulaError("fichier non ouvert");
+        files.TryGetValue(h, out var f) ? f : throw new SimulaError("file not open");
 
     static readonly Encoding Latin = Encoding.UTF8;
 
-    /// <summary>Ouvre un fichier ; rend 0 en cas d'echec (open rend alors false).</summary>
+    /// <summary>Opens a file; returns 0 on failure (open then returns false).</summary>
     internal int OpenFile(int kind, string name, string modes)
     {
         var f = new SimFile { Kind = kind, Path = name };
@@ -116,12 +116,12 @@ public sealed partial class Vm
     internal void WriteText(SimFile f, string text, bool flush = false)
     {
         if (f.Console) { io.Write(text); return; }
-        if (f.Writer == null) throw new SimulaError("fichier non ouvert en ecriture");
+        if (f.Writer == null) throw new SimulaError("file not open for output");
         f.Writer.Write(text);
         if (flush) f.Writer.Flush();
     }
 
-    /// <summary>En cas d'erreur, la ligne de sortie en cours est emise.</summary>
+    /// <summary>On error, the current output line is written out.</summary>
     void FlushSysout()
     {
         try

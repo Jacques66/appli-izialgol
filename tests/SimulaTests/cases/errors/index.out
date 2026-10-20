@@ -1,2 +1,2 @@
-erreur d'execution (index.sim:4): indice 11 hors des bornes (1:10)
+runtime error (index.sim:4): index 11 outside the bounds (1:10)
 

@@ -21,7 +21,7 @@ public sealed partial class SimCompiler
             if (s is ProcSym p && IntrinsicNames.Contains(p.Name)) p.Intrinsic = p.Name;
     }
 
-    // ------------------------------------------------------------ contexte de protection
+    // ------------------------------------------------------------ protection context
 
     List<ClassSym> EnclosingClasses(Scope s)
     {
@@ -38,7 +38,7 @@ public sealed partial class SimCompiler
         return v != null && v.OwnerClass != null && v.OwnerClass.ProtectedHere.Contains(name);
     }
 
-    /// <summary>Recherche d'un attribut dans la classe q et ses prefixes (regles hidden / protected).</summary>
+    /// <summary>Looks up an attribute in class q and its prefixes (hidden / protected rules).</summary>
     Sym? FindAttr(ClassSym q, string name, bool remote, Scope from)
     {
         List<ClassSym>? ctx = null;
@@ -47,7 +47,7 @@ public sealed partial class SimCompiler
             if (!k.Attrs.TryGetValue(name, out var s)) continue;
             if (remote && s is LabelSym or SwitchSym) continue;
             if (remote && s is VirtualSym vs && vs.Kind is ParamKind.Label or ParamKind.Switch) continue;
-            // hidden : invisible depuis les sous-classes strictement interieures
+            // hidden: invisible from strictly inner subclasses
             bool hidden = false;
             for (var h = q; h != null; h = h.Prefix)
             {
@@ -66,7 +66,7 @@ public sealed partial class SimCompiler
         return null;
     }
 
-    /// <summary>Recherche d'un identificateur depuis la portee s.</summary>
+    /// <summary>Looks up an identifier from scope s.</summary>
     Found? Lookup(string name, Scope s, SrcPos pos, bool quiet = false)
     {
         for (Scope? sc = s; sc != null; sc = sc.Parent)
@@ -91,7 +91,7 @@ public sealed partial class SimCompiler
                     break;
             }
         }
-        if (!quiet && !(Natives.Exists(name) && InPreludeCode())) Err(pos, $"identificateur '{name}' non declare");
+        if (!quiet && !(Natives.Exists(name) && InPreludeCode())) Err(pos, $"undeclared identifier '{name}'");
         return null;
     }
 
@@ -107,7 +107,7 @@ public sealed partial class SimCompiler
         var f = Lookup(name, s, pos);
         if (f == null) return null;
         if (f.Value.Sym is ClassSym c) return c;
-        Err(pos, $"'{name}' n'est pas une classe");
+        Err(pos, $"'{name}' is not a class");
         return null;
     }
 
@@ -115,7 +115,7 @@ public sealed partial class SimCompiler
     {
         if (f.Depth == 0) return -1;
         int h = g.Frame.Depth - f.Depth;
-        if (h < 0) { Err(curPos, $"acces a un cadre non englobant (erreur interne : {f.Label} depuis {g.Frame.Label})"); return 0; }
+        if (h < 0) { Err(curPos, $"access to a non-enclosing frame (internal error: {f.Label} from {g.Frame.Label})"); return 0; }
         return h;
     }
 
@@ -136,7 +136,7 @@ public sealed partial class SimCompiler
             case BaseType.Ref:
                 {
                     var save = g;
-                    // la recherche se fait depuis la portee de declaration
+                    // the lookup is done from the declaring scope
                     var gtmp = g ?? new Gen { Scope = scope, Frame = scope.Frame };
                     if (g == null) g = gtmp;
                     var c = LookupClass(spec.RefClass!, scope, spec.Pos);
@@ -172,7 +172,7 @@ public sealed partial class SimCompiler
             case ParamMode.Value:
                 if (ps.Kind == ParamKind.Simple && (valueType || t.B == BaseType.Text)) ps.Mode = ParamMode.Value;
                 else if (ps.Kind == ParamKind.Array && valueType) ps.Mode = ParamMode.Value;
-                else { Err(spec.Pos, $"transmission par valeur interdite pour '{spec.Orig}'"); ps.Mode = ParamMode.Default; }
+                else { Err(spec.Pos, $"call by value not allowed for '{spec.Orig}'"); ps.Mode = ParamMode.Default; }
                 break;
             default:
                 ps.Mode = ps.Kind == ParamKind.Simple && valueType ? ParamMode.Value : ParamMode.Default;
@@ -184,9 +184,9 @@ public sealed partial class SimCompiler
 
     static string TypeName(SType t) => t.ToString();
 
-    // ------------------------------------------------------------ compatibilite
+    // ------------------------------------------------------------ compatibility
 
-    /// <summary>Plus petite classe englobant les deux qualifications (pour if-expressions).</summary>
+    /// <summary>Innermost class including both qualifications (for if-expressions).</summary>
     static ClassSym? CommonClass(ClassSym? a, ClassSym? b)
     {
         if (a == null) return b;
@@ -208,29 +208,29 @@ public sealed partial class SimCompiler
         if (from.IsErr || to.IsErr) return;
         if (to.IsArith)
         {
-            if (!from.IsArith) { Err(pos, $"type {from} incompatible avec {to}"); return; }
+            if (!from.IsArith) { Err(pos, $"type {from} is incompatible with {to}"); return; }
             if (to.IsReal) { if (from.IsIntLike) E(Op.I2R); return; }
             if (to.B == BaseType.ShortInteger) { E(from.IsReal ? Op.R2S : Op.I2S); return; }
             if (from.IsReal) E(Op.R2I);
             return;
         }
-        if (to.B == BaseType.Text) { if (from.B != BaseType.Text) Err(pos, $"type {from} incompatible avec text"); return; }
+        if (to.B == BaseType.Text) { if (from.B != BaseType.Text) Err(pos, $"type {from} is incompatible with text"); return; }
         if (to.IsRef)
         {
-            if (!from.IsRef) { Err(pos, $"type {from} incompatible avec {to}"); return; }
+            if (!from.IsRef) { Err(pos, $"type {from} is incompatible with {to}"); return; }
             if (from.Q == null || to.Q == null) return;
             if (from.Q.IsSubclassOf(to.Q)) return;
             if (to.Q.IsSubclassOf(from.Q)) { E(Op.ChkQual, to.Q.Info.Id); return; }
-            Err(pos, $"qualifications sans rapport : {from} et {to}");
+            Err(pos, $"unrelated qualifications: {from} and {to}");
             return;
         }
-        if (from.B != to.B) Err(pos, $"type {from} incompatible avec {to}");
+        if (from.B != to.B) Err(pos, $"type {from} is incompatible with {to}");
     }
 
     void ConvertToInt(SType t, SrcPos pos)
     {
         if (t.IsErr) return;
-        if (!t.IsArith) { Err(pos, $"expression arithmetique attendue (trouve {t})"); return; }
+        if (!t.IsArith) { Err(pos, $"arithmetic expression expected (found {t})"); return; }
         if (t.IsReal) E(Op.R2I);
     }
 }

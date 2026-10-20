@@ -1,0 +1,37 @@
+! Classes, subclasses, virtual procedures and inspect ;
+begin
+   class shape(title); text title;
+   virtual: real procedure area;
+   begin
+      procedure describe;
+      begin
+         outtext(title); outtext(": area = "); outfix(area, 2, 0); outimage
+      end;
+   end shape;
+
+   shape class rectangle(w, h); real w, h;
+   begin real procedure area; area := w * h; end;
+
+   rectangle class square;
+   begin end;
+
+   shape class circle(r); real r;
+   begin real procedure area; area := 3.14159265358979 * r * r; end;
+
+   ref(shape) array shapes(1:3);
+   integer i; real total;
+   shapes(1) :- new rectangle("rectangle 3x4", 3, 4);
+   shapes(2) :- new square("square 5x5", 5, 5);
+   shapes(3) :- new circle("circle r=1", 1);
+   for i := 1 step 1 until 3 do
+   begin
+      shapes(i).describe;
+      total := total + shapes(i).area
+   end;
+   outtext("total area: "); outfix(total, 2, 0); outimage;
+   for i := 1 step 1 until 3 do
+      inspect shapes(i)
+         when square do begin outtext(title); outtext(" is a square"); outimage end
+         when rectangle do begin outtext(title); outtext(" is a rectangle of width "); outfix(w, 1, 0); outimage end
+         otherwise begin outtext(shapes(i).title); outtext(" is not a rectangle"); outimage end
+end

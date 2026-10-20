@@ -5,27 +5,27 @@ begin
       procedure show; begin outtext("point("); outfix(x, 1, 0); outtext(","); outfix(y, 1, 0); outtext(")") end;
       real procedure norm; norm := sqrt(x * x + y * y);
       ref(point) procedure plus(p); ref(point) p; plus :- new point(x + p.x, y + p.y);
-      outtext("<creation point>");
+      outtext("<point created>");
       inner;
-      outtext("<fin point>"); outimage
+      outtext("<point end>"); outimage
    end point;
 
    point class point3(z); real z;
    begin
       procedure show; begin outtext("point3("); outfix(x, 1, 0); outtext(","); outfix(y, 1, 0); outtext(","); outfix(z, 1, 0); outtext(")") end;
       real procedure norm; norm := sqrt(x * x + y * y + z * z);
-      outtext("<creation point3>")
+      outtext("<point3 created>")
    end point3;
 
-   class animal(nom); text nom;
-   virtual: text procedure cri;
+   class animal(aname); text aname;
+   virtual: text procedure sound;
    begin
-      text procedure cri; cri :- "...";
-      procedure parle; begin outtext(nom); outtext(" dit "); outtext(cri); outimage end;
+      text procedure sound; sound :- "...";
+      procedure speak; begin outtext(aname); outtext(" says "); outtext(sound); outimage end;
    end;
-   animal class chien; begin text procedure cri; cri :- "ouaf"; end;
-   animal class chat; begin text procedure cri; cri :- "miaou"; end;
-   chien class chiot; begin text procedure cri; cri :- "kai " & nom; end;
+   animal class dog; begin text procedure sound; sound :- "woof"; end;
+   animal class cat; begin text procedure sound; sound :- "meow"; end;
+   dog class puppy; begin text procedure sound; sound :- "yip " & aname; end;
 
    ref(point) p, q; ref(point3) r; ref(animal) a;
    ref(animal) array zoo(1:4);
@@ -33,24 +33,24 @@ begin
 
    p :- new point(3, 4);
    r :- new point3(1, 2, 2);
-   p.show; outtext(" norme "); outfix(p.norm, 2, 0); outimage;
-   r.show; outtext(" norme "); outfix(r.norm, 2, 0); outimage;
+   p.show; outtext(" norm "); outfix(p.norm, 2, 0); outimage;
+   r.show; outtext(" norm "); outfix(r.norm, 2, 0); outimage;
    q :- r; q.show; outfix(q.norm, 2, 6); outimage;
    q :- p.plus(r); q.show; outimage;
    if r is point3 and r in point and not (p is point3) and p in point then outtext("is/in ok"); outimage;
    if q qua point.x = 4 then outtext("qua ok"); outimage;
    q :- r; outfix(q qua point3.z, 1, 4); outimage;
-   zoo(1) :- new animal("bete"); zoo(2) :- new chien("Rex"); zoo(3) :- new chat("Tom"); zoo(4) :- new chiot("Bill");
-   for i := 1 step 1 until 4 do zoo(i).parle;
+   zoo(1) :- new animal("beast"); zoo(2) :- new dog("Rex"); zoo(3) :- new cat("Tom"); zoo(4) :- new puppy("Bill");
+   for i := 1 step 1 until 4 do zoo(i).speak;
    for i := 1 step 1 until 4 do
       inspect zoo(i)
-         when chiot do outtext("un chiot ")
-         when chien do outtext("un chien ")
-         when chat do begin outtext("un chat nomme "); outtext(nom); outtext(" ") end
-         otherwise outtext("autre ");
+         when puppy do outtext("a puppy ")
+         when dog do outtext("a dog ")
+         when cat do begin outtext("a cat named "); outtext(aname); outtext(" ") end
+         otherwise outtext("other ");
    outimage;
-   inspect new chat("Felix") do begin outtext(cri); outtext(" / "); outtext(nom) end; outimage;
+   inspect new cat("Felix") do begin outtext(sound); outtext(" / "); outtext(aname) end; outimage;
    a :- none;
-   inspect a do outtext("jamais") otherwise outtext("a est none"); outimage;
+   inspect a do outtext("never") otherwise outtext("a is none"); outimage;
    if a == none and a =/= zoo(1) then outtext("references ok"); outimage
 end

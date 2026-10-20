@@ -1,9 +1,9 @@
   42
 XY  |ref
 Durand    6.25
-etat 2
-apres detach
-corps du bloc
+state 2
+after detach
+block body
    321
 ab
 b

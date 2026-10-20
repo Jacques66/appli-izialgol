@@ -15,7 +15,7 @@ public sealed class SType
     public static readonly SType Bool = new(BaseType.Boolean);
     public static readonly SType Char = new(BaseType.Character);
     public static readonly SType Text = new(BaseType.Text);
-    public static readonly SType NoneT = new(BaseType.Ref);         // none : qualifie par une classe interieure a toutes
+    public static readonly SType NoneT = new(BaseType.Ref);         // none: qualified by a class inner to all classes
     public static readonly SType Void = new(BaseType.None);
     public static readonly SType Err = new(BaseType.Notype);
     public static readonly SType LabelT = new(BaseType.Label);
@@ -43,8 +43,8 @@ public sealed class SType
         BaseType.Ref => Q == null ? "none" : $"ref({Q.Orig})",
         BaseType.ShortInteger => "short integer",
         BaseType.LongReal => "long real",
-        BaseType.None => "(sans type)",
-        BaseType.Notype => "(erreur)",
+        BaseType.None => "(no type)",
+        BaseType.Notype => "(error)",
         _ => B.ToString().ToLowerInvariant()
     };
 }
@@ -53,8 +53,8 @@ public abstract class Sym
 {
     public string Name = "", Orig = "";
     public SrcPos Pos;
-    public Scope Scope = null!;            // portee de declaration
-    public ClassSym? OwnerClass;           // attribut de cette classe
+    public Scope Scope = null!;            // declaring scope
+    public ClassSym? OwnerClass;           // attribute of this class
     public abstract string KindName { get; }
 }
 
@@ -68,7 +68,7 @@ public sealed class VarSym : Sym
     public Value ConstValue;
     public bool ConstDone, ConstBusy;
     public bool IsHiddenTemp;
-    public override string KindName => IsConst ? "constante" : "variable";
+    public override string KindName => IsConst ? "constant" : "variable";
 }
 
 public sealed class ArraySym : Sym
@@ -78,24 +78,24 @@ public sealed class ArraySym : Sym
     public int Dims;
     public int Slot;
     public ArraySegment Segment = null!;
-    public override string KindName => "tableau";
+    public override string KindName => "array";
 }
 
 public sealed class ParamSym : Sym
 {
     public ParamSpec Spec = null!;
-    public SType? Type;            // type (element pour tableau, resultat pour procedure)
+    public SType? Type;            // type (element type for arrays, result type for procedures)
     public ParamKind Kind;
-    public ParamMode Mode;         // Value, Default(=reference), Name (resolu)
+    public ParamMode Mode;         // Value, Default (= by reference), Name (resolved)
     public int Slot;
     public bool IsClassParam;
     public override string KindName => Kind switch
     {
-        ParamKind.Array => "parametre tableau",
-        ParamKind.Procedure => "parametre procedure",
-        ParamKind.Label => "parametre etiquette",
-        ParamKind.Switch => "parametre aiguillage",
-        _ => "parametre"
+        ParamKind.Array => "array parameter",
+        ParamKind.Procedure => "procedure parameter",
+        ParamKind.Label => "label parameter",
+        ParamKind.Switch => "switch parameter",
+        _ => "parameter"
     };
     public bool IsName => Mode == ParamMode.Name;
 }
@@ -104,11 +104,11 @@ public sealed class ProcSym : Sym
 {
     public ProcDecl Decl = null!;
     public ProcInfo Info = null!;
-    public SType? Result;          // Void pour procedure propre
+    public SType? Result;          // Void for a proper procedure
     public List<ParamSym> Params = new();
     public FrameScope Body = null!;
-    public VirtualSym? Matches;    // correspondance d'un virtuel
-    public string? Intrinsic;      // appel remplace par une operation interne
+    public VirtualSym? Matches;    // match of a virtual
+    public string? Intrinsic;      // call replaced by an inline operation
     public bool Emitted;
     public override string KindName => "procedure";
 }
@@ -123,15 +123,15 @@ public sealed class ClassSym : Sym
     public bool IsRoot, IsSystem, IsPrefixedBlock;
     public BlockStmt? PrefixedBlock;
     public Dictionary<string, Sym> Attrs = new();
-    public List<ParamSym> Params = new();          // propres a ce niveau
-    public List<ParamSym> AllParams = new();       // concatenes
-    public List<VirtualSym> AllVirtuals = new();   // index = numero de virtuel
+    public List<ParamSym> Params = new();          // own to this level
+    public List<ParamSym> AllParams = new();       // concatenated
+    public List<VirtualSym> AllVirtuals = new();   // index = virtual number
     public HashSet<string> ProtectedHere = new(), HiddenHere = new();
     public int SlotStart, SlotEnd;
     public bool LaidOut, Laying;
-    public bool UsesThis;   // "this C" dans le corps (interdit comme prefixe de bloc)
+    public bool UsesThis;   // "this C" in the body (illegal as a block prefix)
     public List<ClassSym> Subclasses = new();
-    public override string KindName => "classe";
+    public override string KindName => "class";
 
     public bool IsSubclassOf(ClassSym c)
     {
@@ -150,7 +150,7 @@ public sealed class LabelSym : Sym
     public int Id;
     public FrameScope Frame = null!;
     public VirtualSym? Matches;
-    public override string KindName => "etiquette";
+    public override string KindName => "label";
 }
 
 public sealed class SwitchSym : Sym
@@ -160,7 +160,7 @@ public sealed class SwitchSym : Sym
     public FrameScope Frame = null!;
     public FrameScope? UnitScope;
     public VirtualSym? Matches;
-    public override string KindName => "aiguillage";
+    public override string KindName => "switch";
 }
 
 public sealed class VirtualSym : Sym
@@ -169,15 +169,15 @@ public sealed class VirtualSym : Sym
     public int Index;
     public ParamKind Kind;         // Procedure, Label, Switch
     public SType? Type;
-    public ProcSym? Heading;       // specification de procedure (is ...)
+    public ProcSym? Heading;       // procedure specification (is ...)
     public bool ProtocolDone;
-    public ProcSym? DirectSig;     // si toutes les correspondances ont la meme entete
-    public override string KindName => "quantite virtuelle";
+    public ProcSym? DirectSig;     // set when all matches have the same heading
+    public override string KindName => "virtual quantity";
 }
 
-public sealed class DetachSym : Sym { public override string KindName => "procedure detach"; }
+public sealed class DetachSym : Sym { public override string KindName => "detach procedure"; }
 
-// ------------------------------------------------------------------ portees
+// ------------------------------------------------------------------ scopes
 
 public abstract class Scope
 {
@@ -194,9 +194,9 @@ public sealed class FrameScope : Scope
     public FKind Kind;
     public int Depth;
     public int NSlots;
-    public ClassSym? Class;        // ClassBody et PrefixedBlock
+    public ClassSym? Class;        // ClassBody and PrefixedBlock
     public ProcSym? Proc;
-    public BlockInfo? Block;       // bloc en ligne
+    public BlockInfo? Block;       // inline block
     public BlockStmt? BlockNode;
     public bool IsPrelude;
     public FrameScope() { Frame = this; }
@@ -204,15 +204,15 @@ public sealed class FrameScope : Scope
     public int AllocSlot() => NSlots++;
 }
 
-/// <summary>Bloc de connexion (inspect) : rend visibles les attributs de l'objet connecte.</summary>
+/// <summary>Connection block (inspect): makes the attributes of the connected object visible.</summary>
 public sealed class ConnScope : Scope
 {
     public ClassSym? Qual;
     public int TempSlot;
 }
 
-/// <summary>Bloc fictif (corps de for, corps de procedure sans declarations...) pour les etiquettes.</summary>
+/// <summary>Fictitious block (for body, procedure body without declarations...) for labels.</summary>
 public sealed class LabelScope : Scope { }
 
-/// <summary>Bloc sans cadre propre fusionne dans le cadre englobant (corps de procedure).</summary>
+/// <summary>Block without its own frame, merged into the enclosing frame (procedure body).</summary>
 public sealed class MergedScope : Scope { }

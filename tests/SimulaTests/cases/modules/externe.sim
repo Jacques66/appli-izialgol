@@ -1,9 +1,0 @@
-external class pile;
-external integer procedure carre;
-begin
-   ref(pile) p; integer i;
-   p :- new pile(10);
-   for i := 1 step 1 until 5 do p.empile(carre(i));
-   while not p.vide do outint(p.depile, 4);
-   outimage
-end

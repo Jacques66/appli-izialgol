@@ -1,16 +1,16 @@
-disque 1 : A -> B
-disque 2 : A -> C
-disque 1 : B -> C
-disque 3 : A -> B
-disque 1 : C -> A
-disque 2 : C -> B
-disque 1 : A -> B
-disque 4 : A -> C
-disque 1 : B -> C
-disque 2 : B -> A
-disque 1 : C -> A
-disque 3 : B -> C
-disque 1 : A -> B
-disque 2 : A -> C
-disque 1 : B -> C
-15 deplacements
+disk 1: A -> B
+disk 2: A -> C
+disk 1: B -> C
+disk 3: A -> B
+disk 1: C -> A
+disk 2: C -> B
+disk 1: A -> B
+disk 4: A -> C
+disk 1: B -> C
+disk 2: B -> A
+disk 1: C -> A
+disk 3: B -> C
+disk 1: A -> B
+disk 2: A -> C
+disk 1: B -> C
+15 moves

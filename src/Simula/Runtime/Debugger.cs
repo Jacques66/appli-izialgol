@@ -4,7 +4,7 @@ using Studio.Common;
 
 namespace Studio.Simula.Runtime;
 
-/// <summary>Mise au point : points d'arret, pas a pas, pile, variables.</summary>
+/// <summary>Debugging support: breakpoints, stepping, call stack, variables.</summary>
 public sealed class SimDebugger : IDebugger
 {
     enum Mode { Run, Into, Over, Out }
@@ -171,14 +171,14 @@ public sealed class SimDebugger : IDebugger
         };
         foreach (var v in vars.OrderBy(v => v.Slot))
             if (v.Slot < fr.S.Length) res.Add(Describe(v.Name, v.Type, v.Kind, fr.S[v.Slot]));
-        // variables des blocs englobants (portee statique)
+        // variables of the enclosing blocks (static scope)
         if (fr.Kind == FrameKind.Block && fr.Static != null)
         {
             var st = fr.Static;
-            res.Add(new VariableInfo("(englobant)", "", Vm.FrameName(st), true, st));
+            res.Add(new VariableInfo("(enclosing)", "", Vm.FrameName(st), true, st));
         }
         if (fr.Kind == FrameKind.Procedure && fr.Static is SimObject sobj)
-            res.Add(new VariableInfo("(objet)", sobj.Class.Name, Vm.FrameName(sobj), true, sobj));
+            res.Add(new VariableInfo("(object)", sobj.Class.Name, Vm.FrameName(sobj), true, sobj));
         return res;
     }
 
@@ -208,7 +208,7 @@ public sealed class SimDebugger : IDebugger
                         for (int d = 0; d < a.Rank; d++) { idx[d] = a.Lower[d] + rest / a.Stride[d]; rest %= a.Stride[d]; }
                         res.Add(Describe("(" + string.Join(",", idx) + ")", elemType, 0, a.Data[i]));
                     }
-                    if (a.Data.Length > n) res.Add(new VariableInfo("...", "", $"{a.Data.Length - n} elements de plus"));
+                    if (a.Data.Length > n) res.Add(new VariableInfo("...", "", $"{a.Data.Length - n} more elements"));
                     break;
                 }
             case TextRef t:
@@ -223,7 +223,7 @@ public sealed class SimDebugger : IDebugger
 
     static VariableInfo Describe(string name, string type, byte kind, Value v)
     {
-        if (kind == 2) return new VariableInfo(name, type + " (par nom)", "<parametre par nom>");
+        if (kind == 2) return new VariableInfo(name, type + " (by name)", "<name parameter>");
         if (kind == 1 || type.EndsWith("array"))
         {
             if (v.O is SimArray a)
@@ -232,13 +232,13 @@ public sealed class SimDebugger : IDebugger
                 var et = type.EndsWith(" array") ? type[..^6] : "real";
                 return new VariableInfo(name, type, $"array({bounds})", a.Data.Length > 0, (a, et));
             }
-            return new VariableInfo(name, type, "(non alloue)");
+            return new VariableInfo(name, type, "(not allocated)");
         }
         var t = type.Trim();
         if (t.StartsWith("ref(") || t == "none")
         {
             if (v.O is SimObject so) return new VariableInfo(name, type, $"{so.Class.Name} #{so.Serial} ({StateName(so.State)})", true, so);
-            if (v.O is Frame) return new VariableInfo(name, type, "bloc", false);
+            if (v.O is Frame) return new VariableInfo(name, type, "block", false);
             return new VariableInfo(name, type, "none");
         }
         switch (t)
@@ -262,19 +262,19 @@ public sealed class SimDebugger : IDebugger
                     return new VariableInfo(name, type, "notext");
                 }
         }
-        // parametre procedure, etiquette...
+        // procedure, label... parameter
         return v.O switch
         {
             ProcValue pv => new VariableInfo(name, type, "procedure " + pv.Proc.Name),
-            LabelValue => new VariableInfo(name, type, "etiquette"),
-            SwitchValue => new VariableInfo(name, type, "aiguillage"),
-            Thunk => new VariableInfo(name, type, "<parametre>"),
+            LabelValue => new VariableInfo(name, type, "label"),
+            SwitchValue => new VariableInfo(name, type, "switch"),
+            Thunk => new VariableInfo(name, type, "<parameter>"),
             _ => new VariableInfo(name, type, v.O?.ToString() ?? v.I.ToString(CultureInfo.InvariantCulture))
         };
     }
 
     static string StateName(ObjState s) => s switch
     {
-        ObjState.Attached => "attache", ObjState.Detached => "detache", ObjState.Resumed => "actif", _ => "termine"
+        ObjState.Attached => "attached", ObjState.Detached => "detached", ObjState.Resumed => "resumed", _ => "terminated"
     };
 }

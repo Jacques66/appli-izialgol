@@ -18,7 +18,7 @@ public sealed class SimulaLanguage : ILanguageService
         {
             if (prelude != null) return prelude;
             using var st = typeof(SimulaLanguage).Assembly.GetManifestResourceStream("Studio.Simula.Prelude.sim")
-                ?? throw new InvalidOperationException("prelude Simula introuvable");
+                ?? throw new InvalidOperationException("Simula prelude not found");
             using var rd = new StreamReader(st, Encoding.UTF8);
             return prelude = rd.ReadToEnd();
         }
@@ -42,7 +42,7 @@ public sealed class SimulaLanguage : ILanguageService
         catch (Exception e)
         {
             var diags = c.Diagnostics.ToList();
-            diags.Add(new Diagnostic(Severity.Error, main.Path, 0, 0, "erreur interne du compilateur : " + e.Message));
+            diags.Add(new Diagnostic(Severity.Error, main.Path, 0, 0, "internal compiler error: " + e.Message));
             return new CompilationResult(diags, null);
         }
         if (prog == null) return new CompilationResult(c.Diagnostics, null);
@@ -56,7 +56,7 @@ public sealed class SimulaLanguage : ILanguageService
             var dir = Path.GetDirectoryName(Path.GetFullPath(from)) ?? Environment.CurrentDirectory;
             var p = Path.IsPathRooted(name) ? name : Path.Combine(dir, name);
             if (File.Exists(p)) return new SourceFile(p, File.ReadAllText(p));
-            // essai insensible a la casse
+            // case-insensitive attempt
             if (Directory.Exists(dir))
             {
                 var hit = Directory.GetFiles(dir).FirstOrDefault(f => string.Equals(Path.GetFileName(f), name, StringComparison.OrdinalIgnoreCase));
@@ -68,7 +68,7 @@ public sealed class SimulaLanguage : ILanguageService
         return null;
     }
 
-    /// <summary>Le .exe embarque les sources (programme et modules) ; elles sont recompilees au demarrage.</summary>
+    /// <summary>The .exe embeds the sources (program and modules); they are recompiled at startup.</summary>
     public ICompiledProgram Deserialize(byte[] payload)
     {
         using var ms = new MemoryStream(payload);
@@ -78,7 +78,7 @@ public sealed class SimulaLanguage : ILanguageService
         for (int i = 0; i < n; i++) srcs.Add(new SourceFile(br.ReadString(), br.ReadString()));
         var map = srcs.Skip(1).ToDictionary(s => Path.GetFileName(s.Path), s => s, StringComparer.OrdinalIgnoreCase);
         var res = Compile(srcs[0], new CompileOptions { IncludeResolver = (name, from) => map.TryGetValue(Path.GetFileName(name), out var s) ? s : null });
-        if (!res.Success) throw new InvalidOperationException("programme embarque invalide : " + string.Join("; ", res.Diagnostics));
+        if (!res.Success) throw new InvalidOperationException("invalid embedded program: " + string.Join("; ", res.Diagnostics));
         return res.Program!;
     }
 }
@@ -117,11 +117,11 @@ sealed class SimulaExecution : IProgramExecution
     {
         using var reg = cancellationToken.Register(() => dbg.Stop());
         ExecutionResult r = default!;
-        // pile d'execution confortable pour les programmes tres recursifs du compilateur hote
+        // generous execution stack for deeply recursive host code
         var t = new Thread(() =>
         {
             try { r = new Vm(prog, io, dbg).Run(cancellationToken); }
-            catch (Exception e) { r = new ExecutionResult(2, new RuntimeErrorInfo("erreur interne de la machine : " + e.Message, prog.Files.FirstOrDefault() ?? "", 0, 0, Array.Empty<StackFrameInfo>())); }
+            catch (Exception e) { r = new ExecutionResult(2, new RuntimeErrorInfo("internal machine error: " + e.Message, prog.Files.FirstOrDefault() ?? "", 0, 0, Array.Empty<StackFrameInfo>())); }
         }, 64 * 1024 * 1024);
         t.Start();
         t.Join();

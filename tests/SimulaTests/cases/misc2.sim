@@ -1,20 +1,20 @@
 begin
-   ! etiquette transmise en parametre ;
-   procedure saute(l, n); label l; integer n; if n > 2 then goto l;
-   ! classe locale a une classe, creee via une connexion ;
-   class usine;
+   ! label passed as a parameter ;
+   procedure jump(l, n); label l; integer n; if n > 2 then goto l;
+   ! class local to a class, created through a connection ;
+   class factory;
    begin
-      class produit(num); integer num; begin outtext("produit "); outint(num, 0); outimage end;
-      ref(produit) procedure fabrique(n); integer n; fabrique :- new produit(n);
+      class product(num); integer num; begin outtext("product "); outint(num, 0); outimage end;
+      ref(product) procedure make(n); integer n; make :- new product(n);
    end;
-   ref(usine) u; integer i; text t;
+   ref(factory) u; integer i; text t;
    ref(outfile) of; ref(infile) inf; ref(printfile) pf;
 
-   for i := 1 step 1 until 10 do begin outint(i, 3); saute(sortie, i) end;
-sortie: outimage;
+   for i := 1 step 1 until 10 do begin outint(i, 3); jump(leave, i) end;
+leave: outimage;
 
-   u :- new usine;
-   inspect u do begin new produit(1); fabrique(2) end;
+   u :- new factory;
+   inspect u do begin new product(1); make(2) end;
 
    ! outrecord / inrecord ;
    of :- new outfile("rec.txt"); of.open(blanks(20));
@@ -22,13 +22,13 @@ sortie: outimage;
    inf :- new infile("rec.txt"); inf.open(blanks(4));
    inspect inf do
    begin
-      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
-      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
-      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
-      outtext(if inrecord then "partiel" else "complet"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partial" else "complete"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partial" else "complete"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partial" else "complete"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
+      outtext(if inrecord then "partial" else "complete"); outint(pos, 3); outtext(" ["); outtext(image.sub(1, pos - 1)); outtext("]"); outimage;
       close
    end;
-   ! printfile : pages et interlignes ;
+   ! printfile: pages and line spacing ;
    pf :- new printfile("print.txt"); pf.open(blanks(30));
    pf.linesperpage(3);
    for i := 1 step 1 until 5 do begin pf.outint(i, 2); pf.outimage end;
@@ -43,5 +43,5 @@ sortie: outimage;
       close
    end;
    outtext(datetime.sub(5, 1)); outtext(datetime.sub(8, 1)); outimage;
-   outtext(if cputime >= 0 and clocktime >= 0 then "temps ok" else "?"); outimage
+   outtext(if cputime >= 0 and clocktime >= 0 then "time ok" else "?"); outimage
 end

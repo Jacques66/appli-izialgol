@@ -6,18 +6,18 @@ namespace Studio.Simula.Compiler;
 public enum T
 {
     EOF, Ident, IntLit, RealLit, CharLit, TextLit,
-    // symboles
+    // symbols
     Plus, Minus, Star, Slash, IntDiv, Power, Amp, Assign, Denote,
     Lt, Le, Eq, Ge, Gt, Ne, RefEq, RefNe,
     Semi, Colon, LPar, RPar, Dot, Comma,
-    // mots-cles
+    // keywords
     KActivate, KAfter, KAnd, KArray, KAt, KBefore, KBegin, KBoolean, KCharacter, KClass,
     KDelay, KDo, KElse, KEnd, KEqv, KExternal, KFalse, KFor, KGo, KGoto, KHidden,
     KIf, KImp, KIn, KInner, KInspect, KInteger, KIs, KLabel, KLong, KName, KNew, KNone,
     KNot, KNotext, KOr, KOtherwise, KPrior, KProcedure, KProtected, KQua, KReactivate,
     KReal, KRef, KShort, KStep, KSwitch, KText, KThen, KThis, KTo, KTrue, KUntil,
     KValue, KVirtual, KWhen, KWhile,
-    // formes composees reconnues par le lexer
+    // compound forms recognised by the lexer
     KAndThen, KOrElse,
 }
 
@@ -29,8 +29,8 @@ public readonly record struct SrcPos(int File, int Line, int Col)
 public sealed class Token
 {
     public T Kind;
-    public string Text = "";       // identifiant en minuscules / texte / lexeme
-    public string Original = "";   // orthographe source pour l'affichage
+    public string Text = "";       // lower-case identifier / text / lexeme
+    public string Original = "";   // source spelling for display
     public long IntValue;
     public double RealValue;
     public bool IsLongReal;
@@ -65,14 +65,14 @@ public sealed class Lexer
         ["switch"] = T.KSwitch, ["text"] = T.KText, ["then"] = T.KThen, ["this"] = T.KThis,
         ["to"] = T.KTo, ["true"] = T.KTrue, ["until"] = T.KUntil, ["value"] = T.KValue,
         ["virtual"] = T.KVirtual, ["when"] = T.KWhen, ["while"] = T.KWhile,
-        // representations alternatives
+        // alternative representations
         ["lt"] = T.Lt, ["le"] = T.Le, ["eq"] = T.Eq, ["ge"] = T.Ge, ["gt"] = T.Gt, ["ne"] = T.Ne,
     };
 
     public static string Describe(T k) => k switch
     {
-        T.EOF => "fin de fichier", T.Ident => "identificateur", T.IntLit => "entier",
-        T.RealLit => "reel", T.CharLit => "caractere", T.TextLit => "chaine",
+        T.EOF => "end of file", T.Ident => "identifier", T.IntLit => "integer",
+        T.RealLit => "real", T.CharLit => "character", T.TextLit => "string",
         T.Plus => "+", T.Minus => "-", T.Star => "*", T.Slash => "/", T.IntDiv => "//",
         T.Power => "**", T.Amp => "&", T.Assign => ":=", T.Denote => ":-", T.Lt => "<",
         T.Le => "<=", T.Eq => "=", T.Ge => ">=", T.Gt => ">", T.Ne => "<>", T.RefEq => "==",
@@ -106,7 +106,7 @@ public sealed class Lexer
         bool atLineStart = true;
         while (true)
         {
-            // lignes de directive : '%' en premiere colonne
+            // directive lines: '%' in the first column
             if (atLineStart && Cur == '%')
             {
                 int s = i;
@@ -130,7 +130,7 @@ public sealed class Lexer
             else t = Symbol(pos);
             if (t == null) continue;
             if (t.Kind == T.KEnd) { list.Add(t); SkipEndComment(); continue; }
-            // "comment" equivaut a "!"
+            // "comment" is equivalent to "!"
             if (t.Kind == T.Ident && t.Text == "comment") { SkipDirectComment(alreadyConsumed: true); continue; }
             // and then / or else
             if (t.Kind == T.KThen && list.Count > 0 && list[^1].Kind == T.KAnd) { list[^1].Kind = T.KAndThen; continue; }
@@ -143,29 +143,29 @@ public sealed class Lexer
 
     public List<(string Name, SrcPos Pos)> Includes { get; } = new();
 
-    /// <summary>Inclusion textuelle (%include) : rend les lexemes du fichier inclus, ou null s'il est introuvable.</summary>
+    /// <summary>Textual inclusion (%include): returns the tokens of the included file, or null if it cannot be found.</summary>
     public Func<string, List<Token>?>? IncludeHandler;
 
     void Directive(string text, List<Token> list)
     {
-        // %include "fichier"  ou  %include fichier
+        // %include "file"  or  %include file
         var d = text.Length > 1 ? text.Substring(1).Trim() : "";
         if (d.StartsWith("include", StringComparison.OrdinalIgnoreCase) || d.StartsWith("insert", StringComparison.OrdinalIgnoreCase))
         {
             var pos = Here;
             var arg = d.Substring(d.IndexOf(' ') < 0 ? d.Length : d.IndexOf(' ')).Trim().Trim('"', '\'');
-            if (arg.Length == 0) { error(pos, "%include : nom de fichier attendu"); return; }
+            if (arg.Length == 0) { error(pos, "%include: file name expected"); return; }
             Includes.Add((arg, pos));
             if (IncludeHandler == null) return;
             var toks = IncludeHandler(arg);
-            if (toks == null) { error(pos, $"%include : fichier '{arg}' introuvable"); return; }
+            if (toks == null) { error(pos, $"%include: file '{arg}' not found"); return; }
             list.AddRange(toks.Where(t => t.Kind != T.EOF));
         }
     }
 
     void SkipDirectComment(bool alreadyConsumed = false)
     {
-        // "!" ... ";"  (le ";" fait partie du commentaire)
+        // "!" ... ";"  (the ";" belongs to the comment)
         if (!alreadyConsumed) i++;
         var start = Here;
         while (i < src.Length && src[i] != ';')
@@ -173,7 +173,7 @@ public sealed class Lexer
             if (src[i] == '\n') { i++; NewLine(); continue; }
             i++;
         }
-        if (i >= src.Length) { error(start, "commentaire non termine par ';'"); return; }
+        if (i >= src.Length) { error(start, "comment not terminated by ';'"); return; }
         i++;
     }
 
@@ -181,7 +181,7 @@ public sealed class Lexer
 
     void SkipEndComment()
     {
-        // apres end : tout jusqu'a ; end else when otherwise (mots entiers)
+        // after end: everything up to ; end else when otherwise (whole words)
         while (i < src.Length)
         {
             char c = src[i];
@@ -223,16 +223,16 @@ public sealed class Lexer
             {
                 var rs = src.Substring(i, j - i);
                 int radix = int.Parse(rs, CultureInfo.InvariantCulture);
-                if (radix != 2 && radix != 4 && radix != 8 && radix != 16) error(pos, $"base {radix} non autorisee (2, 4, 8 ou 16)");
+                if (radix != 2 && radix != 4 && radix != 8 && radix != 16) error(pos, $"radix {radix} not allowed (2, 4, 8 or 16)");
                 i = j + 1;
                 ulong v = 0;
                 while (i < src.Length && (IsRadixDigit(src[i]) || src[i] == '_'))
                 {
                     if (src[i] == '_') { i++; continue; }
                     int d = Convert.ToInt32(src[i].ToString(), 16);
-                    if (d >= radix) error(pos, $"chiffre '{src[i]}' invalide en base {radix}");
+                    if (d >= radix) error(pos, $"digit '{src[i]}' invalid in radix {radix}");
                     v = v * (ulong)radix + (ulong)d;
-                    if (v > uint.MaxValue) { error(pos, "constante entiere trop grande"); v = 0; }
+                    if (v > uint.MaxValue) { error(pos, "integer constant too large"); v = 0; }
                     i++;
                 }
                 t.Kind = T.IntLit;
@@ -259,7 +259,7 @@ public sealed class Lexer
             if (sb.Length == 0) sb.Append('1');
             sb.Append('E');
             if (Cur == '+' || Cur == '-') { sb.Append(Cur); i++; }
-            if (!char.IsDigit(Cur)) error(pos, "exposant attendu apres '&'");
+            if (!char.IsDigit(Cur)) error(pos, "exponent expected after '&'");
             while (i < src.Length && (char.IsDigit(src[i]) || src[i] == '_')) { if (src[i] != '_') sb.Append(src[i]); i++; }
         }
         t.Original = src.Substring(s, i - s);
@@ -267,14 +267,14 @@ public sealed class Lexer
         {
             t.Kind = T.RealLit;
             if (!double.TryParse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out t.RealValue))
-                error(pos, "nombre reel invalide");
+                error(pos, "invalid real number");
         }
         else
         {
             t.Kind = T.IntLit;
             if (!long.TryParse(sb.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out var v) || v > int.MaxValue + 1L)
             {
-                error(pos, "constante entiere trop grande (maxint = 2147483647)");
+                error(pos, "integer constant too large (maxint = 2147483647)");
                 v = 0;
             }
             t.IntValue = v;
@@ -284,7 +284,7 @@ public sealed class Lexer
 
     static bool IsRadixDigit(char c) => char.IsDigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 
-    // !ddd! : code ISO dans chaines et caracteres
+    // !ddd!: ISO code in strings and characters
     bool TryIsoCode(out char ch)
     {
         ch = '\0';
@@ -302,11 +302,11 @@ public sealed class Lexer
         var sb = new StringBuilder();
         while (true)
         {
-            // une chaine simple
+            // one simple string
             i++; // "
             while (true)
             {
-                if (i >= src.Length || src[i] == '\n') { error(pos, "chaine non terminee (une chaine simple doit tenir sur une ligne)"); goto done; }
+                if (i >= src.Length || src[i] == '\n') { error(pos, "unterminated string (a simple string must fit on one line)"); goto done; }
                 if (src[i] == '"')
                 {
                     if (Peek() == '"') { sb.Append('"'); i += 2; continue; }
@@ -318,7 +318,7 @@ public sealed class Lexer
                 sb.Append(src[i]);
                 i++;
             }
-            // concatenation de chaines simples separees par des separateurs
+            // concatenation of simple strings separated by token separators
             int save = i, saveLine = line, saveLs = lineStart;
             while (true)
             {
@@ -326,7 +326,7 @@ public sealed class Lexer
                 if (i < src.Length && src[i] == '\n') { i++; NewLine(); continue; }
                 if (i < src.Length && src[i] == '!' && !(i + 1 < src.Length && char.IsDigit(src[i + 1])))
                 {
-                    // commentaire direct entre deux chaines
+                    // direct comment between two strings
                     int j = i + 1;
                     while (j < src.Length && src[j] != ';') j++;
                     if (j < src.Length)
@@ -352,8 +352,8 @@ public sealed class Lexer
         char ch;
         if (Cur == '!' && TryIsoCode(out var iso)) ch = iso;
         else if (i < src.Length && src[i] != '\n') { ch = src[i]; i++; }
-        else { error(pos, "constante caractere invalide"); return new Token { Kind = T.CharLit, Text = " ", Pos = pos }; }
-        if (Cur != '\'') error(pos, "constante caractere non fermee par '");
+        else { error(pos, "invalid character constant"); return new Token { Kind = T.CharLit, Text = " ", Pos = pos }; }
+        if (Cur != '\'') error(pos, "character constant not closed by '");
         else i++;
         return new Token { Kind = T.CharLit, Text = ch.ToString(), IntValue = ch, Original = ch.ToString(), Pos = pos };
     }
@@ -395,7 +395,7 @@ public sealed class Lexer
             case '.': k = T.Dot; break;
             case ',': k = T.Comma; break;
             default:
-                error(pos, $"caractere inattendu '{c}'");
+                error(pos, $"unexpected character '{c}'");
                 i++;
                 return null;
         }

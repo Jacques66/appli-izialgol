@@ -1,0 +1,39 @@
+    0.00  tanker  1 arrives
+    0.00  tanker  1 is towed to a jetty
+    2.00  tanker  1 starts unloading
+    8.45  tanker  2 arrives
+    8.45  tanker  2 is towed to a jetty
+   10.45  tanker  2 starts unloading
+   12.56  tanker  3 arrives
+   17.53  tanker  1 has unloaded and calls the tug
+   19.53  tanker  1 leaves the harbour
+   19.53  tanker  3 is towed to a jetty
+   21.53  tanker  3 starts unloading
+   28.72  tanker  2 has unloaded and calls the tug
+   30.08  tanker  3 has unloaded and calls the tug
+   30.72  tanker  2 leaves the harbour
+   32.72  tanker  3 leaves the harbour
+   49.53  tanker  4 arrives
+   49.53  tanker  4 is towed to a jetty
+   51.53  tanker  4 starts unloading
+   65.59  tanker  4 has unloaded and calls the tug
+   67.59  tanker  4 leaves the harbour
+   68.84  tanker  5 arrives
+   68.84  tanker  5 is towed to a jetty
+   70.84  tanker  5 starts unloading
+   71.58  tanker  6 arrives
+   71.58  tanker  6 is towed to a jetty
+   73.58  tanker  6 starts unloading
+   85.21  tanker  5 has unloaded and calls the tug
+   87.21  tanker  5 leaves the harbour
+   87.75  tanker  6 has unloaded and calls the tug
+   91.21  tanker  6 leaves the harbour
+
+Tankers arrived  :     68
+Tankers departed :     68
+Average stay (h) :  28.93
+Longest stay (h) :  51.75
+
+resource   requests  delayed  avg wait (h)
+jetties           68       53       10.77
+tug              136       20        0.21

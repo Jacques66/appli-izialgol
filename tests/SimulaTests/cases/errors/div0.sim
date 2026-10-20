@@ -1,6 +1,6 @@
 begin
    integer i;
-   outtext("avant"); outimage;
-   outtext("partiel ");
+   outtext("before"); outimage;
+   outtext("partial ");
    i := 10 // i
 end

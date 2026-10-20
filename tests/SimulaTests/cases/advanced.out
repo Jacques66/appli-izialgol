@@ -1,10 +1,10 @@
-carre 4 / rond bleu
+square 4 / round bleu
 tick 11
 tick 12
-compteur final = 12
+final counter = 12
 a1 b1 c b2 a2
 a1 b1 b2 a2
-arret atteint a l'etape 1
+stop reached at stage 1
 110
 3.9998
 28.0

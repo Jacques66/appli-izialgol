@@ -1,0 +1,16 @@
+! Sieve of Eratosthenes: prime numbers up to 200 ;
+begin
+   integer n = 200;
+   boolean array composite(2:n);
+   integer i, j, count;
+   for i := 2 step 1 until n do
+      if not composite(i) then
+      begin
+         count := count + 1;
+         outint(i, 5);
+         if mod(count, 10) = 0 then outimage;
+         for j := i * i step i until n do composite(j) := true
+      end;
+   outimage;
+   outtext("Number of primes: "); outint(count, 0); outimage
+end

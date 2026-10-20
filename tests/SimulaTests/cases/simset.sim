@@ -1,22 +1,22 @@
 simset begin
    link class elem(v); integer v;;
    ref(head) h; ref(elem) e, x; integer i;
-   procedure affiche;
+   procedure show;
    begin ref(elem) p;
       p :- h.first;
       while p =/= none do begin outint(p.v, 3); p :- p.suc end;
       outtext("  (card "); outint(h.cardinal, 0); outtext(")"); outimage
    end;
    h :- new head;
-   if h.empty then outtext("vide"); outimage;
+   if h.empty then outtext("empty"); outimage;
    for i := 1 step 1 until 5 do new elem(i).into(h);
-   affiche;
-   e :- h.first.suc; e.out; affiche;
-   e.precede(h.first); affiche;
-   x :- h.last; e.follow(x); affiche;
-   h.first.out; affiche;
+   show;
+   e :- h.first.suc; e.out; show;
+   e.precede(h.first); show;
+   x :- h.last; e.follow(x); show;
+   h.first.out; show;
    outint(h.last qua elem.v, 3); outint(h.first qua elem.v, 3); outimage;
-   if h.first.pred == none and h.last.suc == none then outtext("bornes ok"); outimage;
-   h.clear; affiche;
-   if h.empty then outtext("vide a nouveau"); outimage
+   if h.first.pred == none and h.last.suc == none then outtext("ends ok"); outimage;
+   h.clear; show;
+   if h.empty then outtext("empty again"); outimage
 end

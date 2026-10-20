@@ -1,5 +1,5 @@
-! Test « man or boy » de Knuth : appel par nom et procedures imbriquees.
-  Resultat attendu pour k = 10 : -67 ;
+! Knuth's "man or boy" test: call by name and nested procedures.
+  Expected result for k = 10: -67 ;
 BEGIN
     REAL PROCEDURE A(K, X1, X2, X3, X4, X5);
     NAME X1, X2, X3, X4, X5;

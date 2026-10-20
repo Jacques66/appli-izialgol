@@ -7,7 +7,7 @@ namespace Studio.Simula.Runtime;
 sealed class HaltException : Exception { }
 sealed class CancelException : Exception { }
 
-/// <summary>Machine virtuelle Simula : cadres sur le tas, coroutines (detach / resume / call).</summary>
+/// <summary>Simula virtual machine: frames on the heap, coroutines (detach / resume / call).</summary>
 public sealed partial class Vm
 {
     readonly SimProgram prog;
@@ -18,7 +18,7 @@ public sealed partial class Vm
     int budget = 20000;
     static int objectCounter;
 
-    // pour le debogueur et les erreurs
+    // for the debugger and error reports
     internal Frame? CurFrame;
     internal int CurPc;
 
@@ -63,7 +63,7 @@ public sealed partial class Vm
         public RuntimeErrorInfo Info { get; }
     }
 
-    // ------------------------------------------------------------ position et pile
+    // ------------------------------------------------------------ position and call stack
 
     internal (string File, int Line, int Col) PosOf(Frame fr, int pc)
     {
@@ -74,10 +74,10 @@ public sealed partial class Vm
 
     internal static string FrameName(Frame fr) => fr.Kind switch
     {
-        FrameKind.Block => fr.Block?.Name ?? "bloc",
+        FrameKind.Block => fr.Block?.Name ?? "block",
         FrameKind.Object => fr.Unit.Name + (fr is SimObject so ? $" #{so.Serial}" : ""),
-        FrameKind.Env => "programme",
-        FrameKind.Thunk => "parametre par nom",
+        FrameKind.Env => "program",
+        FrameKind.Thunk => "name parameter",
         FrameKind.Switch => fr.Unit.Name,
         _ => fr.Unit.Name
     };
@@ -115,7 +115,7 @@ public sealed partial class Vm
     RuntimeFault Fault(string msg, Frame f, int pc)
     {
         var (file, line, col) = PosOf(f, pc);
-        // la position d'une erreur dans le prelude est rapportee a l'appelant utilisateur
+        // the position of an error inside the prelude is reported at the user's call site
         if (file == "prelude.sim")
         {
             foreach (var (fr, p) in Chain(f, pc))
@@ -147,7 +147,7 @@ public sealed partial class Vm
         var procs = prog.Procs;
         var units = prog.Units;
 
-        // changement de cadre
+        // frame switching
         void Save(Frame fr) { }
         while (true)
         {
@@ -187,7 +187,7 @@ public sealed partial class Vm
 
                         case Op.LdF:
                             {
-                                var o = s[sp - 1].O as Frame ?? throw new SimulaError("acces a un attribut par une reference none");
+                                var o = s[sp - 1].O as Frame ?? throw new SimulaError("attribute access through a none reference");
                                 s[sp - 1] = o.S[code[pc++]];
                                 break;
                             }
@@ -198,7 +198,7 @@ public sealed partial class Vm
                             {
                                 var op = (Op)code[pc - 1];
                                 var v = s[--sp];
-                                var o = s[--sp].O as Frame ?? throw new SimulaError("affectation a un attribut par une reference none");
+                                var o = s[--sp].O as Frame ?? throw new SimulaError("attribute assignment through a none reference");
                                 if (op is Op.StTF or Op.StTFK) v = new Value { O = ((TextRef?)v.O)?.Clone() };
                                 o.S[code[pc++]] = v;
                                 if (op is Op.StFK or Op.StTFK) s[sp++] = v;
@@ -207,7 +207,7 @@ public sealed partial class Vm
                         case Op.LdE:
                             {
                                 int n = code[pc++];
-                                var a = s[sp - n - 1].O as SimArray ?? throw new SimulaError("tableau non initialise");
+                                var a = s[sp - n - 1].O as SimArray ?? throw new SimulaError("array not initialised");
                                 int idx = Index(a, s, sp - n, n);
                                 sp -= n;
                                 s[sp - 1] = a.Data[idx];
@@ -221,7 +221,7 @@ public sealed partial class Vm
                                 var op = (Op)code[pc - 1];
                                 int n = code[pc++];
                                 var v = s[--sp];
-                                var a = s[sp - n - 1].O as SimArray ?? throw new SimulaError("tableau non initialise");
+                                var a = s[sp - n - 1].O as SimArray ?? throw new SimulaError("array not initialised");
                                 int idx = Index(a, s, sp - n, n);
                                 sp -= n + 1;
                                 if (op is Op.StTE or Op.StTEK) v = new Value { O = ((TextRef?)v.O)?.Clone() };
@@ -260,7 +260,7 @@ public sealed partial class Vm
                                 var th = (Thunk)fr.S[code[pc++]].O!;
                                 int arith = code[pc++] & 3;
                                 var v = s[--sp];
-                                if (th.SetEntry < 0) throw new SimulaError("affectation a un parametre par nom dont l'effectif n'est pas une variable");
+                                if (th.SetEntry < 0) throw new SimulaError("assignment to a name parameter whose actual parameter is not a variable");
                                 var cv = v;
                                 if (arith != 0 && th.ActualArith != 0 && arith != th.ActualArith)
                                     cv = arith == 1 ? Value.Real(v.I) : new Value { I = Natives.ToInt(v.R) };
@@ -314,13 +314,13 @@ public sealed partial class Vm
                         case Op.I2S:
                             {
                                 long v = s[sp - 1].I;
-                                if (v < short.MinValue || v > short.MaxValue) throw new SimulaError($"valeur {v} hors des limites de short integer");
+                                if (v < short.MinValue || v > short.MaxValue) throw new SimulaError($"value {v} outside the range of short integer");
                                 break;
                             }
                         case Op.R2S:
                             {
                                 long v = Natives.ToInt(s[sp - 1].R);
-                                if (v < short.MinValue || v > short.MaxValue) throw new SimulaError($"valeur {v} hors des limites de short integer");
+                                if (v < short.MinValue || v > short.MaxValue) throw new SimulaError($"value {v} outside the range of short integer");
                                 s[sp - 1] = new Value { I = v };
                                 break;
                             }
@@ -331,7 +331,7 @@ public sealed partial class Vm
                             {
                                 var ci = classes[code[pc++]];
                                 if (s[sp - 1].O is SimObject so && !so.Class.IsSubclassOf(ci))
-                                    throw new SimulaError($"reference a un objet de classe {so.Class.Name} non compatible avec ref({ci.Name})");
+                                    throw new SimulaError($"reference to an object of class {so.Class.Name} is not compatible with ref({ci.Name})");
                                 break;
                             }
                         case Op.ChkArr: pc += 2; break;
@@ -344,7 +344,7 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 long d = s[sp].I;
-                                if (d == 0) throw new SimulaError("division entiere (//) par zero");
+                                if (d == 0) throw new SimulaError("integer division (//) by zero");
                                 s[sp - 1] = new Value { I = (int)(s[sp - 1].I / d) };
                                 break;
                             }
@@ -353,7 +353,7 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 long i = s[sp - 1].I, j = s[sp].I;
-                                if (j < 0 || (i == 0 && j == 0)) throw new SimulaError($"exponentiation entiere indefinie ({i}**{j})");
+                                if (j < 0 || (i == 0 && j == 0)) throw new SimulaError($"undefined integer exponentiation ({i}**{j})");
                                 long r = 1, bb = i;
                                 while (j > 0) { if ((j & 1) != 0) r = (int)(r * bb); bb = (int)(bb * bb); j >>= 1; }
                                 s[sp - 1] = new Value { I = r };
@@ -367,7 +367,7 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 double d = s[sp].R;
-                                if (d == 0) throw new SimulaError("division par zero");
+                                if (d == 0) throw new SimulaError("division by zero");
                                 s[sp - 1] = Value.Real(s[sp - 1].R / d);
                                 break;
                             }
@@ -376,7 +376,7 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 double x = s[sp - 1].R, r = s[sp].R;
-                                if (x < 0 || (x == 0 && r <= 0)) throw new SimulaError($"exponentiation indefinie ({x}**{r})");
+                                if (x < 0 || (x == 0 && r <= 0)) throw new SimulaError($"undefined exponentiation ({x}**{r})");
                                 s[sp - 1] = Value.Real(x > 0 ? Math.Pow(x, r) : 0.0);
                                 break;
                             }
@@ -384,8 +384,8 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 double x = s[sp - 1].R; long i = s[sp].I;
-                                if (i == 0 && x == 0) throw new SimulaError("exponentiation indefinie (0.0**0)");
-                                if (x == 0 && i < 0) throw new SimulaError("division par zero (0.0 ** exposant negatif)");
+                                if (i == 0 && x == 0) throw new SimulaError("undefined exponentiation (0.0**0)");
+                                if (x == 0 && i < 0) throw new SimulaError("division by zero (0.0 ** negative exponent)");
                                 s[sp - 1] = Value.Real(Math.Pow(x, i));
                                 break;
                             }
@@ -436,7 +436,7 @@ public sealed partial class Vm
                             {
                                 var ci = classes[code[pc++]];
                                 var o = s[sp - 1].O as SimObject ?? throw new SimulaError($"qua {ci.Name} applique a none");
-                                if (!o.Class.IsSubclassOf(ci)) throw new SimulaError($"qua : l'objet de classe {o.Class.Name} n'appartient pas a la classe {ci.Name}");
+                                if (!o.Class.IsSubclassOf(ci)) throw new SimulaError($"qua: the object of class {o.Class.Name} does not belong to class {ci.Name}");
                                 break;
                             }
                         case Op.Concat:
@@ -532,9 +532,9 @@ public sealed partial class Vm
                         case Op.MkLabelVirt:
                             {
                                 int vi = code[pc++];
-                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("etiquette virtuelle d'un objet none");
+                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("virtual label of a none object");
                                 var e = o.Class.VTable[vi];
-                                if (e.LabelId < 0) throw new SimulaError("etiquette virtuelle sans correspondance");
+                                if (e.LabelId < 0) throw new SimulaError("unmatched virtual label");
                                 s[sp - 1] = new Value { O = new LabelValue(o, e.LabelId) };
                                 break;
                             }
@@ -547,9 +547,9 @@ public sealed partial class Vm
                         case Op.MkSwitchVirt:
                             {
                                 int vi = code[pc++];
-                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("aiguillage virtuel d'un objet none");
+                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("virtual switch of a none object");
                                 var e = o.Class.VTable[vi];
-                                if (e.SwitchUnit == null) throw new SimulaError("aiguillage virtuel sans correspondance");
+                                if (e.SwitchUnit == null) throw new SimulaError("unmatched virtual switch");
                                 s[sp - 1] = new Value { O = new SwitchValue(e.SwitchUnit, o) };
                                 break;
                             }
@@ -561,7 +561,7 @@ public sealed partial class Vm
                                 if ((Op)code[pc - 1] == Op.SwitchSel)
                                 {
                                     idx = s[--sp].I;
-                                    sv = s[--sp].O as SwitchValue ?? throw new SimulaError("aiguillage invalide");
+                                    sv = s[--sp].O as SwitchValue ?? throw new SimulaError("invalid switch");
                                 }
                                 else
                                 {
@@ -599,7 +599,7 @@ public sealed partial class Vm
                             {
                                 var pi = procs[code[pc]]; int argc = code[pc + 1]; int flags = code[pc + 2];
                                 pc += 3;
-                                var st = s[sp - argc - 1].O as Frame ?? throw new SimulaError($"appel de {pi.Name} par une reference none");
+                                var st = s[sp - argc - 1].O as Frame ?? throw new SimulaError($"call of {pi.Name} through a none reference");
                                 f.Pc = pc; sp -= argc; f.Sp = sp - 1;
                                 var nf = EnterProc(pi, st, s, sp, argc, flags, f);
                                 sp--;
@@ -610,8 +610,8 @@ public sealed partial class Vm
                             {
                                 int vi = code[pc]; int argc = code[pc + 1]; int flags = code[pc + 2];
                                 pc += 3;
-                                var o = s[sp - argc - 1].O as SimObject ?? throw new SimulaError("appel d'une procedure virtuelle par une reference none");
-                                var pi = o.Class.VTable[vi].Proc ?? throw new SimulaError($"procedure virtuelle sans correspondance dans la classe {o.Class.Name}");
+                                var o = s[sp - argc - 1].O as SimObject ?? throw new SimulaError("call of a virtual procedure through a none reference");
+                                var pi = o.Class.VTable[vi].Proc ?? throw new SimulaError($"unmatched virtual procedure in class {o.Class.Name}");
                                 f.Pc = pc; sp -= argc; f.Sp = sp - 1;
                                 var nf = EnterProc(pi, o, s, sp, argc, flags, f);
                                 f = nf; code = f.Unit.Code; pc = f.Pc; s = f.S; sp = f.Sp;
@@ -621,7 +621,7 @@ public sealed partial class Vm
                             {
                                 int argc = code[pc]; int flags = code[pc + 1];
                                 pc += 2;
-                                var pv = s[sp - argc - 1].O as ProcValue ?? throw new SimulaError("appel d'un parametre procedure non defini");
+                                var pv = s[sp - argc - 1].O as ProcValue ?? throw new SimulaError("call of an undefined procedure parameter");
                                 f.Pc = pc; sp -= argc; f.Sp = sp - 1;
                                 var nf = EnterProc(pv.Proc, pv.Static, s, sp, argc, flags, f);
                                 f = nf; code = f.Unit.Code; pc = f.Pc; s = f.S; sp = f.Sp;
@@ -636,15 +636,15 @@ public sealed partial class Vm
                         case Op.MkProcR:
                             {
                                 var pi = procs[code[pc++]];
-                                var o = s[sp - 1].O as Frame ?? throw new SimulaError("procedure d'un objet none");
+                                var o = s[sp - 1].O as Frame ?? throw new SimulaError("procedure of a none object");
                                 s[sp - 1] = new Value { O = new ProcValue(pi, o) };
                                 break;
                             }
                         case Op.MkProcV:
                             {
                                 int vi = code[pc++];
-                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("procedure virtuelle d'un objet none");
-                                var pi = o.Class.VTable[vi].Proc ?? throw new SimulaError("procedure virtuelle sans correspondance");
+                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError("virtual procedure of a none object");
+                                var pi = o.Class.VTable[vi].Proc ?? throw new SimulaError("unmatched virtual procedure");
                                 s[sp - 1] = new Value { O = new ProcValue(pi, o) };
                                 break;
                             }
@@ -689,7 +689,7 @@ public sealed partial class Vm
                                 break;
                             }
 
-                        // ---------------------------------------- objets et sequencement
+                        // ---------------------------------------- objects and sequencing
                         case Op.New:
                         case Op.NewBlk:
                             {
@@ -709,7 +709,7 @@ public sealed partial class Vm
                             {
                                 var ci = classes[code[pc]]; int argc = code[pc + 1];
                                 pc += 2;
-                                var st = s[sp - argc - 1].O as Frame ?? throw new SimulaError("new : objet englobant none");
+                                var st = s[sp - argc - 1].O as Frame ?? throw new SimulaError("new: enclosing object is none");
                                 var o = MakeObject(ci, st, false, s, sp - argc, argc);
                                 sp -= argc + 1;
                                 s[sp++] = new Value { O = o };
@@ -738,10 +738,10 @@ public sealed partial class Vm
                                     o.State = ObjState.Terminated;
                                     var head = o.Static!;
                                     head.Operative = null;
-                                    nf = head.MainReact ?? throw new SimulaError("fin d'objet : composante principale introuvable");
+                                    nf = head.MainReact ?? throw new SimulaError("object end: main component not found");
                                     head.MainReact = null;
                                 }
-                                else throw new SimulaError("fin d'un objet dans un etat incoherent");
+                                else throw new SimulaError("end of an object in an inconsistent state");
                                 o.Sp = o.Base;
                                 if (o.S.Length > o.Base + 4) Array.Resize(ref o.S, o.Base);
                                 f = nf; code = f.Unit.Code; pc = f.Pc; s = f.S; sp = f.Sp;
@@ -750,17 +750,17 @@ public sealed partial class Vm
                         case Op.Detach:
                             {
                                 var x = s[--sp].O;
-                                if (x is not SimObject o) throw new SimulaError("detach : objet none");
+                                if (x is not SimObject o) throw new SimulaError("detach: none object");
                                 if (o.Kind == FrameKind.PrefixedBlock) break;
                                 Frame nf;
                                 switch (o.State)
                                 {
                                     case ObjState.Attached:
-                                        if (!Operating(f, o)) throw new SimulaError($"detach d'un objet attache qui n'est pas en cours d'execution ({o.Class.Name})");
+                                        if (!Operating(f, o)) throw new SimulaError($"detach of an attached object that is not operating ({o.Class.Name})");
                                         f.Pc = pc; f.Sp = sp;
                                         o.React = f;
                                         o.State = ObjState.Detached;
-                                        nf = o.Dyn ?? throw new SimulaError("detach : objet sans bloc d'attache");
+                                        nf = o.Dyn ?? throw new SimulaError("detach: object not attached to any block");
                                         o.Dyn = null;
                                         break;
                                     case ObjState.Resumed:
@@ -770,12 +770,12 @@ public sealed partial class Vm
                                             o.State = ObjState.Detached;
                                             var head = o.Static!;
                                             head.Operative = null;
-                                            nf = head.MainReact ?? throw new SimulaError("detach : composante principale introuvable");
+                                            nf = head.MainReact ?? throw new SimulaError("detach: main component not found");
                                             head.MainReact = null;
                                             break;
                                         }
-                                    case ObjState.Detached: throw new SimulaError($"detach d'un objet deja detache ({o.Class.Name})");
-                                    default: throw new SimulaError($"detach d'un objet termine ({o.Class.Name})");
+                                    case ObjState.Detached: throw new SimulaError($"detach of an object that is already detached ({o.Class.Name})");
+                                    default: throw new SimulaError($"detach of a terminated object ({o.Class.Name})");
                                 }
                                 f = nf; code = f.Unit.Code; pc = f.Pc; s = f.S; sp = f.Sp;
                                 break;
@@ -784,11 +784,11 @@ public sealed partial class Vm
                             {
                                 var y = s[--sp].O as SimObject ?? throw new SimulaError("resume(none)");
                                 if (y.State == ObjState.Resumed) break;
-                                if (y.State == ObjState.Attached) throw new SimulaError($"resume d'un objet attache ({y.Class.Name})");
-                                if (y.State == ObjState.Terminated) throw new SimulaError($"resume d'un objet termine ({y.Class.Name})");
+                                if (y.State == ObjState.Attached) throw new SimulaError($"resume of an attached object ({y.Class.Name})");
+                                if (y.State == ObjState.Terminated) throw new SimulaError($"resume of a terminated object ({y.Class.Name})");
                                 var head = y.Static!;
                                 if (head.Kind is not (FrameKind.Block or FrameKind.PrefixedBlock or FrameKind.Env))
-                                    throw new SimulaError($"resume : l'objet {y.Class.Name} n'est pas local a une tete de systeme (bloc)");
+                                    throw new SimulaError($"resume: object {y.Class.Name} is not local to a system head (block)");
                                 f.Pc = pc; f.Sp = sp;
                                 var x = head.Operative;
                                 if (x == null) head.MainReact = f;
@@ -803,7 +803,7 @@ public sealed partial class Vm
                         case Op.CallObj:
                             {
                                 var y = s[--sp].O as SimObject ?? throw new SimulaError("call(none)");
-                                if (y.State != ObjState.Detached) throw new SimulaError($"call d'un objet {(y.State == ObjState.Terminated ? "termine" : y.State == ObjState.Attached ? "attache" : "reactive (resumed)")} ({y.Class.Name})");
+                                if (y.State != ObjState.Detached) throw new SimulaError($"call of a {(y.State == ObjState.Terminated ? "terminated" : y.State == ObjState.Attached ? "attached" : "resumed")} object ({y.Class.Name})");
                                 f.Pc = pc; f.Sp = sp;
                                 y.State = ObjState.Attached;
                                 y.Dyn = f;
@@ -816,7 +816,7 @@ public sealed partial class Vm
                             CurFrame = f; CurPc = pc;
                             return;
                         default:
-                            throw new SimulaError($"instruction inconnue {(Op)code[pc - 1]} (erreur interne)");
+                            throw new SimulaError($"unknown instruction {(Op)code[pc - 1]} (internal error)");
                     }
                 }
             }
@@ -834,22 +834,22 @@ public sealed partial class Vm
             catch (IndexOutOfRangeException e) when (e.TargetSite?.DeclaringType == typeof(Vm))
             {
                 CurFrame = f; CurPc = pc;
-                throw Fault("erreur interne de la machine (" + e.Message + ")", f, pc);
+                throw Fault("internal machine error (" + e.Message + ")", f, pc);
             }
             catch (InvalidCastException e)
             {
                 CurFrame = f; CurPc = pc;
-                throw Fault("erreur interne de la machine (" + e.Message + ")", f, pc);
+                throw Fault("internal machine error (" + e.Message + ")", f, pc);
             }
             catch (IOException e)
             {
                 CurFrame = f; CurPc = pc;
-                throw Fault("erreur d'entree-sortie : " + e.Message, f, pc);
+                throw Fault("input/output error: " + e.Message, f, pc);
             }
             catch (UnauthorizedAccessException e)
             {
                 CurFrame = f; CurPc = pc;
-                throw Fault("acces au fichier refuse : " + e.Message, f, pc);
+                throw Fault("file access denied: " + e.Message, f, pc);
             }
             catch (StackOverflowException)
             {
@@ -858,7 +858,7 @@ public sealed partial class Vm
             catch (OutOfMemoryException)
             {
                 CurFrame = f; CurPc = pc;
-                throw Fault("memoire epuisee (recursion ou allocation trop importante)", f, pc);
+                throw Fault("out of memory (recursion or allocation too large)", f, pc);
             }
         }
     }
@@ -881,7 +881,7 @@ public sealed partial class Vm
 
     static bool Operating(Frame f, SimObject o)
     {
-        // enveloppe dynamique (7.3.4) : un objet reactive (resumed) mene a sa tete de systeme
+        // dynamic enclosure (7.3.4): a resumed object leads to its system head
         int n = 0;
         for (Frame? x = f; x != null && n < 1_000_000; n++)
         {
@@ -899,7 +899,7 @@ public sealed partial class Vm
 
     static int Index(SimArray a, Value[] s, int b, int n)
     {
-        if (n != a.Rank) throw new SimulaError($"nombre d'indices ({n}) different de la dimension du tableau ({a.Rank})");
+        if (n != a.Rank) throw new SimulaError($"number of subscripts ({n}) differs from the array dimension ({a.Rank})");
         if (n == 1) return a.Index1(s[b].I);
         int idx = 0;
         for (int d = 0; d < n; d++)
@@ -914,7 +914,7 @@ public sealed partial class Vm
     Frame EnterProc(ProcInfo pi, Frame st, Value[] s, int argBase, int argc, int flags, Frame caller)
     {
         bool generic = (flags & 2) != 0;
-        if (argc != pi.NParams) throw new SimulaError($"{pi.Name} : {pi.NParams} parametre(s) attendu(s), {argc} fourni(s)");
+        if (argc != pi.NParams) throw new SimulaError($"{pi.Name}: {pi.NParams} parameter(s) expected, {argc} given");
         var u = pi.Unit;
         var nf = new Frame(u, u.NSlots, 8, FrameKind.Procedure) { Static = st, Dyn = caller, WantResult = (flags & 1) != 0, Base = u.NSlots };
         Array.Copy(s, argBase, nf.S, 0, argc);
@@ -928,12 +928,12 @@ public sealed partial class Vm
         int entry = 0;
         if (kind == 0 && th.ActualKind == 2)
         {
-            // effectif procedure, formel simple : on appelle la procedure
-            if (th.AltEntry < 0) throw new SimulaError("parametre : une valeur est attendue mais l'effectif est une procedure");
+            // procedure actual, simple formal: call the procedure
+            if (th.AltEntry < 0) throw new SimulaError("parameter: a value is expected but the actual parameter is a procedure");
             entry = th.AltEntry;
         }
         else if (kind != 0 && th.ActualKind != kind && !(th.ActualKind == 0 && kind == 2))
-            throw new SimulaError("parametre : le genre de l'effectif (tableau, procedure, etiquette...) ne correspond pas au formel");
+            throw new SimulaError("parameter: the kind of the actual parameter (array, procedure, label...) does not match the formal");
         var tf = new Frame(th.Unit, 1, 8, FrameKind.Thunk) { Static = th.Env, Dyn = caller, ThunkRef = th, ThunkConv = (byte)arith, Base = 1 };
         tf.Pc = entry;
         return tf;
@@ -941,22 +941,22 @@ public sealed partial class Vm
 
     SimObject MakeObject(ClassInfo ci, Frame st, bool blk, Value[] s, int argBase, int argc)
     {
-        if (ci.Body == null) throw new SimulaError($"classe {ci.Name} sans corps (erreur interne)");
+        if (ci.Body == null) throw new SimulaError($"class {ci.Name} has no body (internal error)");
         var o = new SimObject(ci, blk) { Static = st, State = ObjState.Attached, Base = ci.NSlots, Serial = Interlocked.Increment(ref objectCounter) };
         var ps = ci.ParamSlots;
-        if (argc != ps.Length) throw new SimulaError($"{ci.Name} : {ps.Length} parametre(s) attendu(s)");
+        if (argc != ps.Length) throw new SimulaError($"{ci.Name}: {ps.Length} parameter(s) expected");
         for (int i = 0; i < argc; i++) o.S[ps[i]] = s[argBase + i];
         return o;
     }
 
-    /// <summary>goto vers le point (target, etiquette) : traverse la fin des instances intermediaires (7.3.5).</summary>
+    /// <summary>goto to the point (target, label): passes through the end of the intermediate instances (7.3.5).</summary>
     Frame DoGoto(Frame from, Frame target, int labelId, out int pc)
     {
         var y = from;
         int guard = 0;
         while (y != target)
         {
-            if (y == Env || ++guard > 1_000_000) throw new SimulaError($"goto : etiquette '{LabelName(labelId)}' inaccessible");
+            if (y == Env || ++guard > 1_000_000) throw new SimulaError($"goto: label '{LabelName(labelId)}' is not accessible");
             Frame? next;
             if (y is SimObject o && o.Kind == FrameKind.Object)
             {
@@ -980,10 +980,10 @@ public sealed partial class Vm
                 if (y is SimObject pb) pb.State = ObjState.Terminated;
                 next = y.Dyn;
             }
-            y = next ?? throw new SimulaError($"goto : etiquette '{LabelName(labelId)}' inaccessible depuis ce point");
+            y = next ?? throw new SimulaError($"goto: label '{LabelName(labelId)}' is not accessible from this point");
         }
         if (!target.Unit.LabelPcs.TryGetValue(labelId, out pc))
-            throw new SimulaError($"goto : etiquette '{LabelName(labelId)}' introuvable");
+            throw new SimulaError($"goto: label '{LabelName(labelId)}' not found");
         target.Sp = target.Base;
         return target;
     }

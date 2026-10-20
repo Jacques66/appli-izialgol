@@ -19,7 +19,7 @@ begin
    integer procedure counter; begin k := k + 1; counter := k end;
    procedure settext(t); text t; t := "abc";
    procedure reftext(t); name t; text t; t :- "nouveau";
-   text procedure greet(name_); text name_; greet :- "Bonjour " & name_;
+   text procedure greet(name_); text name_; greet :- "Hello " & name_;
    boolean procedure even(n); integer n; even := mod(n, 2) = 0;
    integer procedure ackermann(m, n); integer m, n;
       ackermann := if m = 0 then n + 1 else if n = 0 then ackermann(m - 1, 1)
@@ -39,7 +39,7 @@ begin
    k := 0; outint(counter + counter * 10, 4); outimage;
    t :- blanks(5); settext(t); outtext("[" & t & "]"); reftext(t); outtext(t); outimage;
    outtext(greet("Simula")); outimage;
-   outtext(if even(4) and not even(7) then "pair ok" else "pair faux"); outimage;
+   outtext(if even(4) and not even(7) then "even ok" else "even wrong"); outimage;
    outint(ackermann(2, 3), 4); outimage;
    fillarr(a, 5); outint(total(a), 5); outint(a(3), 4); outimage;
    r := 1; incr(i); outint(i, 3); outimage

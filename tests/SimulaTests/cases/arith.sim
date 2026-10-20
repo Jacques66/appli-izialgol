@@ -15,7 +15,7 @@ begin
    outfrac(1869000, 2, 12); outfrac(-12345, 0, 10); outfrac(5, 3, 8); outimage;
    outint(123, 0); outtext("|"); outint(-45, -6); outtext("|"); outint(12345, 3); outtext("|"); outimage;
    outfix(3.14159, 2, 0); outtext("|"); outfix(2.5, 1, -8); outtext("|"); outimage;
-   if 3 < 4.5 and not (2 = 3) then outtext("vrai") else outtext("faux"); outimage;
+   if 3 < 4.5 and not (2 = 3) then outtext("true") else outtext("false"); outimage;
    outint(if i > 0 then 1 else -1, 3); outfix(if true then 1 else 2.5, 1, 5); outimage;
    x := sqrt(16) + sin(0) + cos(0) + ln(exp(1)) + arctan(1) * 4; outfix(x, 5, 10); outimage;
    i := 7; i := i + i * 2 - 3; outint(i, 4); outimage;

@@ -1,0 +1,39 @@
+! Eight queens problem (backtracking) ;
+begin
+   integer array col(1:8);
+   boolean array freecol(1:8), diag1(2:16), diag2(-7:7);
+   integer solutions, i;
+
+   procedure show;
+   begin integer r, c;
+      for r := 1 step 1 until 8 do
+      begin
+         for c := 1 step 1 until 8 do outtext(if col(r) = c then " Q" else " .");
+         outimage
+      end;
+      outimage
+   end;
+
+   procedure place(r); integer r;
+   begin integer c;
+      for c := 1 step 1 until 8 do
+         if freecol(c) and diag1(r + c) and diag2(r - c) then
+         begin
+            col(r) := c;
+            freecol(c) := diag1(r + c) := diag2(r - c) := false;
+            if r = 8 then
+            begin
+               solutions := solutions + 1;
+               if solutions = 1 then show
+            end
+            else place(r + 1);
+            freecol(c) := diag1(r + c) := diag2(r - c) := true
+         end
+   end;
+
+   for i := 1 step 1 until 8 do freecol(i) := true;
+   for i := 2 step 1 until 16 do diag1(i) := true;
+   for i := -7 step 1 until 7 do diag2(i) := true;
+   place(1);
+   outtext("Number of solutions: "); outint(solutions, 0); outimage
+end

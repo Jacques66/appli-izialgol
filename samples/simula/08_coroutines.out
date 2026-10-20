@@ -1,11 +1,11 @@
-produit     1
-consomme    1   total   1
-produit     4
-consomme    4   total   5
-produit     9
-consomme    9   total  14
-produit    16
-consomme   16   total  30
-produit    25
-consomme   25   total  55
-fin de la production
+produced   1
+consumed   1   total   1
+produced   4
+consumed   4   total   5
+produced   9
+consumed   9   total  14
+produced  16
+consumed  16   total  30
+produced  25
+consumed  25   total  55
+production finished

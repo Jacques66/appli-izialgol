@@ -1,9 +1,9 @@
-! Produit de matrices (tableaux a deux dimensions, parametres tableaux) ;
+! Matrix product (two-dimensional arrays, array parameters) ;
 begin
    real array a(1:2, 1:3), b(1:3, 1:2), c(1:2, 1:2);
    integer i, j;
 
-   procedure produit(x, y, z, n, m, p); real array x, y, z; integer n, m, p;
+   procedure product(x, y, z, n, m, p); real array x, y, z; integer n, m, p;
    begin integer i, j, k; real s;
       for i := 1 step 1 until n do
          for j := 1 step 1 until p do
@@ -16,7 +16,7 @@ begin
 
    for i := 1 step 1 until 2 do for j := 1 step 1 until 3 do a(i, j) := i + j;
    for i := 1 step 1 until 3 do for j := 1 step 1 until 2 do b(i, j) := i * j;
-   produit(a, b, c, 2, 3, 2);
+   product(a, b, c, 2, 3, 2);
    for i := 1 step 1 until 2 do
    begin
       for j := 1 step 1 until 2 do outfix(c(i, j), 1, 8);

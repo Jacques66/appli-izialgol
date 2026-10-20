@@ -1,0 +1,102 @@
+! A harbour, after the tanker model made famous by Birtwistle's DEMOS
+  package for SIMULA: tankers arrive at random, each one needs a jetty and
+  the harbour tug to dock, unloads, then needs the tug again to leave.
+  Jetties and tugs are modelled by a small Resource class built on a SIMSET
+  queue, and the first tankers are traced step by step.
+  Shows: processes competing for several resources, a trace procedure,
+  normal and negexp drawings, statistics per resource. ;
+Simulation Begin
+   Integer seed, arrivals, departed, traced;
+   Real totalStay, maxStay;
+
+   Class Resource (rname, available); Text rname; Integer available; Begin
+      Integer requests, delayed;
+      Real waitTotal;
+      Ref (Head) queue;
+      Procedure acquire; Begin
+         Real t;
+         t := Time;
+         requests := requests + 1;
+         If available > 0 Then available := available - 1
+         Else Begin
+            delayed := delayed + 1;
+            Wait (queue);            ! release hands the resource over ;
+         End;
+         waitTotal := waitTotal + (Time - t);
+      End;
+      Procedure release; Begin
+         Ref (Process) next;
+         If queue.Empty Then available := available + 1
+         Else Begin
+            next :- queue.First;
+            next.Out;
+            Activate next After Current;
+         End;
+      End;
+      queue :- New Head;
+   End;
+
+   Ref (Resource) jetties, tug;
+
+   Procedure trace (id, what); Integer id; Text what; Begin
+      If id <= 6 Then Begin
+         OutFix (Time, 2, 8); OutText ("  tanker "); OutInt (id, 2);
+         OutText (" "); OutText (what); OutImage;
+         traced := traced + 1;
+      End;
+   End;
+
+   Process Class Tanker (id); Integer id; Begin
+      Real arrived, stay;
+      arrived := Time;
+      trace (id, "arrives");
+      jetties.acquire;
+      tug.acquire;
+      trace (id, "is towed to a jetty");
+      Hold (2.0);
+      tug.release;
+      trace (id, "starts unloading");
+      Hold (Normal (14, 3, seed));
+      trace (id, "has unloaded and calls the tug");
+      tug.acquire;
+      Hold (2.0);
+      tug.release;
+      jetties.release;
+      trace (id, "leaves the harbour");
+      stay := Time - arrived;
+      totalStay := totalStay + stay;
+      If stay > maxStay Then maxStay := stay;
+      departed := departed + 1;
+   End;
+
+   Process Class Sea; Begin
+      While Time < 24 * 30 Do Begin
+         arrivals := arrivals + 1;
+         Activate New Tanker (arrivals);
+         Hold (Negexp (1 / 11.0, seed));
+      End;
+   End;
+
+   Procedure statistics (r); Ref (Resource) r; Begin
+      OutText (r.rname); SetPos (12);
+      OutInt (r.requests, 9); OutInt (r.delayed, 9);
+      OutFix (If r.requests > 0 Then r.waitTotal / r.requests Else 0, 2, 12);
+      OutImage;
+   End;
+
+   seed := 2468;
+   jetties :- New Resource ("jetties", 2);
+   tug :- New Resource ("tug", 1);
+   Activate New Sea;
+   Hold (24 * 30 + 100);
+
+   OutImage;
+   OutText ("Tankers arrived  : "); OutInt (arrivals, 6); OutImage;
+   OutText ("Tankers departed : "); OutInt (departed, 6); OutImage;
+   OutText ("Average stay (h) : "); OutFix (totalStay / departed, 2, 6); OutImage;
+   OutText ("Longest stay (h) : "); OutFix (maxStay, 2, 6); OutImage;
+   OutImage;
+   OutText ("resource   requests  delayed  avg wait (h)"); OutImage;
+   statistics (jetties);
+   statistics (tug);
+End;

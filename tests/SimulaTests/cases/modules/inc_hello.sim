@@ -1,0 +1,2 @@
+procedure hello(n); text n;
+begin outtext("Hello "); outtext(n); outimage end;

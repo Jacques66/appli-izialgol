@@ -1,0 +1,12 @@
+Job shop: 40 hours of order arrivals, 617 orders released
+
+group       machines  served  utilisation  avg wait
+lathes             3     423        35.0 %     0.18
+drills             2     617        41.2 %     0.59
+mills              2     419        52.0 %     3.00
+grinders           1     423        24.5 %     0.16
+
+order kind  finished  avg throughput time (min)
+         1       198           15.82
+         2       225           22.38
+         3       194           15.82

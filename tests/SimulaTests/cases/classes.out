@@ -1,18 +1,18 @@
-<creation point><fin point>
-<creation point><creation point3><fin point>
-point(3.0,4.0) norme 5.00
-point3(1.0,2.0,2.0) norme 3.00
+<point created><point end>
+<point created><point3 created><point end>
+point(3.0,4.0) norm 5.00
+point3(1.0,2.0,2.0) norm 3.00
 point3(1.0,2.0,2.0)  3.00
-<creation point><fin point>
+<point created><point end>
 point(4.0,6.0)
 is/in ok
 qua ok
  2.0
-bete dit ...
-Rex dit ouaf
-Tom dit miaou
-Bill dit kai Bill
-autre un chien un chat nomme Tom un chiot
-miaou / Felix
-a est none
+beast says ...
+Rex says woof
+Tom says meow
+Bill says yip Bill
+other a dog a cat named Tom a puppy
+meow / Felix
+a is none
 references ok

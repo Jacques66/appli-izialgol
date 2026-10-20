@@ -6,7 +6,7 @@ public sealed partial class SimCompiler
 {
     const int FlagWant = 1, FlagGeneric = 2;
 
-    // ================================================================ identificateurs, appels, indices
+    // ================================================================ identifiers, calls, subscripts
 
     SType EmitCallLike(Expr e, bool wantResult, bool statement)
     {
@@ -18,7 +18,7 @@ public sealed partial class SimCompiler
             default: fn = e; args = new List<Expr>(); break;
         }
         if (fn is DotExpr de) return EmitRemote(de, args, wantResult, statement, hasParens);
-        if (fn is not Ident id) { Err(e.Pos, "appel invalide"); return SType.Err; }
+        if (fn is not Ident id) { Err(e.Pos, "invalid call"); return SType.Err; }
 
         bool nativeCandidate = id.Name.StartsWith("__") && Natives.Exists(id.Name) && InPreludeCode();
         var found = Lookup(id.Name, g.Scope, id.Pos, quiet: nativeCandidate);
@@ -32,8 +32,8 @@ public sealed partial class SimCompiler
         switch (f.Sym)
         {
             case VarSym v:
-                if (args.Count > 0 || hasParens) Err(id.Pos, $"'{id.Orig}' n'est ni un tableau ni une procedure");
-                if (statement) Err(id.Pos, $"'{id.Orig}' : une variable n'est pas une instruction");
+                if (args.Count > 0 || hasParens) Err(id.Pos, $"'{id.Orig}' is neither an array nor a procedure");
+                if (statement) Err(id.Pos, $"'{id.Orig}': a variable is not a statement");
                 if (f.Conn != null) { EmitObjectOf(f); E(Op.LdF, v.Slot); }
                 else EmitLoadSlot(f.Frame, v.Slot);
                 return TypeOf(v);
@@ -43,13 +43,13 @@ public sealed partial class SimCompiler
                     switch (ps.Kind)
                     {
                         case ParamKind.Simple:
-                            if (args.Count > 0) Err(id.Pos, $"'{id.Orig}' n'est ni un tableau ni une procedure");
-                            if (statement) Err(id.Pos, $"'{id.Orig}' : un parametre n'est pas une instruction");
+                            if (args.Count > 0) Err(id.Pos, $"'{id.Orig}' is neither an array nor a procedure");
+                            if (statement) Err(id.Pos, $"'{id.Orig}': a parameter is not a statement");
                             LoadParamRaw(f, ps, t.Arith);
                             if (ps.IsName && t.B == BaseType.ShortInteger) E(Op.I2S);
                             return t;
                         case ParamKind.Array:
-                            if (args.Count == 0) { Err(id.Pos, $"tableau '{id.Orig}' utilise sans indices"); return SType.Err; }
+                            if (args.Count == 0) { Err(id.Pos, $"array '{id.Orig}' used without subscripts"); return SType.Err; }
                             LoadParamRaw(f, ps, 0);
                             foreach (var a in args) ConvertToInt(EmitExpr(a), a.Pos);
                             E(Op.LdE, args.Count);
@@ -58,19 +58,19 @@ public sealed partial class SimCompiler
                             {
                                 LoadParamRaw(f, ps, 0);
                                 foreach (var a in args) EmitGenericThunk(a);
-                                if (wantResult && t == SType.Void) Err(id.Pos, $"la procedure '{id.Orig}' n'a pas de type et ne peut figurer dans une expression");
+                                if (wantResult && t == SType.Void) Err(id.Pos, $"procedure '{id.Orig}' has no type and cannot be used in an expression");
                                 E(Op.CallP, args.Count, (wantResult ? FlagWant : 0) | FlagGeneric);
                                 return t;
                             }
                         default:
-                            Err(id.Pos, $"'{id.Orig}' ({ps.KindName}) ne peut figurer ici");
+                            Err(id.Pos, $"'{id.Orig}' ({ps.KindName}) cannot be used here");
                             return SType.Err;
                     }
                 }
             case ArraySym arr:
                 {
-                    if (args.Count == 0) { Err(id.Pos, $"tableau '{id.Orig}' utilise sans indices"); return SType.Err; }
-                    if (args.Count != arr.Dims) Err(id.Pos, $"le tableau '{id.Orig}' a {arr.Dims} dimension(s), {args.Count} indice(s) donne(s)");
+                    if (args.Count == 0) { Err(id.Pos, $"array '{id.Orig}' used without subscripts"); return SType.Err; }
+                    if (args.Count != arr.Dims) Err(id.Pos, $"array '{id.Orig}' has {arr.Dims} dimension(s), {args.Count} subscript(s) given");
                     if (f.Conn != null) { EmitObjectOf(f); E(Op.LdF, arr.Slot); }
                     else EmitLoadSlot(f.Frame, arr.Slot);
                     foreach (var x in args) ConvertToInt(EmitExpr(x), x.Pos);
@@ -81,20 +81,20 @@ public sealed partial class SimCompiler
                 if (p.Intrinsic != null && f.Frame.Depth == 0) return EmitIntrinsic(p.Intrinsic, args, id.Pos, wantResult);
                 return EmitProcCall(f, p, args, id.Pos, wantResult);
             case VirtualSym vs:
-                if (vs.Kind != ParamKind.Procedure) { Err(id.Pos, $"'{id.Orig}' n'est pas une procedure"); return SType.Err; }
+                if (vs.Kind != ParamKind.Procedure) { Err(id.Pos, $"'{id.Orig}' is not a procedure"); return SType.Err; }
                 EmitObjectOf(f);
                 return EmitVirtualCall(vs, args, id.Pos, wantResult);
             case DetachSym:
-                if (args.Count > 0) Err(id.Pos, "detach n'a pas de parametre");
-                if (wantResult) Err(id.Pos, "detach n'a pas de valeur");
+                if (args.Count > 0) Err(id.Pos, "detach has no parameter");
+                if (wantResult) Err(id.Pos, "detach has no value");
                 EmitObjectOf(f);
                 E(Op.Detach);
                 return SType.Void;
             case ClassSym c:
-                Err(id.Pos, $"'{id.Orig}' est une classe : utiliser 'new {id.Orig}'");
+                Err(id.Pos, $"'{id.Orig}' is a class: use 'new {id.Orig}'");
                 return SType.Err;
             default:
-                Err(id.Pos, $"'{id.Orig}' ({f.Sym.KindName}) ne peut figurer ici");
+                Err(id.Pos, $"'{id.Orig}' ({f.Sym.KindName}) cannot be used here");
                 return SType.Err;
         }
     }
@@ -106,16 +106,16 @@ public sealed partial class SimCompiler
         if (ot.B == BaseType.Text) return EmitTextMethod(de, args, wantResult);
         if (!ot.IsRef || ot.Q == null)
         {
-            Err(de.Pos, ot.IsRef ? "acces distant sur 'none'" : $"acces distant sur une expression de type {ot}");
+            Err(de.Pos, ot.IsRef ? "remote access through 'none'" : $"remote access on an expression of type {ot}");
             return SType.Err;
         }
         var a = FindAttr(ot.Q, de.Name, remote: true, from: g.Scope);
-        if (a == null) { Err(de.NamePos, $"'{de.Orig}' n'est pas un attribut visible de la classe {ot.Q.Orig}"); return SType.Err; }
+        if (a == null) { Err(de.NamePos, $"'{de.Orig}' is not a visible attribute of class {ot.Q.Orig}"); return SType.Err; }
         switch (a)
         {
             case VarSym v:
-                if (args.Count > 0 || hasParens) Err(de.NamePos, $"'{de.Orig}' n'est ni un tableau ni une procedure");
-                if (statement) Err(de.NamePos, "une variable n'est pas une instruction");
+                if (args.Count > 0 || hasParens) Err(de.NamePos, $"'{de.Orig}' is neither an array nor a procedure");
+                if (statement) Err(de.NamePos, "a variable is not a statement");
                 E(Op.LdF, v.Slot);
                 return TypeOf(v);
             case ParamSym ps:
@@ -124,15 +124,15 @@ public sealed partial class SimCompiler
                     E(Op.LdF, ps.Slot);
                     if (ps.Kind == ParamKind.Array)
                     {
-                        if (args.Count == 0) { Err(de.NamePos, "tableau utilise sans indices"); return SType.Err; }
+                        if (args.Count == 0) { Err(de.NamePos, "array used without subscripts"); return SType.Err; }
                         foreach (var x in args) ConvertToInt(EmitExpr(x), x.Pos);
                         E(Op.LdE, args.Count);
                     }
-                    else if (args.Count > 0) Err(de.NamePos, $"'{de.Orig}' n'est ni un tableau ni une procedure");
+                    else if (args.Count > 0) Err(de.NamePos, $"'{de.Orig}' is neither an array nor a procedure");
                     return t;
                 }
             case ArraySym arr:
-                if (args.Count == 0) { Err(de.NamePos, "tableau utilise sans indices"); return SType.Err; }
+                if (args.Count == 0) { Err(de.NamePos, "array used without subscripts"); return SType.Err; }
                 E(Op.LdF, arr.Slot);
                 foreach (var x in args) ConvertToInt(EmitExpr(x), x.Pos);
                 E(Op.LdE, args.Count);
@@ -142,20 +142,20 @@ public sealed partial class SimCompiler
                     QueueProc(p);
                     if (p.Matches != null) return EmitVirtualCall(p.Matches, args, de.NamePos, wantResult);
                     var res = ResultOf(p);
-                    if (wantResult && res == SType.Void) Err(de.NamePos, $"la procedure '{de.Orig}' n'a pas de type");
+                    if (wantResult && res == SType.Void) Err(de.NamePos, $"procedure '{de.Orig}' has no type");
                     EmitArgsFor(p, args, de.NamePos);
                     E(Op.CallR, p.Info.Id, args.Count, wantResult ? FlagWant : 0);
                     return res;
                 }
             case VirtualSym vs:
-                if (vs.Kind != ParamKind.Procedure) { Err(de.NamePos, $"'{de.Orig}' n'est pas une procedure"); return SType.Err; }
+                if (vs.Kind != ParamKind.Procedure) { Err(de.NamePos, $"'{de.Orig}' is not a procedure"); return SType.Err; }
                 return EmitVirtualCall(vs, args, de.NamePos, wantResult);
             case DetachSym:
-                if (wantResult) Err(de.NamePos, "detach n'a pas de valeur");
+                if (wantResult) Err(de.NamePos, "detach has no value");
                 E(Op.Detach);
                 return SType.Void;
             default:
-                Err(de.NamePos, $"'{de.Orig}' ({a.KindName}) n'est pas accessible par la notation pointee");
+                Err(de.NamePos, $"'{de.Orig}' ({a.KindName}) cannot be accessed by dot notation");
                 return SType.Err;
         }
     }
@@ -167,7 +167,7 @@ public sealed partial class SimCompiler
         EmitLoadSlot(f.Frame, ps.Slot);
     }
 
-    /// <summary>Empile un tableau designe par e. Faux si e ne designe pas un tableau.</summary>
+    /// <summary>Pushes the array designated by e. False if e does not designate an array.</summary>
     bool EmitArrayRef(Expr e, out SType elem, out int dims)
     {
         elem = SType.Err; dims = -1;
@@ -191,24 +191,24 @@ public sealed partial class SimCompiler
                         LoadParamRaw(fv, ps, 0);
                         return true;
                     }
-                    Err(id.Pos, $"'{id.Orig}' n'est pas un tableau");
+                    Err(id.Pos, $"'{id.Orig}' is not an array");
                     return false;
                 }
             case DotExpr de:
                 {
                     var ot = EmitExpr(de.Obj);
-                    if (!ot.IsRef || ot.Q == null) { Err(de.Pos, "objet attendu"); return false; }
+                    if (!ot.IsRef || ot.Q == null) { Err(de.Pos, "object expected"); return false; }
                     var a = FindAttr(ot.Q, de.Name, true, g.Scope);
                     if (a is ArraySym arr) { elem = ElemOf(arr); dims = arr.Dims; E(Op.LdF, arr.Slot); return true; }
                     if (a is ParamSym ps && ps.Kind == ParamKind.Array) { elem = ParamType(ps); E(Op.LdF, ps.Slot); return true; }
-                    Err(de.NamePos, $"'{de.Orig}' n'est pas un tableau");
+                    Err(de.NamePos, $"'{de.Orig}' is not an array");
                     return false;
                 }
         }
         return false;
     }
 
-    // ================================================================ appels de procedure
+    // ================================================================ procedure calls
 
     SType EmitProcCall(Found f, ProcSym p, List<Expr> args, SrcPos pos, bool wantResult)
     {
@@ -219,7 +219,7 @@ public sealed partial class SimCompiler
             return EmitVirtualCall(p.Matches, args, pos, wantResult);
         }
         var res = ResultOf(p);
-        if (wantResult && res == SType.Void) Err(pos, $"la procedure '{p.Orig}' n'a pas de type et ne peut figurer dans une expression");
+        if (wantResult && res == SType.Void) Err(pos, $"procedure '{p.Orig}' has no type and cannot be used in an expression");
         if (f.Conn != null)
         {
             EmitObjectOf(f);
@@ -236,7 +236,7 @@ public sealed partial class SimCompiler
     {
         if (args.Count != p.Params.Count)
         {
-            Err(pos, $"'{p.Orig}' attend {p.Params.Count} parametre(s), {args.Count} fourni(s)");
+            Err(pos, $"'{p.Orig}' expects {p.Params.Count} parameter(s), {args.Count} given");
             foreach (var a in args) EmitExpr(a);
             return;
         }
@@ -252,7 +252,7 @@ public sealed partial class SimCompiler
             res = ResultOf(sig);
             if (args.Count != sig.Params.Count)
             {
-                Err(pos, $"'{v.Orig}' attend {sig.Params.Count} parametre(s), {args.Count} fourni(s)");
+                Err(pos, $"'{v.Orig}' expects {sig.Params.Count} parameter(s), {args.Count} given");
                 foreach (var a in args) EmitExpr(a);
             }
             else for (int i = 0; i < args.Count; i++) EmitDirectArg(sig.Params[i], args[i]);
@@ -264,7 +264,7 @@ public sealed partial class SimCompiler
             foreach (var a in args) EmitGenericThunk(a);
             E(Op.CallV, v.Index, args.Count, (wantResult ? FlagWant : 0) | FlagGeneric);
         }
-        if (wantResult && res == SType.Void) Err(pos, $"la procedure virtuelle '{v.Orig}' n'a pas de type");
+        if (wantResult && res == SType.Void) Err(pos, $"virtual procedure '{v.Orig}' has no type");
         return res;
     }
 
@@ -275,7 +275,7 @@ public sealed partial class SimCompiler
         return v.Type;
     }
 
-    /// <summary>Protocole d'appel d'un virtuel : entete commune si elle est connue, sinon null (appel generique).</summary>
+    /// <summary>Call protocol of a virtual: the common heading when known, otherwise null (generic call).</summary>
     ProcSym? VirtualProtocol(VirtualSym v)
     {
         if (v.ProtocolDone) return v.DirectSig;
@@ -292,9 +292,9 @@ public sealed partial class SimCompiler
                 h.Params.Add(ps);
             }
             v.DirectSig = h;
-            // verification des correspondances
+            // check the matches
             foreach (var m in AllMatches(v))
-                if (!SameHeading(m, h)) Err(m.Pos, $"'{m.Orig}' ne respecte pas la specification du virtuel");
+                if (!SameHeading(m, h)) Err(m.Pos, $"'{m.Orig}' does not conform to the specification of the virtual");
             return h;
         }
         var matches = AllMatches(v).ToList();
@@ -330,7 +330,7 @@ public sealed partial class SimCompiler
         return true;
     }
 
-    // ================================================================ parametres effectifs
+    // ================================================================ actual parameters
 
     void EmitDirectArg(ParamSym formal, Expr actual)
     {
@@ -345,33 +345,33 @@ public sealed partial class SimCompiler
                     if (at.IsErr) return;
                     if (t.B == BaseType.Text)
                     {
-                        if (at.B != BaseType.Text) { Err(actual.Pos, $"parametre '{formal.Orig}' : texte attendu (trouve {at})"); return; }
+                        if (at.B != BaseType.Text) { Err(actual.Pos, $"parameter '{formal.Orig}': text expected (found {at})"); return; }
                         E(formal.Mode == ParamMode.Value ? Op.CopyT : Op.CloneT);
                         return;
                     }
                     if (t.IsArith)
                     {
-                        if (!at.IsArith) { Err(actual.Pos, $"parametre '{formal.Orig}' : arithmetique attendu (trouve {at})"); return; }
+                        if (!at.IsArith) { Err(actual.Pos, $"parameter '{formal.Orig}': arithmetic value expected (found {at})"); return; }
                         Convert(at, t, actual.Pos);
                         return;
                     }
                     if (t.IsRef)
                     {
-                        if (!at.IsRef) { Err(actual.Pos, $"parametre '{formal.Orig}' : reference attendue (trouve {at})"); return; }
+                        if (!at.IsRef) { Err(actual.Pos, $"parameter '{formal.Orig}': reference expected (found {at})"); return; }
                         if (at.Q != null && t.Q != null && !at.Q.IsSubclassOf(t.Q))
                         {
                             if (t.Q.IsSubclassOf(at.Q)) E(Op.ChkQual, t.Q.Info.Id);
-                            else Err(actual.Pos, $"parametre '{formal.Orig}' : qualification {at} incompatible avec {t}");
+                            else Err(actual.Pos, $"parameter '{formal.Orig}': qualification {at} is incompatible with {t}");
                         }
                         return;
                     }
-                    if (at.B != t.B) Err(actual.Pos, $"parametre '{formal.Orig}' : {t} attendu (trouve {at})");
+                    if (at.B != t.B) Err(actual.Pos, $"parameter '{formal.Orig}': {t} expected (found {at})");
                     return;
                 }
             case ParamKind.Array:
                 {
                     if (formal.Mode == ParamMode.Name) { EmitThunkArg(actual, formal); return; }
-                    if (!EmitArrayRef(actual, out var elem, out var dims)) { Err(actual.Pos, $"parametre '{formal.Orig}' : tableau attendu"); return; }
+                    if (!EmitArrayRef(actual, out var elem, out var dims)) { Err(actual.Pos, $"parameter '{formal.Orig}': array expected"); return; }
                     CheckArrayElem(formal, t, elem, actual.Pos);
                     return;
                 }
@@ -395,7 +395,7 @@ public sealed partial class SimCompiler
         if (elem.IsErr || t.IsErr) return;
         bool ok = t.B == elem.B || (t.IsRef && elem.IsRef) || (t.IsReal && elem.IsReal);
         if (t.IsRef && elem.IsRef && t.Q != null && elem.Q != null && !elem.Q.IsSubclassOf(t.Q)) ok = false;
-        if (!ok) Err(pos, $"parametre '{formal.Orig}' : tableau de {t} attendu (trouve tableau de {elem})");
+        if (!ok) Err(pos, $"parameter '{formal.Orig}': {t} array expected (found {elem} array)");
     }
 
     void EmitProcValue(Expr actual, SType formalType, string formalName)
@@ -423,7 +423,7 @@ public sealed partial class SimCompiler
                             LoadParamRaw(fv, ps, 0);
                             return;
                         default:
-                            Err(id.Pos, $"parametre '{formalName}' : procedure attendue");
+                            Err(id.Pos, $"parameter '{formalName}': procedure expected");
                             E(Op.PushNone);
                             return;
                     }
@@ -431,7 +431,7 @@ public sealed partial class SimCompiler
             case DotExpr de:
                 {
                     var ot = EmitExpr(de.Obj);
-                    if (!ot.IsRef || ot.Q == null) { Err(de.Pos, "objet attendu"); return; }
+                    if (!ot.IsRef || ot.Q == null) { Err(de.Pos, "object expected"); return; }
                     var a = FindAttr(ot.Q, de.Name, true, g.Scope);
                     if (a is ProcSym p)
                     {
@@ -441,21 +441,21 @@ public sealed partial class SimCompiler
                         return;
                     }
                     if (a is VirtualSym vs && vs.Kind == ParamKind.Procedure) { E(Op.MkProcV, vs.Index); return; }
-                    Err(de.NamePos, $"'{de.Orig}' n'est pas une procedure");
+                    Err(de.NamePos, $"'{de.Orig}' is not a procedure");
                     return;
                 }
         }
-        Err(actual.Pos, $"parametre '{formalName}' : identificateur de procedure attendu");
+        Err(actual.Pos, $"parameter '{formalName}': procedure identifier expected");
         E(Op.PushNone);
     }
 
     void CheckProcResult(SType actual, SType formal, SrcPos pos, string formalName)
     {
         if (formal == SType.Void || formal.IsErr || actual.IsErr) return;
-        if (actual == SType.Void) { Err(pos, $"parametre '{formalName}' : procedure de type {formal} attendue"); return; }
+        if (actual == SType.Void) { Err(pos, $"parameter '{formalName}': procedure of type {formal} expected"); return; }
         if (formal.IsArith && actual.IsArith) return;
         if (formal.IsRef && actual.IsRef && (formal.Q == null || actual.Q == null || actual.Q.IsSubclassOf(formal.Q))) return;
-        if (formal.B != actual.B) Err(pos, $"parametre '{formalName}' : procedure de type {formal} attendue (trouve {actual})");
+        if (formal.B != actual.B) Err(pos, $"parameter '{formalName}': procedure of type {formal} expected (found {actual})");
     }
 
     void EmitSwitchValue(Expr actual)
@@ -480,15 +480,15 @@ public sealed partial class SimCompiler
                     return;
             }
         }
-        Err(actual.Pos, "identificateur d'aiguillage (switch) attendu");
+        Err(actual.Pos, "switch identifier expected");
         E(Op.PushNone);
     }
 
-    // ================================================================ thunks (appel par nom, appel generique)
+    // ================================================================ thunks (call by name, generic call)
 
     void EmitThunkArg(Expr actual, ParamSym formal)
     {
-        // transmission d'un parametre par nom a un autre parametre par nom : on passe le meme thunk
+        // passing a name parameter on to another name parameter: pass the same thunk
         if (actual is Ident pid)
         {
             var f = Lookup(pid.Name, g.Scope, pid.Pos, quiet: true);
@@ -507,7 +507,7 @@ public sealed partial class SimCompiler
 
     void EmitGenericThunk(Expr actual)
     {
-        // genre de l'effectif d'apres sa resolution
+        // kind of the actual parameter, from its resolution
         ParamKind kind = ParamKind.Simple;
         if (actual is Ident id)
         {
@@ -545,7 +545,7 @@ public sealed partial class SimCompiler
 
     void BuildThunk(Expr actual, ParamKind kind, SType? formalType, string? formalName)
     {
-        var u = NewUnit("parametre par nom", actual.Pos.File);
+        var u = NewUnit("name parameter", actual.Pos.File);
         u.IsThunk = true;
         var ts = new FrameScope { Parent = g.Scope, Kind = FKind.Thunk, Depth = g.Frame.Depth + 1, NSlots = 1, IsPrelude = g.Frame.IsPrelude, Label = "thunk" };
         var old = BeginGen(u, ts, ts);
@@ -557,10 +557,10 @@ public sealed partial class SimCompiler
         {
             case ParamKind.Array:
                 {
-                    if (!EmitArrayRef(actual, out var elem, out dims)) { Err(actual.Pos, "tableau attendu"); E(Op.PushNone); }
+                    if (!EmitArrayRef(actual, out var elem, out dims)) { Err(actual.Pos, "array expected"); E(Op.PushNone); }
                     else if (formalType != null && formalName != null)
                     {
-                        // controle du type d'element
+                        // check the element type
                         var fake = new ParamSym { Orig = formalName };
                         CheckArrayElem(fake, formalType, elem, actual.Pos);
                     }
@@ -574,7 +574,7 @@ public sealed partial class SimCompiler
                     E(Op.RetThunk);
                     if (formalType == null)
                     {
-                        // entree « valeur » : appel sans parametre (si le formel attend une valeur)
+                        // "value" entry: parameterless call (when the formal expects a value)
                         altEntry = Here;
                         var t = EmitCallLike(actual, wantResult: true, statement: false);
                         arith = t.Arith; atype = (byte)t.B; qual = t.Q?.Info.Id ?? -1;
@@ -595,21 +595,21 @@ public sealed partial class SimCompiler
                     var t = EmitExpr(actual);
                     if (formalType != null && !t.IsErr && !formalType.IsErr)
                     {
-                        if (formalType.IsArith) { if (!t.IsArith) Err(actual.Pos, $"parametre '{formalName}' : arithmetique attendu (trouve {t})"); }
+                        if (formalType.IsArith) { if (!t.IsArith) Err(actual.Pos, $"parameter '{formalName}': arithmetic value expected (found {t})"); }
                         else if (formalType.IsRef)
                         {
-                            if (!t.IsRef) Err(actual.Pos, $"parametre '{formalName}' : reference attendue");
+                            if (!t.IsRef) Err(actual.Pos, $"parameter '{formalName}': reference expected");
                             else if (t.Q != null && formalType.Q != null && !t.Q.IsSubclassOf(formalType.Q))
                             {
                                 if (formalType.Q.IsSubclassOf(t.Q)) E(Op.ChkQual, formalType.Q.Info.Id);
-                                else Err(actual.Pos, $"parametre '{formalName}' : qualification incompatible");
+                                else Err(actual.Pos, $"parameter '{formalName}': incompatible qualification");
                             }
                         }
-                        else if (t.B != formalType.B) Err(actual.Pos, $"parametre '{formalName}' : {formalType} attendu (trouve {t})");
+                        else if (t.B != formalType.B) Err(actual.Pos, $"parameter '{formalName}': {formalType} expected (found {t})");
                     }
                     arith = t.Arith; atype = (byte)t.B; qual = t.Q?.Info.Id ?? -1;
                     E(Op.RetThunk);
-                    // entree d'affectation
+                    // assignment entry
                     if (IsAssignable(actual))
                     {
                         int save = diags.Count;
@@ -621,7 +621,7 @@ public sealed partial class SimCompiler
                         if (plan.Type.IsRef && plan.Type.Q != null) E(Op.ChkQual, plan.Type.Q.Info.Id);
                         plan.Store(this, false);
                         E(Op.RetThunkSet);
-                        // des erreurs ici signifient seulement « non affectable »
+                        // errors here only mean "not assignable"
                         if (diags.Count > save) { diags.RemoveRange(save, diags.Count - save); setEntry = -1; }
                     }
                     break;
@@ -679,13 +679,13 @@ public sealed partial class SimCompiler
         return false;
     }
 
-    // ================================================================ attributs des textes
+    // ================================================================ text attributes
 
     SType EmitTextMethod(DotExpr de, List<Expr> args, bool wantResult)
     {
         var name = de.Name;
         var rt = TextMethodType(name);
-        if (rt == null) { Err(de.NamePos, $"'{de.Orig}' n'est pas un attribut de texte"); foreach (var a in args) EmitExpr(a); return SType.Err; }
+        if (rt == null) { Err(de.NamePos, $"'{de.Orig}' is not a text attribute"); foreach (var a in args) EmitExpr(a); return SType.Err; }
         string sig = name switch
         {
             "setpos" or "putint" => "I",
@@ -694,11 +694,11 @@ public sealed partial class SimCompiler
             "putfix" or "putreal" => "RI",
             _ => ""
         };
-        if (args.Count != sig.Length) { Err(de.NamePos, $"'{de.Orig}' attend {sig.Length} parametre(s)"); foreach (var a in args) EmitExpr(a); return rt; }
+        if (args.Count != sig.Length) { Err(de.NamePos, $"'{de.Orig}' expects {sig.Length} parameter(s)"); foreach (var a in args) EmitExpr(a); return rt; }
         for (int i = 0; i < args.Count; i++) EmitArgAs(sig[i], args[i]);
         E(Op.Native, Natives.Id("t_" + name), args.Count + 1);
         if (!wantResult && rt != SType.Void) E(Op.Pop);
-        if (wantResult && rt == SType.Void) Err(de.NamePos, $"'{de.Orig}' n'a pas de valeur");
+        if (wantResult && rt == SType.Void) Err(de.NamePos, $"'{de.Orig}' has no value");
         return rt;
     }
 
@@ -709,11 +709,11 @@ public sealed partial class SimCompiler
         switch (k)
         {
             case 'I': ConvertToInt(t, a.Pos); break;
-            case 'R': if (!t.IsArith) Err(a.Pos, "arithmetique attendu"); else if (!t.IsReal) E(Op.I2R); break;
-            case 'C': if (t.B != BaseType.Character) Err(a.Pos, $"caractere attendu (trouve {t})"); break;
-            case 'B': if (t.B != BaseType.Boolean) Err(a.Pos, $"booleen attendu (trouve {t})"); break;
-            case 'T': if (t.B != BaseType.Text) Err(a.Pos, $"texte attendu (trouve {t})"); break;
-            case 'O': if (!t.IsRef) Err(a.Pos, "objet attendu"); break;
+            case 'R': if (!t.IsArith) Err(a.Pos, "arithmetic value expected"); else if (!t.IsReal) E(Op.I2R); break;
+            case 'C': if (t.B != BaseType.Character) Err(a.Pos, $"character expected (found {t})"); break;
+            case 'B': if (t.B != BaseType.Boolean) Err(a.Pos, $"Boolean expected (found {t})"); break;
+            case 'T': if (t.B != BaseType.Text) Err(a.Pos, $"text expected (found {t})"); break;
+            case 'O': if (!t.IsRef) Err(a.Pos, "object expected"); break;
             case 'X': break;
         }
     }
@@ -729,10 +729,10 @@ public sealed partial class SimCompiler
         var sig = Natives.Signature(name);
         var parts = sig.Split('>');
         var ps = parts[0];
-        if (args.Count != ps.Length) { Err(pos, $"{name} : {ps.Length} parametre(s) attendu(s)"); foreach (var a in args) EmitExpr(a); return SType.Err; }
+        if (args.Count != ps.Length) { Err(pos, $"{name}: {ps.Length} parameter(s) expected"); foreach (var a in args) EmitExpr(a); return SType.Err; }
         for (int i = 0; i < args.Count; i++)
         {
-            if (ps[i] == 'A') { if (!EmitArrayRef(args[i], out _, out _)) Err(args[i].Pos, "tableau attendu"); }
+            if (ps[i] == 'A') { if (!EmitArrayRef(args[i], out _, out _)) Err(args[i].Pos, "array expected"); }
             else EmitArgAs(ps[i], args[i]);
         }
         E(Op.Native, Natives.Id(name), args.Count);
@@ -741,20 +741,20 @@ public sealed partial class SimCompiler
         return rt;
     }
 
-    // ================================================================ procedures standard traitees en ligne
+    // ================================================================ standard procedures compiled inline
 
     SType EmitIntrinsic(string name, List<Expr> args, SrcPos pos, bool wantResult)
     {
         SType Ret(SType t)
         {
             if (!wantResult && t != SType.Void) E(Op.Pop);
-            if (wantResult && t == SType.Void) Err(pos, $"'{name}' n'a pas de valeur");
+            if (wantResult && t == SType.Void) Err(pos, $"'{name}' has no value");
             return t;
         }
         bool Count(int n)
         {
             if (args.Count == n) return true;
-            Err(pos, $"'{name}' attend {n} parametre(s), {args.Count} fourni(s)");
+            Err(pos, $"'{name}' expects {n} parameter(s), {args.Count} given");
             foreach (var a in args) EmitExpr(a);
             return false;
         }
@@ -765,7 +765,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(1)) return SType.Err;
                     var t = EmitExpr(args[0]);
-                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "abs : arithmetique attendu"); return SType.Err; }
+                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "abs: arithmetic value expected"); return SType.Err; }
                     E(Op.Native, N(t.IsReal ? "absr" : "absi"), 1);
                     return Ret(t.IsReal ? t : SType.Int);
                 }
@@ -773,7 +773,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(1)) return SType.Err;
                     var t = EmitExpr(args[0]);
-                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "sign : arithmetique attendu"); return SType.Err; }
+                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "sign: arithmetic value expected"); return SType.Err; }
                     E(Op.Native, N(t.IsReal ? "signr" : "signi"), 1);
                     return Ret(SType.Int);
                 }
@@ -781,7 +781,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(1)) return SType.Err;
                     var t = EmitExpr(args[0]);
-                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "entier : arithmetique attendu"); return SType.Err; }
+                    if (!t.IsArith) { if (!t.IsErr) Err(pos, "entier: arithmetic value expected"); return SType.Err; }
                     if (t.IsReal) E(Op.Native, N("entier"), 1);
                     return Ret(SType.Int);
                 }
@@ -790,7 +790,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(2)) return SType.Err;
                     var a = EmitExpr(args[0]); var b = EmitExpr(args[1]);
-                    if ((!a.IsIntLike && !a.IsErr) || (!b.IsIntLike && !b.IsErr)) Err(pos, $"{name} : entiers attendus");
+                    if ((!a.IsIntLike && !a.IsErr) || (!b.IsIntLike && !b.IsErr)) Err(pos, $"{name}: integers expected");
                     E(Op.Native, N(name), 2);
                     return Ret(SType.Int);
                 }
@@ -815,7 +815,7 @@ public sealed partial class SimCompiler
                     }
                     if (a.B == BaseType.Character && b.B == BaseType.Character) { E(Op.Native, N(name + "i"), 2); return Ret(SType.Char); }
                     if (a.B == BaseType.Text && b.B == BaseType.Text) { E(Op.Native, N(name + "t"), 2); return Ret(SType.Text); }
-                    Err(pos, $"{name} : types incompatibles {a} et {b}");
+                    Err(pos, $"{name}: incompatible types {a} and {b}");
                     return SType.Err;
                 }
             case "sqrt": case "sin": case "cos": case "tan": case "cotan": case "arcsin": case "arccos":
@@ -824,7 +824,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(1)) return SType.Err;
                     var t = EmitExpr(args[0]);
-                    if (!t.IsArith) { if (!t.IsErr) Err(pos, $"{name} : arithmetique attendu"); return SType.Err; }
+                    if (!t.IsArith) { if (!t.IsErr) Err(pos, $"{name}: arithmetic value expected"); return SType.Err; }
                     if (!t.IsReal) E(Op.I2R);
                     E(Op.Native, N(name), 1);
                     return Ret(t.B == BaseType.LongReal ? SType.LReal : SType.Real);
@@ -859,7 +859,7 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(1)) return SType.Err;
                     var t = EmitExpr(args[0]);
-                    if (!t.IsRef && !t.IsErr) Err(pos, $"{name} : objet attendu");
+                    if (!t.IsRef && !t.IsErr) Err(pos, $"{name}: object expected");
                     E(name == "call" ? Op.CallObj : Op.Resume);
                     return Ret(SType.Void);
                 }
@@ -873,7 +873,7 @@ public sealed partial class SimCompiler
             case "upperbound": case "lowerbound":
                 {
                     if (!Count(2)) return SType.Err;
-                    if (!EmitArrayRef(args[0], out _, out _)) Err(args[0].Pos, $"{name} : tableau attendu");
+                    if (!EmitArrayRef(args[0], out _, out _)) Err(args[0].Pos, $"{name}: array expected");
                     EmitArgAs('I', args[1]);
                     E(Op.Native, N(name), 2);
                     return Ret(SType.Int);
@@ -885,7 +885,7 @@ public sealed partial class SimCompiler
                 if (!Count(0)) return SType.Err;
                 E(Op.Native, N(name), 0); return Ret(SType.LReal);
         }
-        Err(pos, $"procedure standard '{name}' non geree");
+        Err(pos, $"unsupported standard procedure '{name}'");
         return SType.Err;
     }
 }

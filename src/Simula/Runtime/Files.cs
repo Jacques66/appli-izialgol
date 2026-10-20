@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Studio.Simula.Runtime;
 
-/// <summary>Fichiers ouverts par le programme (classes de BASICIO).</summary>
+/// <summary>Files opened by the program (BASICIO classes).</summary>
 public sealed class SimFile
 {
     public int Kind;            // 1 in, 2 out, 3 print, 4 direct, 5 inbyte, 6 outbyte, 7 directbyte ; 100 sysin, 101 sysout
@@ -10,10 +10,10 @@ public sealed class SimFile
     public TextReader? Reader;
     public TextWriter? Writer;
     public Stream? Bytes;
-    public List<string?>? Lines;     // fichier direct
+    public List<string?>? Lines;     // direct file
     public bool Dirty;
     public bool Purge;
-    public string? PendingLine;      // inrecord : reste d'une ligne
+    public string? PendingLine;      // inrecord: rest of a line
     public bool Console;
 }
 
@@ -26,11 +26,11 @@ static class FileNatives
 
     public static void Register(Action<string, string, NativeFn> def)
     {
-        // __fopen(genre, nom, modes) -> poignee (0 = echec)
+        // __fopen(kind, name, modes) -> handle (0 = failure)
         def("__fopen", "ITT>I", (vm, s, b) => I(vm.OpenFile((int)s[b].I, TextRef.Str(T(s[b + 1])), TextRef.Str(T(s[b + 2])))));
         def("__fclose", "I>B", (vm, s, b) => B(vm.CloseFile((int)s[b].I)));
         def("__fexists", "T>B", (vm, s, b) => B(File.Exists(vm.ResolvePath(TextRef.Str(T(s[b]))))));
-        // lecture d'une ligne dans image : 0 lu, 1 fin de fichier
+        // reads one line into image: 0 read, 1 end of file
         def("__finimage", "IT>I", (vm, s, b) =>
         {
             var f = vm.GetFile((int)s[b].I);
@@ -39,12 +39,12 @@ static class FileNatives
             f.PendingLine = null;
             if (line == null) return I(1);
             int len = TextRef.Len(img);
-            if (line.Length > len) throw new SimulaError($"inimage : ligne de {line.Length} caracteres plus longue que l'image ({len})");
+            if (line.Length > len) throw new SimulaError($"inimage: line of {line.Length} characters is longer than the image ({len})");
             for (int i = 0; i < len; i++) img![i] = i < line.Length ? line[i] : ' ';
             img!.Pos = 1;
             return I(0);
         });
-        // inrecord : -1 fin de fichier ; sinon 2*nb + (1 si ligne incomplete)
+        // inrecord: -1 end of file; otherwise 2*count + (1 if the line is incomplete)
         def("__finrecord", "IT>I", (vm, s, b) =>
         {
             var f = vm.GetFile((int)s[b].I);
@@ -118,7 +118,7 @@ static class FileNatives
         {
             var f = vm.GetFile((int)s[b].I);
             long x = s[b + 1].I;
-            if (x < 0 || x > 255) throw new SimulaError("outbyte : valeur d'octet illegale");
+            if (x < 0 || x > 255) throw new SimulaError("outbyte: illegal byte value");
             f.Bytes!.WriteByte((byte)x);
             return Nothing;
         });
@@ -137,7 +137,7 @@ static class FileNatives
         {
             var f = vm.GetFile((int)s[b].I);
             long loc = s[b + 1].I, x = s[b + 2].I;
-            if (x < 0 || x > 255) throw new SimulaError("outbyte : valeur d'octet illegale");
+            if (x < 0 || x > 255) throw new SimulaError("outbyte: illegal byte value");
             f.Bytes!.Position = loc - 1;
             f.Bytes.WriteByte((byte)x);
             return Nothing;

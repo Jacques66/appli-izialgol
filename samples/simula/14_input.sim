@@ -1,0 +1,14 @@
+! Keyboard input (sysin): average of a series of numbers ;
+begin
+   integer n, i; real s, x;
+   outtext("How many numbers? "); breakoutimage;
+   n := inint;
+   for i := 1 step 1 until n do
+   begin
+      outtext("number "); outint(i, 0); outtext(": "); breakoutimage;
+      x := inreal;
+      s := s + x
+   end;
+   outimage;
+   outtext("average = "); outfix(s / n, 3, 0); outimage
+end

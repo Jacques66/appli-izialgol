@@ -1,7 +1,0 @@
-rectangle 3x4 : aire = 12.00
-carre 5x5 : aire = 25.00
-cercle r=1 : aire = 3.14
-aire totale : 40.14
-rectangle 3x4 est un rectangle de largeur 3.0
-carre 5x5 est un carre
-cercle r=1 n'est pas un rectangle

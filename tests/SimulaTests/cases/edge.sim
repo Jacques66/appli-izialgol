@@ -1,40 +1,40 @@
 begin
-   ! procedure formelle dont l'effectif a un parametre par nom ;
+   ! formal procedure whose actual has a name parameter ;
    procedure p(q); procedure q; begin integer z; q(z); outint(z, 4) end;
-   procedure fixe(x); name x; integer x; x := 42;
-   ! parametre texte par nom : affectation de valeur et de reference ;
+   procedure fix42(x); name x; integer x; x := 42;
+   ! text parameter by name: value and reference assignment ;
    procedure tx(t); name t; text t; begin t := "XY"; outtext(t); t :- "ref"; end;
-   ! classe avec parametre texte par valeur et tableau ;
-   class enreg(nom, notes); value nom; text nom; real array notes;
-   begin real procedure moyenne; begin integer i; real s;
-      for i := lowerbound(notes, 1) step 1 until upperbound(notes, 1) do s := s + notes(i);
-      moyenne := s / (upperbound(notes, 1) - lowerbound(notes, 1) + 1) end;
+   ! class with a text parameter by value and an array ;
+   class record_c(rname, marks); value rname; text rname; real array marks;
+   begin real procedure average; begin integer i; real s;
+      for i := lowerbound(marks, 1) step 1 until upperbound(marks, 1) do s := s + marks(i);
+      average := s / (upperbound(marks, 1) - lowerbound(marks, 1) + 1) end;
    end;
-   ! aiguillage virtuel ;
-   class automate; virtual: switch etat;
-   begin integer k; k := 2; goto etat(k); end;
-   automate class auto2;
-   begin switch etat := e1, e2;
-e1: outtext("etat 1"); goto fin;
-e2: outtext("etat 2");
-fin: outimage
+   ! virtual switch ;
+   class automaton; virtual: switch state;
+   begin integer k; k := 2; goto state(k); end;
+   automaton class auto2;
+   begin switch state := e1, e2;
+e1: outtext("state 1"); goto done;
+e2: outtext("state 2");
+done: outimage
    end;
-   ! detach dans un bloc prefixe : sans effet ;
-   class pref; begin detach; outtext("apres detach"); outimage; inner end;
-   ! effectifs de type fonction reevalues a chaque utilisation ;
-   integer cpt;
-   integer procedure suivant; begin cpt := cpt + 1; suivant := cpt end;
-   integer procedure trois_fois(e); name e; integer e; trois_fois := e + e * 10 + e * 100;
-   ref(enreg) r; real array ns(1:4); text t; integer i;
-   ref(enreg) array tab(1:2);
+   ! detach in a prefixed block: no effect ;
+   class pref; begin detach; outtext("after detach"); outimage; inner end;
+   ! function actuals re-evaluated at every use ;
+   integer counter;
+   integer procedure next_value; begin counter := counter + 1; next_value := counter end;
+   integer procedure three_times(e); name e; integer e; three_times := e + e * 10 + e * 100;
+   ref(record_c) r; real array ns(1:4); text t; integer i;
+   ref(record_c) array table(1:2);
 
-   p(fixe); outimage;
+   p(fix42); outimage;
    t :- blanks(4); tx(t); outtext("|"); outtext(t); outimage;
    for i := 1 step 1 until 4 do ns(i) := i * 2.5;
-   r :- new enreg("Durand", ns); outtext(r.nom); outfix(r.moyenne, 2, 8); outimage;
+   r :- new record_c("Durand", ns); outtext(r.rname); outfix(r.average, 2, 8); outimage;
    new auto2;
-   pref begin outtext("corps du bloc"); outimage end;
-   outint(trois_fois(suivant), 6); outimage;
-   for r :- new enreg("a", ns), new enreg("b", ns) do outtext(r.nom); outimage;
-   tab(1) :- r; outtext(tab(1).nom); outimage
+   pref begin outtext("block body"); outimage end;
+   outint(three_times(next_value), 6); outimage;
+   for r :- new record_c("a", ns), new record_c("b", ns) do outtext(r.rname); outimage;
+   table(1) :- r; outtext(table(1).rname); outimage
 end

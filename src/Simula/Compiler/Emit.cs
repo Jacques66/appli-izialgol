@@ -3,7 +3,7 @@ using Studio.Simula.Runtime;
 
 namespace Studio.Simula.Compiler;
 
-/// <summary>Phase B : generation du code (avec verification des types).</summary>
+/// <summary>Phase B: code generation (with type checking).</summary>
 public sealed partial class SimCompiler
 {
     sealed class Gen
@@ -60,7 +60,7 @@ public sealed partial class SimCompiler
         foreach (var (at, id) in g.LabelFix)
         {
             if (g.Unit.LabelPcs.TryGetValue(id, out var pc)) g.Code[at] = pc;
-            else Err(SrcPos.None, "etiquette introuvable dans l'unite (erreur interne)");
+            else Err(SrcPos.None, "label not found in the unit (internal error)");
         }
         g.Unit.Code = g.Code.ToArray();
     }
@@ -72,7 +72,7 @@ public sealed partial class SimCompiler
         return old;
     }
 
-    // ================================================================ point d'entree
+    // ================================================================ entry point
 
     public SimProgram? CompileProgram(SourceFile user, string preludeText, Func<string, string, SourceFile?>? resolver)
     {
@@ -81,10 +81,10 @@ public sealed partial class SimCompiler
         preludeFile = files.Count;
         files.Add("prelude.sim");
         prog.Files.AddRange(files);
-        // (les fichiers inclus ou externes sont ajoutes a la suite)
+        // (included or external files are appended after these)
         CreateRoot();
 
-        // programme utilisateur
+        // user program
         var ulex = new Lexer(user.Text, 0, Err);
         int includeNesting = 0;
         Func<string, List<Token>?>? handler = null;
@@ -106,30 +106,30 @@ public sealed partial class SimCompiler
         var (userStmt, userExternals, userModules) = uparser.ParseProgram();
         if (userStmt == null && userModules.Count > 0)
         {
-            Err(new SrcPos(0, 1, 1), "ce fichier est un module (declaration de classe ou de procedure) et non un programme principal ; il peut etre utilise par 'external class'/'external procedure'");
+            Err(new SrcPos(0, 1, 1), "this file is a module (class or procedure declaration), not a main program; it can be used through 'external class'/'external procedure'");
         }
 
         // prelude
-        var plex = new Lexer(preludeText, preludeFile, (p, m) => Err(p, "prelude : " + m)) { AllowUnderscoreStart = true };
+        var plex = new Lexer(preludeText, preludeFile, (p, m) => Err(p, "prelude: " + m)) { AllowUnderscoreStart = true };
         var ptoks = plex.Tokenize();
-        var pparser = new Parser(ptoks, (p, m) => Err(p, "prelude : " + m)) { InPrelude = true };
+        var pparser = new Parser(ptoks, (p, m) => Err(p, "prelude: " + m)) { InPrelude = true };
         var (envStmt, _, _) = pparser.ParseProgram();
-        if (envStmt is not BlockStmt envBlock) { Err(SrcPos.None, "prelude invalide"); return null; }
+        if (envStmt is not BlockStmt envBlock) { Err(SrcPos.None, "invalid prelude"); return null; }
         envBlock.IsProgramBlock = true;
-        // insertion du programme
+        // insertion of the program
         bool inserted = false;
         Stmt programStmt = userStmt ?? new DummyStmt();
         if (userExternals.Count > 0)
         {
-            // tete externe du programme : les declarations sont placees dans un bloc englobant
+            // external head of the program: the declarations are placed in an enclosing block
             var wrap = new BlockStmt { Pos = programStmt.Pos, Decls = userExternals, Stmts = new List<Stmt> { programStmt } };
             programStmt = wrap;
         }
         ReplacePlaceholder(envBlock.Stmts, programStmt, ref inserted);
-        if (!inserted) { Err(SrcPos.None, "prelude : emplacement du programme introuvable"); return null; }
+        if (!inserted) { Err(SrcPos.None, "prelude: program insertion point not found"); return null; }
 
         // phase A
-        env = new FrameScope { Kind = FKind.Env, Depth = 0, IsPrelude = true, Label = "environnement" };
+        env = new FrameScope { Kind = FKind.Env, Depth = 0, IsPrelude = true, Label = "environment" };
         scopeOf[envBlock] = env;
         DeclareBlockContents(env, envBlock.Decls, envBlock.Stmts, null);
         MarkIntrinsics();
@@ -137,7 +137,7 @@ public sealed partial class SimCompiler
             return null;
 
         // phase B
-        var main = NewUnit("programme", 0);
+        var main = NewUnit("program", 0);
         prog.Main = main;
         BeginGen(main, env, env);
         EmitDeclInit(envBlock.Decls, env);
@@ -153,9 +153,9 @@ public sealed partial class SimCompiler
         foreach (var (cls, sw) in pendingSwitchVirtuals)
         {
             EnsureSwitchUnit(sw);
-            // toutes les classes qui heritent de cette entree
+            // all classes inheriting this entry
         }
-        // propagation des unites d'aiguillage virtuelles
+        // propagation of virtual switch units
         foreach (var c in prog.Classes)
             foreach (var ve in c.VTable)
                 _ = ve;
@@ -189,7 +189,7 @@ public sealed partial class SimCompiler
         }
     }
 
-    // ================================================================ declarations : initialisation a l'entree du bloc
+    // ================================================================ declarations: initialisation on block entry
 
     void EmitDeclInit(List<Decl> decls, Scope scope)
     {
@@ -205,7 +205,7 @@ public sealed partial class SimCompiler
                         {
                             var t = TypeOf(v);
                             var et = EmitExpr(it.Const);
-                            if (t.B == BaseType.Text) { if (et.B != BaseType.Text) Err(it.Pos, "constante texte attendue"); E(Op.StT, v.Slot); }
+                            if (t.B == BaseType.Text) { if (et.B != BaseType.Text) Err(it.Pos, "text constant expected"); E(Op.StT, v.Slot); }
                             else { Convert(et, t, it.Pos); E(Op.St, v.Slot); }
                         }
                     }
@@ -247,7 +247,7 @@ public sealed partial class SimCompiler
         }
     }
 
-    /// <summary>Les bornes de tableau et constantes ne peuvent referencer des quantites du meme bloc.</summary>
+    /// <summary>Array bounds and constants may not reference quantities of the same block.</summary>
     void CheckNoLocalRef(Expr e, Scope scope)
     {
         switch (e)
@@ -255,8 +255,8 @@ public sealed partial class SimCompiler
             case Ident id:
                 if (scope.Syms.TryGetValue(id.Name, out var s) && !(s is VarSym v && v.IsConst) && s is not ProcSym && s is not ParamSym)
                 {
-                    // dans une classe, les parametres formels sont permis
-                    Err(id.Pos, $"une borne de tableau ne peut referencer '{id.Orig}' declare dans le meme bloc");
+                    // in a class, formal parameters are allowed
+                    Err(id.Pos, $"an array bound may not reference '{id.Orig}' declared in the same block");
                 }
                 break;
             case BinExpr b: CheckNoLocalRef(b.L, scope); CheckNoLocalRef(b.R, scope); break;
@@ -278,10 +278,10 @@ public sealed partial class SimCompiler
     {
         if (!queuedClasses.Add(c)) return;
         pendingUnits.Enqueue(() => EmitClassUnit(c));
-        // declarations du corps : procedures et classes locales
+        // body declarations: local procedures and classes
     }
 
-    // ================================================================ unites
+    // ================================================================ units
 
     void EmitProcUnit(ProcSym p)
     {
@@ -293,7 +293,7 @@ public sealed partial class SimCompiler
         p.Info.ResultQual = res.Q?.Info;
         var ms = scopeOf[p.Decl];
         var old = BeginGen(u, p.Body, ms);
-        // entree directe
+        // direct entry
         foreach (var ps in p.Params) ResolveParam(ps);
         foreach (var ps in p.Params)
             if (ps.Kind == ParamKind.Array && ps.Mode == ParamMode.Value)
@@ -310,7 +310,7 @@ public sealed partial class SimCompiler
         else EmitStmt(body);
         MarkPos(body is BlockStmt bb && bb.EndPos.Line > 0 ? bb.EndPos : p.Pos);
         E(Op.Ret);
-        // entree generique (appel par parametre procedure ou virtuel)
+        // generic entry (call through a procedure parameter or a virtual)
         u.GenericEntry = Here;
         foreach (var ps in p.Params) EmitGenericParam(ps);
         E(Op.Jmp, 0);
@@ -353,12 +353,12 @@ public sealed partial class SimCompiler
 
     void EmitClassUnit(ClassSym c)
     {
-        var u = NewUnit(c.IsPrefixedBlock ? c.Orig : "classe " + c.Orig, c.Pos.File);
+        var u = NewUnit(c.IsPrefixedBlock ? c.Orig : "class " + c.Orig, c.Pos.File);
         u.Class = c.Info;
         c.Info.Body = u;
         var chain = c.ChainInnerToOuter().Where(k => !k.IsRoot).Reverse().ToList();
         var old = BeginGen(u, chain.Count > 0 ? chain[0].Body : c.Body, chain.Count > 0 ? chain[0].Body : c.Body);
-        // initialisation : tetes de bloc de chaque niveau (exterieur d'abord)
+        // initialisation: block heads of every level (outermost first)
         foreach (var k in chain)
         {
             g.Frame = k.Body; g.Scope = k.Body;
@@ -419,7 +419,7 @@ public sealed partial class SimCompiler
         FinishUnit();
         u.NSlots = 1;
         g = old;
-        // entrees virtuelles
+        // virtual entries
         foreach (var c in prog.Classes) { }
         if (sw.Matches != null)
             PatchSwitchVirtual(sw);
@@ -432,7 +432,7 @@ public sealed partial class SimCompiler
         void Walk(ClassSym c)
         {
             var e = c.Info.VTable[sw.Matches!.Index];
-            // une sous-classe qui redefinit garde sa propre entree
+            // a subclass that redefines it keeps its own entry
             if (c == owner || (e.SwitchUnit == null && e.Proc == null && e.LabelId < 0))
                 c.Info.VTable[sw.Matches.Index] = new VirtualEntry { SwitchUnit = sw.Unit };
             foreach (var s in c.Subclasses)
@@ -441,7 +441,7 @@ public sealed partial class SimCompiler
         Walk(owner);
     }
 
-    // ================================================================ instructions
+    // ================================================================ statements
 
     void RegisterLabel(string name, Scope s)
     {
@@ -505,15 +505,15 @@ public sealed partial class SimCompiler
             case GotoStmt gt: Line(gt.Pos); EmitGoto(gt.Target); break;
             case InspectStmt ins: Line(ins.Pos); EmitInspect(ins); break;
             case ActivateStmt act: Line(act.Pos); EmitActivate(act); break;
-            case InnerStmt inn: Err(inn.Pos, "'inner' mal place"); break;
-            default: Err(st.Pos, "instruction non geree"); break;
+            case InnerStmt inn: Err(inn.Pos, "misplaced 'inner'"); break;
+            default: Err(st.Pos, "unsupported statement"); break;
         }
     }
 
     void EmitCond(Expr e)
     {
         var t = EmitExpr(e);
-        if (t.B != BaseType.Boolean && !t.IsErr) Err(e.Pos, $"expression booleenne attendue (trouve {t})");
+        if (t.B != BaseType.Boolean && !t.IsErr) Err(e.Pos, $"Boolean expression expected (found {t})");
     }
 
     void EmitBlock(BlockStmt b)
@@ -553,15 +553,15 @@ public sealed partial class SimCompiler
     void EmitPrefixedBlock(BlockStmt b, ClassSym c)
     {
         var pre = c.Prefix!;
-        if (pre.UsesThis) Err(b.PrefixPos, $"la classe '{pre.Orig}' utilise 'this' et ne peut servir de prefixe de bloc");
+        if (pre.UsesThis) Err(b.PrefixPos, $"class '{pre.Orig}' uses 'this' and cannot be used as a block prefix");
         QueueClass(c);
-        // parametres du prefixe
+        // prefix parameters
         EmitClassArgs(c, b.PrefixArgs, b.PrefixPos);
         var hops = HopsTo(c.Scope.Frame);
         E(Op.NewBlk, c.Info.Id, hops, b.PrefixArgs.Count);
     }
 
-    // ---------------------------------------------------------------- affectation
+    // ---------------------------------------------------------------- assignment
 
     void EmitAssign(AssignStmt a)
     {
@@ -577,7 +577,7 @@ public sealed partial class SimCompiler
         }
     }
 
-    // ---------------------------------------------------------------- instruction expression
+    // ---------------------------------------------------------------- expression statement
 
     void EmitExprStmt(ExprStmt es)
     {
@@ -594,7 +594,7 @@ public sealed partial class SimCompiler
                 E(Op.Pop);
                 break;
             default:
-                Err(e.Pos, "instruction attendue (appel de procedure, affectation ou generateur d'objet)");
+                Err(e.Pos, "statement expected (procedure call, assignment or object generator)");
                 break;
         }
     }
@@ -605,13 +605,13 @@ public sealed partial class SimCompiler
     {
         var body = f.Body;
         var lscope = scopeOf[f];
-        if (f.Var is not Ident cv) { Err(f.Pos, "variable controlee invalide"); return; }
+        if (f.Var is not Ident cv) { Err(f.Pos, "invalid controlled variable"); return; }
         var found = Lookup(cv.Name, g.Scope, cv.Pos);
         if (found != null)
         {
-            if (found.Value.Sym is ParamSym pp && pp.IsName) Err(cv.Pos, "la variable controlee ne peut etre un parametre par nom");
-            if (found.Value.Sym is ProcSym) Err(cv.Pos, "la variable controlee ne peut etre un identificateur de procedure");
-            if (found.Value.Sym is VarSym vs && vs.IsConst) Err(cv.Pos, "la variable controlee ne peut etre une constante");
+            if (found.Value.Sym is ParamSym pp && pp.IsName) Err(cv.Pos, "the controlled variable cannot be a parameter called by name");
+            if (found.Value.Sym is ProcSym) Err(cv.Pos, "the controlled variable cannot be a procedure identifier");
+            if (found.Value.Sym is VarSym vs && vs.IsConst) Err(cv.Pos, "the controlled variable cannot be a constant");
         }
         bool multi = f.Elems.Count > 1;
         int kSlot = multi ? tempOf[f] : -1;
@@ -634,7 +634,7 @@ public sealed partial class SimCompiler
             retFix.Add(Here - 1);
             E(Op.St, kSlot);
             bodyCalls.Add(EJump(Op.Jmp));
-            // adresse de retour
+            // return address
             g.Code[retFix[^1]] = Here;
         }
 
@@ -661,18 +661,18 @@ public sealed partial class SimCompiler
                     }
                 case ForKind.StepUntil:
                     {
-                        if (f.IsRef) { Err(el.Pos, "step ... until interdit avec ':-'"); break; }
+                        if (f.IsRef) { Err(el.Pos, "step ... until not allowed with ':-'"); break; }
                         int dSlot = tempOf[el];
                         long? stepConst = el.B is IntLit sil ? sil.Value
                             : el.B is UnExpr { Op: T.Minus, E: IntLit nil } ? -nil.Value : null;
                         if (stepConst is long stp && stp != 0)
                         {
-                            // pas constant : DELTA*(C-A3) <= 0 se reduit a une comparaison
+                            // constant step: DELTA*(C-A3) <= 0 reduces to a comparison
                             AssignControlled(f, el.A);
                             int testc = Here;
                             var cvc = EmitExpr(cv);
                             var ltc = EmitExpr(el.C);
-                            if (!ltc.IsArith && !ltc.IsErr) Err(el.C.Pos, "limite arithmetique attendue");
+                            if (!ltc.IsArith && !ltc.IsErr) Err(el.C.Pos, "arithmetic limit expected");
                             int relc = (int)(stp > 0 ? T.Le : T.Ge);
                             if (cvc.IsReal || ltc.IsReal)
                             {
@@ -699,14 +699,14 @@ public sealed partial class SimCompiler
                         var ct = AssignControlled(f, el.A);
                         // DELTA := B
                         var bt = EmitExpr(el.B);
-                        if (!bt.IsArith && !bt.IsErr) Err(el.B.Pos, "pas arithmetique attendu");
+                        if (!bt.IsArith && !bt.IsErr) Err(el.B.Pos, "arithmetic step expected");
                         E(Op.St, dSlot);
                         int test = Here;
                         // DELTA*(C-A3) <= 0
                         E(Op.Ld, dSlot);
                         var cvt = EmitExpr(cv);
                         var lt = EmitExpr(el.C);
-                        if (!lt.IsArith && !lt.IsErr) Err(el.C.Pos, "limite arithmetique attendue");
+                        if (!lt.IsArith && !lt.IsErr) Err(el.C.Pos, "arithmetic limit expected");
                         int mask = (bt.IsReal ? 1 : 0) | (cvt.IsReal ? 2 : 0) | (lt.IsReal ? 4 : 0);
                         E(Op.StepTest, mask);
                         var j = EJump(Op.Jf);
@@ -781,10 +781,10 @@ public sealed partial class SimCompiler
         E(Op.GotoV);
     }
 
-    /// <summary>L'etiquette est-elle emise dans l'unite courante (meme cadre d'execution) ?</summary>
+    /// <summary>Is the label emitted in the current unit (same runtime frame)?</summary>
     bool UnitHasLabelScope(LabelSym ls)
     {
-        // meme cadre statique : soit le cadre courant, soit un niveau de la meme classe concatenee
+        // same static frame: either the current frame or a level of the same concatenated class
         if (ls.Frame == g.Frame) return true;
         if (g.Unit.Class != null && ls.Frame.Kind is FKind.ClassBody or FKind.PrefixedBlock && ls.Frame.Class != null)
         {
@@ -806,7 +806,7 @@ public sealed partial class SimCompiler
                     {
                         case LabelSym ls:
                             if (ls.Matches != null) { EmitObjectOf(f.Value); E(Op.MkLabelVirt, ls.Matches.Index); return; }
-                            if (f.Value.Conn != null) { Err(id.Pos, "une etiquette n'est pas accessible par connexion"); E(Op.PushNone); return; }
+                            if (f.Value.Conn != null) { Err(id.Pos, "a label cannot be accessed through connection"); E(Op.PushNone); return; }
                             E(Op.MkLabel, ls.Id, HopsTo(ls.Frame));
                             return;
                         case VirtualSym vs when vs.Kind == ParamKind.Label:
@@ -816,7 +816,7 @@ public sealed partial class SimCompiler
                             LoadParamRaw(f.Value, ps, 0);
                             return;
                         default:
-                            Err(id.Pos, $"'{id.Orig}' n'est pas une etiquette");
+                            Err(id.Pos, $"'{id.Orig}' is not a label");
                             E(Op.PushNone);
                             return;
                     }
@@ -849,7 +849,7 @@ public sealed partial class SimCompiler
                             E(Op.SwitchSel);
                             return;
                         default:
-                            Err(sid.Pos, $"'{sid.Orig}' n'est pas un aiguillage (switch)");
+                            Err(sid.Pos, $"'{sid.Orig}' is not a switch");
                             E(Op.PushNone);
                             return;
                     }
@@ -866,7 +866,7 @@ public sealed partial class SimCompiler
                     return;
                 }
             default:
-                Err(e.Pos, "expression de designation (etiquette ou aiguillage) attendue");
+                Err(e.Pos, "designational expression (label or switch) expected");
                 E(Op.PushNone);
                 return;
         }
@@ -878,14 +878,14 @@ public sealed partial class SimCompiler
     {
         int temp = tempOf[ins];
         var ot = EmitExpr(ins.Obj);
-        if (!ot.IsRef && !ot.IsErr) Err(ins.Obj.Pos, "inspect : expression objet attendue");
+        if (!ot.IsRef && !ot.IsErr) Err(ins.Obj.Pos, "inspect: object expression expected");
         StoreFrameSlot(temp, ins);
         var ends = new List<int>();
         if (ins.DoBody != null)
         {
             var cs = (ConnScope)scopeOf[ins];
             cs.Qual = ot.Q;
-            if (ot.Q == null && ot.IsRef) Err(ins.Obj.Pos, "inspect none : qualification inconnue");
+            if (ot.Q == null && ot.IsRef) Err(ins.Obj.Pos, "inspect none: unknown qualification");
             LoadFrameSlot(temp, ins);
             E(Op.PushNone);
             E(Op.RefEq);
@@ -905,7 +905,7 @@ public sealed partial class SimCompiler
                 var cs = (ConnScope)scopeOf[w];
                 cs.Qual = cls;
                 if (cls != null && ot.Q != null && !cls.IsSubclassOf(ot.Q) && !ot.Q.IsSubclassOf(cls))
-                    Err(w.Pos, $"la classe '{cls.Orig}' est sans rapport avec la qualification {ot}");
+                    Err(w.Pos, $"class '{cls.Orig}' is unrelated to the qualification {ot}");
                 LoadFrameSlot(temp, ins);
                 E(Op.In, cls?.Info.Id ?? 0);
                 var jn = EJump(Op.Jf);
@@ -921,7 +921,7 @@ public sealed partial class SimCompiler
         foreach (var j in ends) Patch(j);
     }
 
-    // les temporaires sont alloues dans le cadre ou se trouve l'instruction
+    // temporaries are allocated in the frame containing the statement
     void StoreFrameSlot(int slot, object node) => E(Op.St, slot);
     void LoadFrameSlot(int slot, object node) => E(Op.Ld, slot);
 
@@ -932,7 +932,7 @@ public sealed partial class SimCompiler
         var f = Lookup("activat__", g.Scope, a.Pos, quiet: true);
         if (f == null || f.Value.Sym is not ProcSym p)
         {
-            Err(a.Pos, "instruction d'activation hors d'un bloc ou d'une classe prefixe par 'simulation'");
+            Err(a.Pos, "activation statement outside a block or class prefixed by 'simulation'");
             return;
         }
         var args = new List<Expr>

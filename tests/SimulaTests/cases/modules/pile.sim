@@ -1,6 +1,0 @@
-class pile(taille); integer taille;
-begin integer array t(1:taille); integer sommet;
-   procedure empile(x); integer x; begin sommet := sommet + 1; t(sommet) := x end;
-   integer procedure depile; begin depile := t(sommet); sommet := sommet - 1 end;
-   boolean procedure vide; vide := sommet = 0;
-end pile;

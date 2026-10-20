@@ -1,0 +1,6 @@
+class stack(size); integer size;
+begin integer array t(1:size); integer top;
+   procedure push(x); integer x; begin top := top + 1; t(top) := x end;
+   integer procedure pop; begin pop := t(top); top := top - 1 end;
+   boolean procedure is_empty; is_empty := top = 0;
+end stack;

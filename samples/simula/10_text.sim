@@ -1,0 +1,32 @@
+! Text handling: splitting into words, reversing, upper case ;
+begin
+   text sentence, word;
+   integer count;
+
+   text procedure reverse(t); text t;
+   begin text r; integer i;
+      r :- blanks(t.length);
+      for i := 1 step 1 until t.length do r.sub(t.length - i + 1, 1) := t.sub(i, 1);
+      reverse :- r
+   end;
+
+   procedure next_word;
+   begin integer start;
+      while sentence.more and then sentence.sub(sentence.pos, 1) = " " do sentence.setpos(sentence.pos + 1);
+      start := sentence.pos;
+      while sentence.more and then sentence.sub(sentence.pos, 1) <> " " do sentence.setpos(sentence.pos + 1);
+      word :- sentence.sub(start, sentence.pos - start)
+   end;
+
+   sentence :- copy("  Simula is the first object oriented language  ");
+   outtext("Sentence: [" & sentence.strip & "]"); outimage;
+   sentence.setpos(1);
+   next_word;
+   while word =/= notext do
+   begin
+      count := count + 1;
+      outint(count, 2); outtext(": "); outtext(word); outtext(" -> "); outtext(reverse(word)); outimage;
+      next_word
+   end;
+   outtext("Upper case: "); outtext(upcase(copy(sentence.strip))); outimage
+end

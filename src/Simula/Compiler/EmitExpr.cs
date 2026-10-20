@@ -4,13 +4,13 @@ namespace Studio.Simula.Compiler;
 
 public sealed partial class SimCompiler
 {
-    // ================================================================ destinations d'affectation
+    // ================================================================ assignment targets
 
     sealed class Target
     {
         public SType Type = SType.Err;
         public bool IsRef;
-        public bool TextValue;          // := sur un texte
+        public bool TextValue;          // := on a text
         public Action<bool> StoreFn = _ => { };
         public SType ResultType => Type;
         public void Store(SimCompiler c, bool keep) => StoreFn(keep);
@@ -33,7 +33,7 @@ public sealed partial class SimCompiler
         else E(text ? Op.StTO : Op.StO, h, slot);
     }
 
-    /// <summary>Empile l'objet portant l'attribut trouve (connexion ou cadre de classe).</summary>
+    /// <summary>Pushes the object holding the attribute found (connection or class frame).</summary>
     void EmitObjectOf(Found f)
     {
         if (f.Conn != null) EmitLoadSlot(f.Conn.Frame, f.Conn.TempSlot);
@@ -48,7 +48,7 @@ public sealed partial class SimCompiler
     Target TargetPrefix(Expr t, bool isRef)
     {
         var tg = new Target { IsRef = isRef };
-        // affectation de valeur texte : la destination est une expression texte quelconque
+        // text value assignment: the target may be any text expression
         if (!isRef)
         {
             var st = StaticTypeOf(t);
@@ -71,7 +71,7 @@ public sealed partial class SimCompiler
                     switch (fv.Sym)
                     {
                         case VarSym v:
-                            if (v.IsConst) Err(id.Pos, $"'{id.Orig}' est une constante");
+                            if (v.IsConst) Err(id.Pos, $"'{id.Orig}' is a constant");
                             tg.Type = TypeOf(v);
                             return SlotTarget(tg, fv, v.Slot);
                         case ParamSym ps when ps.Kind == ParamKind.Simple:
@@ -81,7 +81,7 @@ public sealed partial class SimCompiler
                                 {
                                     var arith = tg.Type.Arith;
                                     var frame = fv.Frame;
-                                    if (fv.Conn != null) { Err(id.Pos, "parametre par nom inaccessible par connexion"); return tg; }
+                                    if (fv.Conn != null) { Err(id.Pos, "name parameter not accessible through connection"); return tg; }
                                     tg.StoreFn = keep => E(keep ? Op.StNK : Op.StN, HopsTo(frame), ps.Slot, arith);
                                     return tg;
                                 }
@@ -89,13 +89,13 @@ public sealed partial class SimCompiler
                             }
                         case ProcSym p:
                             {
-                                // affectation au resultat dans le corps de la procedure
+                                // assignment to the result inside the procedure body
                                 for (Scope? sc = g.Scope; sc != null; sc = sc.Parent)
                                 {
                                     if (sc == p.Body)
                                     {
                                         tg.Type = ResultOf(p);
-                                        if (tg.Type == SType.Void) { Err(id.Pos, $"'{id.Orig}' est une procedure sans type"); return tg; }
+                                        if (tg.Type == SType.Void) { Err(id.Pos, $"'{id.Orig}' is a procedure without type"); return tg; }
                                         var frame = p.Body;
                                         var slot = p.Info.ResultSlot;
                                         bool text = tg.Type.B == BaseType.Text;
@@ -103,20 +103,20 @@ public sealed partial class SimCompiler
                                         return tg;
                                     }
                                 }
-                                Err(id.Pos, $"affectation a la procedure '{id.Orig}' hors de son corps");
+                                Err(id.Pos, $"assignment to procedure '{id.Orig}' outside its body");
                                 return tg;
                             }
                         default:
-                            Err(id.Pos, $"'{id.Orig}' ({fv.Sym.KindName}) ne peut recevoir une affectation");
+                            Err(id.Pos, $"'{id.Orig}' ({fv.Sym.KindName}) cannot be assigned to");
                             return tg;
                     }
                 }
             case CallExpr ce:
                 {
-                    // element de tableau
+                    // array element
                     var arr = EmitArrayRef(ce.Fn, out var elem, out var dims);
-                    if (!arr) { Err(ce.Pos, "destination invalide (element de tableau attendu)"); return tg; }
-                    if (dims >= 0 && dims != ce.Args.Count) Err(ce.Pos, $"nombre d'indices incorrect ({ce.Args.Count} au lieu de {dims})");
+                    if (!arr) { Err(ce.Pos, "invalid target (array element expected)"); return tg; }
+                    if (dims >= 0 && dims != ce.Args.Count) Err(ce.Pos, $"wrong number of subscripts ({ce.Args.Count} instead of {dims})");
                     foreach (var a in ce.Args) ConvertToInt(EmitExpr(a), a.Pos);
                     tg.Type = elem;
                     int n = ce.Args.Count;
@@ -127,19 +127,19 @@ public sealed partial class SimCompiler
             case DotExpr de:
                 {
                     var ot = EmitExpr(de.Obj);
-                    if (!ot.IsRef || ot.Q == null) { if (!ot.IsErr) Err(de.Pos, "acces distant sur une expression qui n'est pas un objet"); return tg; }
+                    if (!ot.IsRef || ot.Q == null) { if (!ot.IsErr) Err(de.Pos, "remote access on an expression that is not an object"); return tg; }
                     var a = FindAttr(ot.Q, de.Name, remote: true, from: g.Scope);
-                    if (a == null) { Err(de.NamePos, $"'{de.Orig}' n'est pas un attribut visible de {ot.Q.Orig}"); return tg; }
+                    if (a == null) { Err(de.NamePos, $"'{de.Orig}' is not a visible attribute of {ot.Q.Orig}"); return tg; }
                     int slot;
                     switch (a)
                     {
                         case VarSym v:
-                            if (v.IsConst) Err(de.NamePos, $"'{de.Orig}' est une constante");
+                            if (v.IsConst) Err(de.NamePos, $"'{de.Orig}' is a constant");
                             tg.Type = TypeOf(v); slot = v.Slot; break;
                         case ParamSym ps when ps.Kind == ParamKind.Simple:
                             tg.Type = ParamType(ps); slot = ps.Slot; break;
                         default:
-                            Err(de.NamePos, $"'{de.Orig}' ne peut recevoir une affectation");
+                            Err(de.NamePos, $"'{de.Orig}' cannot be assigned to");
                             return tg;
                     }
                     bool text = tg.Type.B == BaseType.Text;
@@ -147,7 +147,7 @@ public sealed partial class SimCompiler
                     return tg;
                 }
             default:
-                Err(t.Pos, "destination d'affectation invalide");
+                Err(t.Pos, "invalid assignment target");
                 return tg;
         }
     }
@@ -174,24 +174,24 @@ public sealed partial class SimCompiler
         {
             if (to.B == BaseType.Text)
             {
-                if (from.B != BaseType.Text) Err(pos, $"':-' : texte attendu (trouve {from})");
+                if (from.B != BaseType.Text) Err(pos, $"':-': text expected (found {from})");
                 return to;
             }
-            if (!to.IsRef) { Err(pos, $"':-' est reserve aux references (destination de type {to} : utiliser ':=')"); return to; }
+            if (!to.IsRef) { Err(pos, $"':-' is reserved for references (target of type {to}: use ':=')"); return to; }
             Convert(from, to, pos);
             return to;
         }
-        if (to.IsRef) { Err(pos, "affectation de reference : utiliser ':-' et non ':='"); return to; }
+        if (to.IsRef) { Err(pos, "reference assignment: use ':-', not ':='"); return to; }
         if (to.B == BaseType.Text)
         {
-            if (from.B != BaseType.Text) Err(pos, $"affectation de texte : texte attendu (trouve {from})");
+            if (from.B != BaseType.Text) Err(pos, $"text assignment: text expected (found {from})");
             return to;
         }
         Convert(from, to, pos);
         return to;
     }
 
-    /// <summary>Type statique d'un designateur sans generer de code (null si inconnu).</summary>
+    /// <summary>Static type of a designator without generating code (null if unknown).</summary>
     SType? StaticTypeOf(Expr e)
     {
         switch (e)
@@ -285,7 +285,7 @@ public sealed partial class SimCompiler
         switch (e)
         {
             case IntLit il:
-                if (il.Value > int.MaxValue) Err(il.Pos, "constante entiere trop grande");
+                if (il.Value > int.MaxValue) Err(il.Pos, "integer constant too large");
                 E(Op.PushI, (int)il.Value);
                 return SType.Int;
             case RealLit rl:
@@ -312,9 +312,9 @@ public sealed partial class SimCompiler
                     var ot = EmitExpr(qe.Obj);
                     var c = LookupClass(qe.Class, g.Scope, qe.Pos);
                     if (c == null) return SType.Err;
-                    if (!ot.IsRef) { if (!ot.IsErr) Err(qe.Pos, "qua : expression objet attendue"); return SType.Err; }
+                    if (!ot.IsRef) { if (!ot.IsErr) Err(qe.Pos, "qua: object expression expected"); return SType.Err; }
                     if (ot.Q != null && !c.IsSubclassOf(ot.Q) && !ot.Q.IsSubclassOf(c))
-                        Err(qe.Pos, $"qua : '{c.Orig}' est sans rapport avec la qualification {ot}");
+                        Err(qe.Pos, $"qua: '{c.Orig}' is unrelated to the qualification {ot}");
                     E(Op.Qua, c.Info.Id);
                     return SType.Ref(c);
                 }
@@ -322,12 +322,12 @@ public sealed partial class SimCompiler
                 {
                     var ot = EmitExpr(ie2.Obj);
                     var c = LookupClass(ie2.Class, g.Scope, ie2.Pos);
-                    if (!ot.IsRef && !ot.IsErr) Err(ie2.Pos, $"'{(ie2.IsIn ? "in" : "is")}' : expression objet attendue");
+                    if (!ot.IsRef && !ot.IsErr) Err(ie2.Pos, $"'{(ie2.IsIn ? "in" : "is")}': object expression expected");
                     E(ie2.IsIn ? Op.In : Op.Is, c?.Info.Id ?? 0);
                     return SType.Bool;
                 }
         }
-        Err(e.Pos, "expression non geree");
+        Err(e.Pos, "unsupported expression");
         return SType.Err;
     }
 
@@ -337,15 +337,15 @@ public sealed partial class SimCompiler
         switch (ue.Op)
         {
             case T.KNot:
-                if (t.B != BaseType.Boolean && !t.IsErr) Err(ue.Pos, "'not' : booleen attendu");
+                if (t.B != BaseType.Boolean && !t.IsErr) Err(ue.Pos, "'not': Boolean expected");
                 E(Op.Not);
                 return SType.Bool;
             case T.Minus:
-                if (!t.IsArith) { if (!t.IsErr) Err(ue.Pos, "'-' : arithmetique attendu"); return SType.Err; }
+                if (!t.IsArith) { if (!t.IsErr) Err(ue.Pos, "'-': arithmetic value expected"); return SType.Err; }
                 E(t.IsReal ? Op.NegR : Op.NegI);
                 return t.IsReal ? t : SType.Int;
             default:
-                if (!t.IsArith && !t.IsErr) Err(ue.Pos, "'+' : arithmetique attendu");
+                if (!t.IsArith && !t.IsErr) Err(ue.Pos, "'+': arithmetic value expected");
                 return t.IsReal ? t : (t.IsErr ? t : SType.Int);
         }
     }
@@ -358,12 +358,12 @@ public sealed partial class SimCompiler
             case T.KOrElse:
                 {
                     var lt = EmitExpr(be.L);
-                    if (lt.B != BaseType.Boolean && !lt.IsErr) Err(be.L.Pos, "booleen attendu");
+                    if (lt.B != BaseType.Boolean && !lt.IsErr) Err(be.L.Pos, "Boolean expected");
                     E(Op.Dup);
                     var j = EJump(be.Op == T.KAndThen ? Op.Jf : Op.Jt);
                     E(Op.Pop);
                     var rt = EmitExpr(be.R);
-                    if (rt.B != BaseType.Boolean && !rt.IsErr) Err(be.R.Pos, "booleen attendu");
+                    if (rt.B != BaseType.Boolean && !rt.IsErr) Err(be.R.Pos, "Boolean expected");
                     Patch(j);
                     return SType.Bool;
                 }
@@ -375,7 +375,7 @@ public sealed partial class SimCompiler
                     foreach (var p in parts)
                     {
                         var t = EmitExpr(p);
-                        if (t.B != BaseType.Text && !t.IsErr) Err(p.Pos, "'&' : texte attendu");
+                        if (t.B != BaseType.Text && !t.IsErr) Err(p.Pos, "'&': text expected");
                     }
                     E(Op.Concat, parts.Count);
                     return SType.Text;
@@ -388,7 +388,7 @@ public sealed partial class SimCompiler
         {
             case T.Plus: case T.Minus: case T.Star:
                 {
-                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"operation arithmetique sur {l} et {r}"); return SType.Err; }
+                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"arithmetic operation on {l} and {r}"); return SType.Err; }
                     var rt = ArithMax(l, r);
                     if (rt.IsReal)
                     {
@@ -401,19 +401,19 @@ public sealed partial class SimCompiler
                 }
             case T.Slash:
                 {
-                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'/' sur {l} et {r}"); return SType.Err; }
+                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'/' on {l} and {r}"); return SType.Err; }
                     if (!r.IsReal) E(Op.I2R);
                     if (!l.IsReal) E(Op.I2RU);
                     E(Op.DivR);
                     return l.B == BaseType.LongReal || r.B == BaseType.LongReal ? SType.LReal : SType.Real;
                 }
             case T.IntDiv:
-                if (!l.IsIntLike || !r.IsIntLike) { Err(be.Pos, "'//' n'accepte que des entiers"); return SType.Err; }
+                if (!l.IsIntLike || !r.IsIntLike) { Err(be.Pos, "'//' only accepts integers"); return SType.Err; }
                 E(Op.DivI);
                 return SType.Int;
             case T.Power:
                 {
-                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'**' sur {l} et {r}"); return SType.Err; }
+                    if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'**' on {l} and {r}"); return SType.Err; }
                     if (l.IsIntLike && r.IsIntLike) { E(Op.PowII); return SType.Int; }
                     if (l.IsReal && r.IsIntLike) { E(Op.PowRI); return l; }
                     if (!l.IsReal) E(Op.I2RU);
@@ -438,9 +438,9 @@ public sealed partial class SimCompiler
                     else if (l.B == BaseType.Boolean && r.B == BaseType.Boolean && be.Op is T.Eq or T.Ne) E(Op.CmpI, rel);
                     else if (l.IsRef && r.IsRef && be.Op is T.Eq or T.Ne)
                     {
-                        Err(be.Pos, "comparaison d'objets : utiliser '==' ou '=/='");
+                        Err(be.Pos, "object comparison: use '==' or '=/='");
                     }
-                    else Err(be.Pos, $"comparaison impossible entre {l} et {r}");
+                    else Err(be.Pos, $"cannot compare {l} and {r}");
                     return SType.Bool;
                 }
             case T.RefEq: case T.RefNe:
@@ -448,19 +448,19 @@ public sealed partial class SimCompiler
                     if (l.IsRef && r.IsRef)
                     {
                         if (l.Q != null && r.Q != null && !l.Q.IsSubclassOf(r.Q) && !r.Q.IsSubclassOf(l.Q))
-                            Err(be.Pos, $"comparaison de references sans rapport : {l} et {r}");
+                            Err(be.Pos, $"comparison of unrelated references: {l} and {r}");
                         E(be.Op == T.RefEq ? Op.RefEq : Op.RefNe);
                     }
                     else if (l.B == BaseType.Text && r.B == BaseType.Text) E(be.Op == T.RefEq ? Op.TRefEq : Op.TRefNe);
-                    else Err(be.Pos, $"'{(be.Op == T.RefEq ? "==" : "=/=")}' : references attendues ({l}, {r})");
+                    else Err(be.Pos, $"'{(be.Op == T.RefEq ? "==" : "=/=")}': references expected ({l}, {r})");
                     return SType.Bool;
                 }
             case T.KAnd: case T.KOr: case T.KImp: case T.KEqv:
-                if (l.B != BaseType.Boolean || r.B != BaseType.Boolean) Err(be.Pos, "operateur logique : booleens attendus");
+                if (l.B != BaseType.Boolean || r.B != BaseType.Boolean) Err(be.Pos, "logical operator: Booleans expected");
                 E(be.Op switch { T.KAnd => Op.And, T.KOr => Op.Or, T.KImp => Op.Imp, _ => Op.Eqv });
                 return SType.Bool;
         }
-        Err(be.Pos, "operateur non gere");
+        Err(be.Pos, "unsupported operator");
         return SType.Err;
     }
 
@@ -492,12 +492,12 @@ public sealed partial class SimCompiler
             else
             {
                 var c = CommonClass(t1.Q, t2.Q);
-                if (c == null) { Err(ie.Pos, "expression conditionnelle : qualifications sans classe commune"); rt = SType.Err; }
+                if (c == null) { Err(ie.Pos, "conditional expression: qualifications without a common class"); rt = SType.Err; }
                 else rt = SType.Ref(c);
             }
         }
         else if (t1.B == t2.B) rt = t1;
-        else { Err(ie.Pos, $"expression conditionnelle : types incompatibles {t1} et {t2}"); rt = SType.Err; }
+        else { Err(ie.Pos, $"conditional expression: incompatible types {t1} and {t2}"); rt = SType.Err; }
         if (rt.B == BaseType.Text) { g.Code[nopAt] = (int)Op.CloneT; E(Op.CloneT); }
         Patch(j2);
         return rt;
@@ -522,7 +522,7 @@ public sealed partial class SimCompiler
                 return SType.Ref(c);
             }
         }
-        Err(te.Pos, $"'this {te.Orig}' hors du corps de la classe ou d'un bloc de connexion");
+        Err(te.Pos, $"'this {te.Orig}' outside the class body or a connection block");
         return SType.Err;
     }
 
@@ -531,14 +531,14 @@ public sealed partial class SimCompiler
         for (var k = body; k != null; k = k.Prefix) { if (k == c) { k.UsesThis = true; break; } }
     }
 
-    // ================================================================ generateurs
+    // ================================================================ object generators
 
     SType EmitNew(NewExpr ne)
     {
         var f = Lookup(ne.Class, g.Scope, ne.Pos);
         if (f == null) { foreach (var a in ne.Args) EmitExpr(a); return SType.Err; }
-        if (f.Value.Sym is not ClassSym c) { Err(ne.Pos, $"'{ne.Orig}' n'est pas une classe"); return SType.Err; }
-        if (c.IsRoot || c.IsPrefixedBlock) { Err(ne.Pos, "classe invalide"); return SType.Err; }
+        if (f.Value.Sym is not ClassSym c) { Err(ne.Pos, $"'{ne.Orig}' is not a class"); return SType.Err; }
+        if (c.IsRoot || c.IsPrefixedBlock) { Err(ne.Pos, "invalid class"); return SType.Err; }
         QueueClass(c);
         if (f.Value.Conn != null)
         {
@@ -548,7 +548,7 @@ public sealed partial class SimCompiler
         }
         else
         {
-            // cadre statique : le bloc ou l'objet ou la classe est declaree
+            // static frame: the block or object in which the class is declared
             var declFrame = f.Value.Frame;
             EmitClassArgs(c, ne.Args, ne.Pos);
             E(Op.New, c.Info.Id, HopsTo(declFrame), ne.Args.Count);
@@ -561,7 +561,7 @@ public sealed partial class SimCompiler
         var ps = c.AllParams;
         if (args.Count != ps.Count)
         {
-            Err(pos, $"la classe '{c.Orig}' attend {ps.Count} parametre(s), {args.Count} fourni(s)");
+            Err(pos, $"class '{c.Orig}' expects {ps.Count} parameter(s), {args.Count} given");
             foreach (var a in args) EmitExpr(a);
             return;
         }

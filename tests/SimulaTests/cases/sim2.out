@@ -1,16 +1,16 @@
-  0.00 A demarre
-  0.00 principal
-A planifie / evtime(B) = 0.50
-  0.25 C demarre
-  0.50 B demarre
-  1.00 A apres hold(1)
-  1.25 C apres hold(1)
-  1.50 B apres hold(1)
-  5.10 tous en attente
+  0.00 A starts
+  0.00 main
+A scheduled / evtime(B) = 0.50
+  0.25 C starts
+  0.50 B starts
+  1.00 A after hold(1)
+  1.25 C after hold(1)
+  1.50 B after hold(1)
+  5.10 all waiting
   3
-  5.10 B reveille
-  5.10 A reveille
-  5.10 apres reveils
-integrale = 4.00
+  5.10 B woken up
+  5.10 A woken up
+  5.10 after wake-ups
+integral = 4.00
 traces = 11
 current = main

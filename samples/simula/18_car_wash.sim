@@ -1,0 +1,76 @@
+! The car wash, in the style of the textbook "SIMULA BEGIN" (Birtwistle, Dahl,
+  Myhrhaug and Nygaard). Cars arrive at random and join a waiting line.
+  A team of washers takes the cars in order, and a washer with nothing to do
+  waits in the tea room until a car arrives. The model reports the number
+  of cars washed, the waiting times, the time-averaged queue length (with
+  ACCUM) and the utilisation of the washers.
+  Shows: several cooperating process classes, passivate / activate,
+  sets as queues, accum, random drawing (negexp, uniform). ;
+Simulation Begin
+   Integer nWashers, seedArrivals, seedWash, washed, maxQueue;
+   Real simPeriod, totalWait, maxWait;
+   Real qArea, qLast, qLen;             ! accumulation of the queue length ;
+   Real busyArea, busyLast, busyCount;  ! accumulation of the busy washers ;
+   Ref (Head) waitingLine, teaRoom;
+
+   Procedure joinQueue (c); Ref (Car) c; Begin
+      Accum (qArea, qLast, qLen, 1);
+      c.Into (waitingLine);
+      If waitingLine.Cardinal > maxQueue Then maxQueue := waitingLine.Cardinal;
+   End;
+
+   Process Class Car; Begin
+      Real arrived;
+      arrived := Time;
+      joinQueue (This Car);
+      If Not teaRoom.Empty Then Activate teaRoom.First;
+      Passivate;                         ! until a washer has washed us ;
+   End;
+
+   Process Class CarWasher (number); Integer number; Begin
+      Ref (Car) served;
+      While True Do Begin
+         Out;                            ! leave the tea room ;
+         While Not waitingLine.Empty Do Begin
+            served :- waitingLine.First;
+            served.Out;
+            Accum (qArea, qLast, qLen, -1);
+            totalWait := totalWait + (Time - served.arrived);
+            If Time - served.arrived > maxWait Then maxWait := Time - served.arrived;
+            Accum (busyArea, busyLast, busyCount, 1);
+            Hold (Uniform (8, 12, seedWash));
+            Accum (busyArea, busyLast, busyCount, -1);
+            washed := washed + 1;
+            Activate served;             ! the car drives away ;
+         End;
+         Wait (teaRoom);
+      End;
+   End;
+
+   Process Class CarGenerator; Begin
+      While Time < simPeriod Do Begin
+         Activate New Car;
+         Hold (Negexp (1 / 5.5, seedArrivals));
+      End;
+   End;
+
+   Integer i;
+   nWashers := 2; simPeriod := 8 * 60;
+   seedArrivals := 1001; seedWash := 2002;
+   waitingLine :- New Head; teaRoom :- New Head;
+   For i := 1 Step 1 Until nWashers Do New CarWasher (i).Into (teaRoom);
+   Activate New CarGenerator;
+   Hold (simPeriod);
+   Accum (qArea, qLast, qLen, 0);
+   Accum (busyArea, busyLast, busyCount, 0);
+
+   OutText ("Car wash: "); OutInt (nWashers, 0); OutText (" washers, ");
+   OutFix (simPeriod / 60, 0, 0); OutText (" hours of operation"); OutImage;
+   OutText ("Cars washed               : "); OutInt (washed, 6); OutImage;
+   OutText ("Cars still waiting        : "); OutInt (waitingLine.Cardinal, 6); OutImage;
+   OutText ("Longest waiting line      : "); OutInt (maxQueue, 6); OutImage;
+   OutText ("Average waiting time (min): "); OutFix (totalWait / washed, 2, 6); OutImage;
+   OutText ("Longest waiting time (min): "); OutFix (maxWait, 2, 6); OutImage;
+   OutText ("Average queue length      : "); OutFix (qArea / Time, 2, 6); OutImage;
+   OutText ("Washer utilisation (%)    : "); OutFix (100 * busyArea / (Time * nWashers), 1, 6); OutImage;
+End;

@@ -5,15 +5,15 @@ SIMULA abc
   1  12
   -123  7  4550.0
 [     -42][   3.142][1.23&+03]
-comparaisons ok
-constante
-meme reference
-meme valeur, autre reference
+comparisons ok
+constant
+same reference
+same value, other reference
 notext ok
   2abcdef
 abXdef
   65BC
-classes ok
+character classes ok
 abcd  4
 Z"x"y
 AB

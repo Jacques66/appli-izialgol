@@ -7,12 +7,12 @@ ab
 VF
  10  7  4  1
   1
-  1  2  3 sortie
- 100  0.50 salut
-imp faux
-eqv vrai
+  1  2  3 exit
+ 100  0.50 hello
+imp false
+eqv true
 and then ok
 or else ok
   50
-sysout connecte
+sysout connected
   1

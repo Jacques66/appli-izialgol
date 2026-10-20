@@ -1,0 +1,52 @@
+! A bank with one teller, using the standard class SIMULATION.
+  Random arrivals (exponential law), uniform service time. ;
+simulation begin
+   ref(head) queue;
+   integer arrival_seed, service_seed, served;
+   real total_wait, closing_time;
+
+   process class customer;
+   begin real arrival;
+      arrival := time;
+      into(queue);
+      if teller.idle then activate teller;
+      passivate;
+      total_wait := total_wait + (time - arrival);
+      served := served + 1
+   end;
+
+   process class teller_process;
+   begin ref(customer) c;
+      while true do
+      begin
+         while not queue.empty do
+         begin
+            c :- queue.first;
+            c.out;
+            hold(uniform(1.0, 5.0, service_seed));
+            activate c
+         end;
+         passivate
+      end
+   end;
+
+   process class generator;
+   begin
+      while time < closing_time do
+      begin
+         activate new customer;
+         hold(negexp(0.25, arrival_seed))
+      end
+   end;
+
+   ref(teller_process) teller;
+   arrival_seed := 12345; service_seed := 54321;
+   closing_time := 480;
+   queue :- new head;
+   teller :- new teller_process;
+   activate new generator;
+   hold(600);
+   outtext("Customers served    : "); outint(served, 0); outimage;
+   outtext("Average wait        : "); outfix(total_wait / served, 2, 0); outtext(" minutes"); outimage;
+   outtext("Customers waiting   : "); outint(queue.cardinal, 0); outimage
+end

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Studio.Simula.Runtime;
 
-/// <summary>Valeur de la machine : entier/booleen/caractere/reel (bits) dans I, references dans O.</summary>
+/// <summary>Machine value: integer/Boolean/character/real (bits) in I, references in O.</summary>
 public struct Value
 {
     public long I;
@@ -26,7 +26,7 @@ public sealed class SimulaError : Exception
     public SimulaError(string message) : base(message) { }
 }
 
-/// <summary>Objet texte : cadre principal de caracteres.</summary>
+/// <summary>Text object: main frame of characters.</summary>
 public sealed class TextObj
 {
     public readonly char[] Chars;
@@ -35,7 +35,7 @@ public sealed class TextObj
     public TextObj(string s, bool isConst) { Chars = s.ToCharArray(); Const = isConst; }
 }
 
-/// <summary>Descripteur de texte (variable texte). null represente notext.</summary>
+/// <summary>Text descriptor (text variable). null represents notext.</summary>
 public sealed class TextRef
 {
     public TextObj Obj;
@@ -55,14 +55,14 @@ public sealed class TextRef
 
     public static TextRef? Blanks(int n)
     {
-        if (n < 0) throw new SimulaError("blanks : parametre negatif");
+        if (n < 0) throw new SimulaError("blanks: negative parameter");
         if (n == 0) return null;
         var a = new char[n];
         Array.Fill(a, ' ');
         return new TextRef(new TextObj(a, false), 1, n);
     }
 
-    public char this[int i]   // 0-based dans le cadre
+    public char this[int i]   // 0-based within the frame
     {
         get => Obj.Chars[Start - 1 + i];
         set => Obj.Chars[Start - 1 + i] = value;
@@ -74,12 +74,12 @@ public sealed class TextRef
     public static int Len(TextRef? t) => t?.Length ?? 0;
 }
 
-/// <summary>Tableau Simula a bornes quelconques.</summary>
+/// <summary>Simula array with arbitrary bounds.</summary>
 public sealed class SimArray
 {
     public readonly int[] Lower, Upper, Stride;
     public readonly Value[] Data;
-    public readonly byte ElemType;      // code BaseType de l'element
+    public readonly byte ElemType;      // BaseType code of the element
 
     public SimArray(int[] lower, int[] upper, byte elemType)
     {
@@ -93,7 +93,7 @@ public sealed class SimArray
             long ext = (long)upper[d] - lower[d] + 1;
             if (ext < 0) ext = 0;
             size *= ext;
-            if (size > 200_000_000) throw new SimulaError("tableau trop grand");
+            if (size > 200_000_000) throw new SimulaError("array too large");
         }
         Data = new Value[size];
     }
@@ -110,7 +110,7 @@ public sealed class SimArray
     public SimArray Copy()
     {
         var c = new SimArray(this);
-        // les textes d'un tableau copie par valeur sont des copies des valeurs
+        // the texts of an array copied by value are copies of the values
         for (int i = 0; i < c.Data.Length; i++)
             if (c.Data[i].O is TextRef t) c.Data[i].O = Natives.CopyText(t);
         return c;
@@ -124,14 +124,14 @@ public sealed class SimArray
     }
 
     public SimulaError IndexError(int dim, long i) =>
-        new($"indice {i} hors des bornes ({Lower[dim]}:{Upper[dim]})" + (Rank > 1 ? $" en dimension {dim + 1}" : ""));
+        new($"index {i} outside the bounds ({Lower[dim]}:{Upper[dim]})" + (Rank > 1 ? $" in dimension {dim + 1}" : ""));
 }
 
 public enum ObjState : byte { Attached, Detached, Resumed, Terminated }
 
 public enum FrameKind : byte { Env, Block, Procedure, Object, PrefixedBlock, Thunk, Switch }
 
-/// <summary>Instance de bloc (bloc, procedure, objet, thunk).</summary>
+/// <summary>Block instance (block, procedure, object, thunk).</summary>
 public class Frame
 {
     public Value[] S;
@@ -142,15 +142,15 @@ public class Frame
     public int Pc;
     public FrameKind Kind;
     public bool WantResult;
-    public BlockInfo? Block;        // pour les blocs en ligne
-    // tete de systeme quasi-parallele
+    public BlockInfo? Block;        // for inline blocks
+    // quasi-parallel system head
     public SimObject? Operative;
     public Frame? MainReact;
     // thunk
-    public byte ThunkConv;          // conversion a appliquer au retour d'un thunk
+    public byte ThunkConv;          // conversion to apply when a thunk returns
     public Thunk? ThunkRef;
-    public int Base;                // debut de la pile d'operandes
-    public Value Aux;               // valeur conservee (affectation par nom)
+    public int Base;                // start of the operand stack
+    public Value Aux;               // kept value (assignment by name)
 
     public Frame(CodeUnit unit, int nslots, int maxStack, FrameKind kind)
     {
@@ -165,7 +165,7 @@ public sealed class SimObject : Frame
 {
     public readonly ClassInfo Class;
     public ObjState State;
-    public Frame? React;            // point de reactivation (cadre le plus profond)
+    public Frame? React;            // reactivation point (innermost frame)
     public int Serial;
 
     public SimObject(ClassInfo cls, bool prefixedBlock)
@@ -175,16 +175,16 @@ public sealed class SimObject : Frame
     }
 }
 
-/// <summary>Parametre transmis par nom (ou parametre en appel generique).</summary>
+/// <summary>Parameter called by name (or parameter of a generic call).</summary>
 public sealed class Thunk
 {
     public CodeUnit Unit = null!;
     public Frame Env = null!;
-    public int SetEntry = -1;       // -1 : non affectable
-    public int AltEntry = -1;       // entree « valeur » d'un effectif procedure
-    public byte ActualArith;        // 0 aucun, 1 entier, 2 reel
-    public byte ActualType;         // BaseType de l'effectif
-    public byte ActualKind;         // ParamKind de l'effectif
+    public int SetEntry = -1;       // -1: not assignable
+    public int AltEntry = -1;       // "value" entry of a procedure actual parameter
+    public byte ActualArith;        // 0 none, 1 integer, 2 real
+    public byte ActualType;         // BaseType of the actual parameter
+    public byte ActualKind;         // ParamKind of the actual parameter
     public int ActualDims = -1;
     public ClassInfo? ActualQual;
 }

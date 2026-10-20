@@ -1,22 +1,22 @@
 begin
-   simulation class labo;
+   simulation class lab;
    begin
       integer traces;
       procedure note(t); text t; begin outfix(time, 2, 6); outtext(" "); outtext(t); outimage; traces := traces + 1 end;
    end;
 
-   labo begin
+   lab begin
       ref(head) q;
       ref(p) a, b, c;
-      real surf, dernier, valeur;
+      real area, last_time, level;
 
-      process class p(nom); text nom;
+      process class p(pname); text pname;
       begin
-         note(nom & " demarre");
+         note(pname & " starts");
          hold(1);
-         note(nom & " apres hold(1)");
+         note(pname & " after hold(1)");
          wait(q);
-         note(nom & " reveille");
+         note(pname & " woken up");
       end;
 
       q :- new head;
@@ -24,21 +24,21 @@ begin
       activate a;
       activate b delay 0.5;
       activate c at 0.25 prior;
-      note("principal");
+      note("main");
       hold(0.1);
-      outtext(if a.idle then "A passif" else "A planifie"); outtext(" / evtime(B) = "); outfix(b.evtime, 2, 0); outimage;
+      outtext(if a.idle then "A passive" else "A scheduled"); outtext(" / evtime(B) = "); outfix(b.evtime, 2, 0); outimage;
       hold(5);
-      note("tous en attente");
+      note("all waiting");
       outint(q.cardinal, 3); outimage;
       activate q.first qua p after current;
       reactivate q.last qua p before current;
       hold(0);
-      note("apres reveils");
+      note("after wake-ups");
       cancel(b);
-      accum(surf, dernier, valeur, 2);
+      accum(area, last_time, level, 2);
       hold(2);
-      accum(surf, dernier, valeur, 0);
-      outtext("integrale = "); outfix(surf, 2, 0); outimage;
+      accum(area, last_time, level, 0);
+      outtext("integral = "); outfix(area, 2, 0); outimage;
       outtext("traces = "); outint(traces, 0); outimage;
       if current == main then outtext("current = main"); outimage
    end

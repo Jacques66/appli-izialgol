@@ -1,0 +1,7 @@
+rectangle 3x4: area = 12.00
+square 5x5: area = 25.00
+circle r=1: area = 3.14
+total area: 40.14
+rectangle 3x4 is a rectangle of width 3.0
+square 5x5 is a square
+circle r=1 is not a rectangle

@@ -1,4 +1,4 @@
-protect.sim(8,6): erreur: 'solde' n'est pas un attribut visible de compte
-protect.sim(9,17): erreur: identificateur 'secret' non declare
-protect.sim(5,23): erreur: identificateur 'secret' non declare
+protect.sim(8,6): error: 'balance' is not a visible attribute of account
+protect.sim(9,17): error: undeclared identifier 'secret'
+protect.sim(5,23): error: undeclared identifier 'secret'
 

@@ -1,0 +1,22 @@
+! Writing a text file, then reading it back ;
+begin
+   ref(outfile) output; ref(infile) input;
+   integer i;
+   output :- new outfile("squares.txt");
+   output.open(blanks(40));
+   for i := 1 step 1 until 10 do
+   begin output.outint(i, 4); output.outint(i * i, 6); output.outimage end;
+   output.close;
+   input :- new infile("squares.txt");
+   input.open(blanks(40));
+   inspect input do
+   begin
+      inimage;
+      while not endfile do
+      begin
+         outtext("read: "); outtext(image.strip); outimage;
+         inimage
+      end;
+      close
+   end
+end

@@ -1,6 +1,6 @@
 begin
-   procedure verifie(n); integer n;
-      if n < 0 then error("n est negatif");
-   verifie(3);
-   verifie(-1)
+   procedure check(n); integer n;
+      if n < 0 then error("n is negative");
+   check(3);
+   check(-1)
 end

@@ -3,7 +3,7 @@ using Studio.Simula.Runtime;
 
 namespace Studio.Simula.Compiler;
 
-/// <summary>Phase A : construction des portees et des symboles, allocation des cases, disposition des classes.</summary>
+/// <summary>Phase A: builds scopes and symbols, allocates slots, lays out classes.</summary>
 public sealed partial class SimCompiler
 {
     readonly List<Diagnostic> diags = new();
@@ -38,27 +38,27 @@ public sealed partial class SimCompiler
 
     bool HasErrors => diags.Any(d => d.Severity == Severity.Error);
 
-    // ------------------------------------------------------------ declaration d'un nom
+    // ------------------------------------------------------------ declaring a name
 
     void Define(Scope s, Sym sym)
     {
         sym.Scope = s;
         if (s.Syms.TryGetValue(sym.Name, out var old))
         {
-            Err(sym.Pos, $"'{sym.Orig}' est deja declare dans ce bloc ({old.KindName})");
+            Err(sym.Pos, $"'{sym.Orig}' is already declared in this block ({old.KindName})");
             return;
         }
         s.Syms[sym.Name] = sym;
     }
 
-    /// <summary>Declare le contenu d'un bloc (liste de declarations + instructions) dans la portee s.</summary>
+    /// <summary>Declares the contents of a block (declarations + statements) in scope s.</summary>
     void DeclareBlockContents(Scope s, List<Decl> decls, IEnumerable<Stmt> stmts, ClassSym? owner)
     {
         var procs = new List<ProcSym>();
         var classes = new List<ClassSym>();
         var switches = new List<SwitchSym>();
         var allDecls = new List<Decl>(decls);
-        // modules externes : substitution textuelle des declarations
+        // external modules: textual substitution of the declarations
         for (int i = 0; i < allDecls.Count; i++)
         {
             if (allDecls[i] is ExternalDecl ed)
@@ -115,12 +115,12 @@ public sealed partial class SimCompiler
                     break;
             }
         }
-        // etiquettes et temporaires des instructions
+        // labels and temporaries of the statements
         DeclareStatements(s, stmts);
-        // classes : disposition (prefixes d'abord)
+        // classes: layout (prefixes first)
         foreach (var c in classes) LayoutClass(c);
-        // blocs prefixes de ce niveau (classes anonymes)
-        // (crees par DeclareStatements)
+        // prefixed blocks of this level (anonymous classes)
+        // (created by DeclareStatements)
         foreach (var p in procs) DeclareProcedure(p, s);
         foreach (var sw in switches) sw.UnitScope = null;
     }
@@ -132,8 +132,8 @@ public sealed partial class SimCompiler
         {
             if (ed.Spec != null && ed.Kind != null)
             {
-                // procedure non Simula : non supportee (pas de code natif externe)
-                Err(item.Pos, $"procedure externe de genre '{ed.Kind}' : seul le code Simula est accepte");
+                // non-Simula procedure: not supported (no external native code)
+                Err(item.Pos, $"external procedure of kind '{ed.Kind}': only Simula code is accepted");
                 continue;
             }
             var key = item.Ident ?? item.Name;
@@ -143,7 +143,7 @@ public sealed partial class SimCompiler
             if (srcFile == null && item.Ident == null) srcFile = includeResolver?.Invoke(item.Name + ".SIM", files[item.Pos.File]);
             if (srcFile == null)
             {
-                Err(item.Pos, $"module externe '{fileName}' introuvable");
+                Err(item.Pos, $"external module '{fileName}' not found");
                 continue;
             }
             int fi = files.Count;
@@ -153,19 +153,19 @@ public sealed partial class SimCompiler
             var toks = lx.Tokenize();
             var ps = new Parser(toks, Err);
             var (progStmt, exts, mods) = ps.ParseProgram();
-            if (progStmt != null) { Err(item.Pos, $"le module '{fileName}' contient un programme et non une declaration"); continue; }
+            if (progStmt != null) { Err(item.Pos, $"module '{fileName}' contains a program, not a declaration"); continue; }
             result.AddRange(exts);
             result.AddRange(mods);
             bool found = mods.Any(m => (m is ClassDecl c && c.Name == item.Name) || (m is ProcDecl p && p.Name == item.Name));
-            if (!found) Err(item.Pos, $"le module '{fileName}' ne declare pas '{item.Name}'");
+            if (!found) Err(item.Pos, $"module '{fileName}' does not declare '{item.Name}'");
             foreach (var m in mods)
                 if (ed.IsClass != (m is ClassDecl) && (m is ClassDecl c2 ? c2.Name : (m as ProcDecl)?.Name) == item.Name)
-                    Err(item.Pos, ed.IsClass ? $"'{item.Name}' n'est pas une classe" : $"'{item.Name}' n'est pas une procedure");
+                    Err(item.Pos, ed.IsClass ? $"'{item.Name}' is not a class" : $"'{item.Name}' is not a procedure");
         }
         return result;
     }
 
-    // ------------------------------------------------------------ instructions : etiquettes, temporaires, blocs
+    // ------------------------------------------------------------ statements: labels, temporaries, blocks
 
     Scope LabelOwner(Scope s) => s;
 
@@ -239,8 +239,8 @@ public sealed partial class SimCompiler
 
     void DeclareSubBlock(BlockStmt b, Scope parent)
     {
-        var fs = new FrameScope { Parent = parent, Kind = FKind.Block, Depth = parent.Frame.Depth + 1, BlockNode = b, IsPrelude = parent.Frame.IsPrelude, Label = "bloc" };
-        fs.Block = new BlockInfo { Name = $"bloc (ligne {b.Pos.Line})" };
+        var fs = new FrameScope { Parent = parent, Kind = FKind.Block, Depth = parent.Frame.Depth + 1, BlockNode = b, IsPrelude = parent.Frame.IsPrelude, Label = "block" };
+        fs.Block = new BlockInfo { Name = $"block (line {b.Pos.Line})" };
         prog.Blocks.Add(fs.Block);
         scopeOf[b] = fs;
         DeclareBlockContents(fs, b.Decls, b.Stmts, null);
@@ -250,7 +250,7 @@ public sealed partial class SimCompiler
     {
         var c = new ClassSym
         {
-            Name = "§bloc" + b.Pos.Line + "_" + b.Pos.Col, Orig = $"bloc prefixe par {b.Prefix} (ligne {b.Pos.Line})",
+            Name = "§block" + b.Pos.Line + "_" + b.Pos.Col, Orig = $"block prefixed by {b.Prefix} (line {b.Pos.Line})",
             Pos = b.Pos, IsPrefixedBlock = true, PrefixedBlock = b, Scope = parent
         };
         prefixedClassOf[b] = c;
@@ -277,7 +277,7 @@ public sealed partial class SimCompiler
         {
             p.Info.ResultSlot = fs.AllocSlot();
         }
-        var ms = new MergedScope { Parent = fs, Frame = fs, Label = "corps" };
+        var ms = new MergedScope { Parent = fs, Frame = fs, Label = "body" };
         scopeOf[pd] = ms;
         if (pd.Body is BlockStmt b && b.Prefix == null && b.Decls.Count > 0)
         {
@@ -295,8 +295,8 @@ public sealed partial class SimCompiler
 
     ClassSym? FindPrefixClass(string name, Scope declScope, SrcPos pos)
     {
-        // le prefixe doit etre une classe du meme bloc ; classes systeme : environnement
-        // (dans un corps de classe ou un bloc prefixe, le bloc comprend les niveaux de prefixe)
+        // the prefix must be a class of the same block; system classes: environment
+        // (in a class body or prefixed block, the block includes the prefix levels)
         if (declScope is FrameScope cfs && cfs.Class != null && cfs.Kind is FKind.ClassBody or FKind.PrefixedBlock)
         {
             for (var k = cfs.Class.Prefix; k != null; k = k.Prefix)
@@ -305,10 +305,10 @@ public sealed partial class SimCompiler
         if (declScope.Syms.TryGetValue(name, out var s))
         {
             if (s is ClassSym c) return c;
-            Err(pos, $"'{name}' n'est pas une classe");
+            Err(pos, $"'{name}' is not a class");
             return null;
         }
-        // portees de connexion / fictives : remonter jusqu'au cadre
+        // connection / fictitious scopes: walk up to the frame
         for (var sc = declScope.Parent; sc != null; sc = sc.Parent)
         {
             if (sc.Syms.TryGetValue(name, out s))
@@ -316,21 +316,21 @@ public sealed partial class SimCompiler
                 if (s is ClassSym c)
                 {
                     if (c.IsSystem || sc == env || sc.Frame == declScope.Frame) return c;
-                    Err(pos, $"la classe prefixe '{c.Orig}' doit etre declaree dans le meme bloc");
+                    Err(pos, $"prefix class '{c.Orig}' must be declared in the same block");
                     return c;
                 }
-                Err(pos, $"'{name}' n'est pas une classe");
+                Err(pos, $"'{name}' is not a class");
                 return null;
             }
         }
-        Err(pos, $"classe '{name}' inconnue");
+        Err(pos, $"unknown class '{name}'");
         return null;
     }
 
     void LayoutClass(ClassSym c)
     {
         if (c.LaidOut) return;
-        if (c.Laying) { Err(c.Pos, $"la classe '{c.Orig}' figure dans sa propre suite de prefixes"); return; }
+        if (c.Laying) { Err(c.Pos, $"class '{c.Orig}' occurs in its own prefix sequence"); return; }
         c.Laying = true;
         var declScope = c.Scope;
         string? prefixName = c.Decl?.Prefix ?? c.PrefixedBlock?.Prefix;
@@ -354,7 +354,7 @@ public sealed partial class SimCompiler
         {
             Parent = declScope, Kind = c.IsPrefixedBlock ? FKind.PrefixedBlock : FKind.ClassBody,
             Depth = declScope.Frame.Depth + 1, Class = c, NSlots = c.SlotStart, IsPrelude = c.IsSystem || declScope.Frame.IsPrelude,
-            Label = c.IsPrefixedBlock ? c.Orig : "classe " + c.Orig
+            Label = c.IsPrefixedBlock ? c.Orig : "class " + c.Orig
         };
         c.Body = fs;
         c.Info = new ClassInfo { Id = prog.Classes.Count, Name = c.Orig, IsPrefixedBlock = c.IsPrefixedBlock, Level = c.Level };
@@ -369,7 +369,7 @@ public sealed partial class SimCompiler
             {
                 var ps = new ParamSym { Name = spec.Name, Orig = spec.Orig, Pos = spec.Pos, Spec = spec, Kind = spec.Kind, IsClassParam = true, OwnerClass = c };
                 if (spec.Kind is ParamKind.Procedure or ParamKind.Label or ParamKind.Switch)
-                    Err(spec.Pos, "les parametres procedure, etiquette et aiguillage sont interdits pour les classes");
+                    Err(spec.Pos, "procedure, label and switch parameters are not allowed for classes");
                 ps.Slot = fs.AllocSlot();
                 Define(fs, ps);
                 c.Params.Add(ps);
@@ -380,25 +380,25 @@ public sealed partial class SimCompiler
             foreach (var vs in cd.Virtuals)
             {
                 var inherited = c.AllVirtuals.FirstOrDefault(v => v.Name == vs.Name);
-                if (inherited != null) { Err(vs.Pos, $"'{vs.Orig}' est deja virtuel dans un prefixe"); continue; }
+                if (inherited != null) { Err(vs.Pos, $"'{vs.Orig}' is already virtual in a prefix"); continue; }
                 var v = new VirtualSym { Name = vs.Name, Orig = vs.Orig, Pos = vs.Pos, Spec = vs, Kind = vs.Kind, OwnerClass = c, Index = c.AllVirtuals.Count, Scope = fs };
                 c.AllVirtuals.Add(v);
             }
         }
-        // corps : declarations
+        // body: declarations
         List<Decl> decls = cd?.Decls ?? c.PrefixedBlock!.Decls;
         var stmts = cd != null ? cd.Before.Concat(cd.After) : c.PrefixedBlock!.Stmts;
         DeclareBlockContents(fs, decls, stmts, c);
-        // virtuels non apparies : visibles comme attributs
+        // unmatched virtuals: visible as attributes
         foreach (var v in c.AllVirtuals.Where(v => v.OwnerClass == c))
             if (!fs.Syms.ContainsKey(v.Name)) fs.Syms[v.Name] = v;
             else
             {
-                // declaration correspondante au meme niveau
+                // matching declaration at the same level
                 var m = fs.Syms[v.Name];
                 SetMatch(m, v);
             }
-        // correspondances des virtuels herites
+        // matches of inherited virtuals
         foreach (var kv in fs.Syms.ToList())
         {
             var inh = pre.AllVirtuals.FirstOrDefault(v => v.Name == kv.Key);
@@ -406,7 +406,7 @@ public sealed partial class SimCompiler
         }
         c.Attrs = fs.Syms;
         c.SlotEnd = fs.NSlots;
-        // informations d'execution
+        // runtime information
         c.Info.NSlots = c.SlotEnd;
         var chain = new ClassInfo[c.Level + 1];
         for (var k = c; k != null; k = k.Prefix) chain[k.Level] = k.Info;
@@ -440,13 +440,13 @@ public sealed partial class SimCompiler
             case ProcSym p when v.Kind == ParamKind.Procedure: p.Matches = v; break;
             case LabelSym l when v.Kind == ParamKind.Label: l.Matches = v; break;
             case SwitchSym s when v.Kind == ParamKind.Switch: s.Matches = v; break;
-            default: Err(m.Pos, $"'{m.Orig}' ne correspond pas au genre de la quantite virtuelle ({KindOfVirtual(v)})"); break;
+            default: Err(m.Pos, $"'{m.Orig}' does not match the kind of the virtual quantity ({KindOfVirtual(v)})"); break;
         }
     }
 
     static string KindOfVirtual(VirtualSym v) => v.Kind switch
     {
-        ParamKind.Label => "etiquette", ParamKind.Switch => "aiguillage", _ => "procedure"
+        ParamKind.Label => "label", ParamKind.Switch => "switch", _ => "procedure"
     };
 
     VarDebug? DebugVar(Sym s) => s switch
@@ -457,12 +457,12 @@ public sealed partial class SimCompiler
         _ => null
     };
 
-    // ------------------------------------------------------------ racine
+    // ------------------------------------------------------------ root class
 
     void CreateRoot()
     {
-        root = new ClassSym { Name = "§racine", Orig = "(classe racine)", IsRoot = true, LaidOut = true, Level = 0, IsSystem = true };
-        root.Info = new ClassInfo { Id = prog.Classes.Count, Name = "(racine)", Level = 0 };
+        root = new ClassSym { Name = "§root", Orig = "(root class)", IsRoot = true, LaidOut = true, Level = 0, IsSystem = true };
+        root.Info = new ClassInfo { Id = prog.Classes.Count, Name = "(root)", Level = 0 };
         root.Info.Chain = new[] { root.Info };
         prog.Classes.Add(root.Info);
         root.Body = new FrameScope { Kind = FKind.ClassBody, Depth = 1, Class = root };

@@ -1,15 +1,15 @@
 begin
    comment ==================================================================
-           Environnement standard de Simula 67 Studio
+           Standard environment of Simula 67 Studio
            ENVIRONMENT (chap. 9), BASICIO (chap. 10), SIMSET (chap. 11),
-           SIMULATION (chap. 12) de la norme SIMULA 1986.
-           Les identificateurs se terminant par __ sont internes.
+           SIMULATION (chap. 12) of the SIMULA Standard 1986.
+           Identifiers ending in __ are internal.
            ==================================================================;
 
    integer maxint = 2147483647, minint = -2147483647 - 1, maxrank = 255;
    real maxreal = 1.7976931348623157&308, minreal = -1.7976931348623157&308;
    long real maxlongreal = 1.7976931348623157&&308, minlongreal = -1.7976931348623157&&308;
-   text simulaid = "Simula 67 Studio 1.0!!!Studio!!!Windows!!!x64!!!utilisateur!!!0!!!0!!!programme";
+   text simulaid = "Simula 67 Studio 1.0!!!Studio!!!Windows!!!x64!!!user!!!0!!!0!!!program";
 
    ref(infile) sysin_;
    ref(printfile) sysout_;
@@ -17,7 +17,7 @@ begin
    ref(infile) procedure sysin; sysin :- sysin_;
    ref(printfile) procedure sysout; sysout :- sysout_;
 
-   comment --- operations de base (9.1), traitees en ligne a l'appel;
+   comment --- basic operations (9.1), compiled inline when called;
    integer procedure mod(i, j); integer i, j; mod := mod(i, j);
    integer procedure rem(i, j); integer i, j; rem := rem(i, j);
    real procedure abs(x); real x; abs := abs(x);
@@ -26,7 +26,7 @@ begin
    real procedure addepsilon(x); real x; addepsilon := addepsilon(x);
    real procedure subepsilon(x); real x; subepsilon := subepsilon(x);
 
-   comment --- utilitaires de texte (9.2);
+   comment --- text utilities (9.2);
    text procedure copy(t); text t; copy :- copy(t);
    text procedure blanks(n); integer n; blanks :- blanks(n);
    character procedure char(i); integer i; char := char(i);
@@ -40,11 +40,11 @@ begin
    text procedure upcase(t); text t; upcase :- upcase(t);
    text procedure lowcase(t); text t; lowcase :- lowcase(t);
 
-   comment --- sequencement (9.3) : call et resume sont traites par le compilateur;
+   comment --- scheduling (9.3): call and resume are handled by the compiler;
    procedure call; ;
    procedure resume; ;
 
-   comment --- fonctions mathematiques (9.4) et extremums (9.5);
+   comment --- mathematical functions (9.4) and extremum functions (9.5);
    real procedure sqrt(x); real x; sqrt := sqrt(x);
    real procedure sin(x); real x; sin := sin(x);
    real procedure cos(x); real x; cos := cos(x);
@@ -63,26 +63,26 @@ begin
    real procedure max(a, b); real a, b; max := max(a, b);
    real procedure min(a, b); real a, b; min := min(a, b);
 
-   comment --- interrogations, erreurs, tableaux (9.6 - 9.8);
+   comment --- enquiries, error control, array quantities (9.6 - 9.8);
    integer procedure sourceline; sourceline := sourceline;
    procedure error(t); text t; error(t);
    integer procedure upperbound(a, i); real array a; integer i; upperbound := upperbound(a, i);
    integer procedure lowerbound(a, i); real array a; integer i; lowerbound := lowerbound(a, i);
 
-   comment --- tirages aleatoires (9.9);
+   comment --- random drawing (9.9);
    boolean procedure draw(a, U); name U; long real a; integer U;
    begin U := __rnext(U); draw := __rfrac(U) < a end;
 
    integer procedure randint(a, b, U); name U; integer a, b, U;
    begin
-      if b < a then error("randint : borne superieure inferieure a la borne inferieure");
+      if b < a then error("randint: upper bound lower than the lower bound");
       U := __rnext(U);
       randint := entier(__rfrac(U) * (b - a + 1.0)) + a
    end;
 
    long real procedure uniform(a, b, U); name U; long real a, b; integer U;
    begin
-      if b < a then error("uniform : borne superieure inferieure a la borne inferieure");
+      if b < a then error("uniform: upper bound lower than the lower bound");
       U := __rnext(U);
       uniform := a + (b - a) * __rfrac(U)
    end;
@@ -92,7 +92,7 @@ begin
 
    long real procedure negexp(a, U); name U; long real a; integer U;
    begin
-      if a <= 0 then error("negexp : le parametre doit etre positif");
+      if a <= 0 then error("negexp: the parameter must be positive");
       U := __rnext(U);
       negexp := - __lnr(__rfrac(U)) / a
    end;
@@ -118,7 +118,7 @@ begin
 
    long real procedure Erlang(a, b, U); name U; long real a, b; integer U;
    begin integer c, i; long real s;
-      if a <= 0 or b <= 0 then error("Erlang : les parametres doivent etre positifs");
+      if a <= 0 or b <= 0 then error("Erlang: the parameters must be positive");
       c := entier(b);
       for i := 1 step 1 until c do
       begin U := __rnext(U); s := s + __lnr(__rfrac(U)) end;
@@ -156,7 +156,7 @@ begin
       histd := i
    end;
 
-   comment --- calendrier (9.10) et divers (9.11);
+   comment --- calendar and timing (9.10), miscellaneous (9.11);
    text procedure datetime; datetime :- datetime;
    long real procedure cputime; cputime := cputime;
    long real procedure clocktime; clocktime := clocktime;
@@ -259,7 +259,7 @@ begin
          boolean procedure idle; idle := event__ == none;
          boolean procedure terminated; terminated := terminated__;
          long real procedure evtime;
-            if idle then error("evtime : le processus est passif (idle)")
+            if idle then error("evtime: the process is idle")
             else evtime := event__.evtime__;
          ref(process) procedure nextev;
             nextev :- if idle then none else if event__.suc == none then none else event__.suc.proc__;
@@ -267,7 +267,7 @@ begin
          inner;
          terminated__ := true;
          passivate;
-         error("un processus termine a ete reactive")
+         error("a terminated process was reactivated")
       end process;
 
       procedure activat__(reac, x, code, t, y, prio);
@@ -302,7 +302,7 @@ at_:        begin
          if ev =/= none then
          begin
             ev.out;
-            if sqs__.empty then error("reactivate : la liste des evenements (SQS) est vide")
+            if sqs__.empty then error("reactivate: the sequencing set (SQS) is empty")
          end;
          if z =/= current then resume(current);
 exit:
@@ -319,7 +319,7 @@ exit:
       procedure passivate;
       begin
          inspect current do begin event__.out; event__ :- none end;
-         if sqs__.empty then error("passivate : plus aucun processus a activer (SQS vide)")
+         if sqs__.empty then error("passivate: no process left to activate (SQS empty)")
          else resume(current)
       end passivate;
 
@@ -358,7 +358,7 @@ exit:
             or (m.length > 9 and then m.sub(1, 9) = "bytesize:") then
          begin modes__ :- modes__ & ";" & m; setaccess := true end
       end setaccess;
-      if filename__ = notext then error("file : le nom de fichier est vide (notext)");
+      if filename__ = notext then error("file: the file name is empty (notext)");
    end file;
 
    file class imagefile;
@@ -391,16 +391,16 @@ exit:
          close := endfile__ := true
       end close;
       procedure inimage;
-      if not open__ then error("inimage : fichier ferme")
-      else if endfile__ then error("inimage : la fin du fichier a deja ete atteinte")
+      if not open__ then error("inimage: file closed")
+      else if endfile__ then error("inimage: end of file already reached")
       else
       begin
          if __finimage(handle__, image) = 1 then begin endfile__ := true; image := "!25!" end;
          setpos(1)
       end inimage;
       boolean procedure inrecord;
-      if not open__ then error("inrecord : fichier ferme")
-      else if endfile__ then error("inrecord : la fin du fichier a deja ete atteinte")
+      if not open__ then error("inrecord: file closed")
+      else if endfile__ then error("inrecord: end of file already reached")
       else
       begin integer r;
          r := __finrecord(handle__, image);
@@ -422,7 +422,7 @@ exit:
          while t.more do t.putchar(inchar)
       end intext;
       integer procedure inint;
-      if lastitem then error("inint : fin de fichier")
+      if lastitem then error("inint: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -430,7 +430,7 @@ exit:
          setpos(pos + t.pos - 1)
       end inint;
       long real procedure inreal;
-      if lastitem then error("inreal : fin de fichier")
+      if lastitem then error("inreal: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -438,7 +438,7 @@ exit:
          setpos(pos + t.pos - 1)
       end inreal;
       integer procedure infrac;
-      if lastitem then error("infrac : fin de fichier")
+      if lastitem then error("infrac: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -469,13 +469,13 @@ exit:
          image :- notext; open__ := false; close := true
       end close;
       procedure outimage;
-      if not open__ then error("outimage : fichier ferme")
+      if not open__ then error("outimage: file closed")
       else begin __foutimage(handle__, image); __blankimage(image) end;
       procedure outrecord;
-      if not open__ then error("outrecord : fichier ferme")
+      if not open__ then error("outrecord: file closed")
       else begin __foutrecord(handle__, image.sub(1, pos - 1)); setpos(1) end;
       procedure breakoutimage;
-      if not open__ then error("breakoutimage : fichier ferme")
+      if not open__ then error("breakoutimage: file closed")
       else begin __fbreak(handle__, image.sub(1, pos - 1)); __blankimage(image) end;
       boolean procedure checkpoint; checkpoint := if open__ then __fflush(handle__) else false;
       procedure outchar(c); character c;
@@ -487,7 +487,7 @@ exit:
          while t.more do begin if not more then outimage; __copychars(image, t) end
       end outtext;
       text procedure field__(w); integer w;
-      if w > length then error("item trop long pour l'image du fichier")
+      if w > length then error("item too long for the file image")
       else
       begin
          if pos + w - 1 > length then outimage;
@@ -558,10 +558,10 @@ exit:
       end;
       procedure spacing(n); integer n;
          if 0 <= n and n <= lines_per_page__ then spacing__ := n
-         else error("spacing : parametre hors limites");
+         else error("spacing: parameter out of range");
       procedure eject(n); integer n;
-      if not open__ then error("eject : fichier ferme")
-      else if n <= 0 then error("eject : parametre hors limites")
+      if not open__ then error("eject: file closed")
+      else if n <= 0 then error("eject: parameter out of range")
       else
       begin
          if n > lines_per_page__ then n := 1;
@@ -575,7 +575,7 @@ exit:
          line__ := n
       end eject;
       procedure outimage;
-      if not open__ then error("outimage : fichier ferme")
+      if not open__ then error("outimage: file closed")
       else
       begin
          if line__ > lines_per_page__ then eject(1);
@@ -585,7 +585,7 @@ exit:
          __blankimage(image)
       end outimage;
       procedure outrecord;
-      if not open__ then error("outrecord : fichier ferme")
+      if not open__ then error("outrecord: file closed")
       else
       begin
          if line__ > lines_per_page__ then eject(1);
@@ -627,13 +627,13 @@ exit:
          close := endfile__ := true
       end close;
       integer procedure lastloc;
-         if not open__ then error("lastloc : fichier ferme") else lastloc := __dlastloc(handle__);
+         if not open__ then error("lastloc: file closed") else lastloc := __dlastloc(handle__);
       integer procedure maxloc;
-         if not open__ then error("maxloc : fichier ferme") else maxloc := maxloc__;
+         if not open__ then error("maxloc: file closed") else maxloc := maxloc__;
       procedure locate(i); integer i;
-         if i < 1 or i > maxloc__ then error("locate : parametre hors limites") else loc__ := i;
+         if i < 1 or i > maxloc__ then error("locate: parameter out of range") else loc__ := i;
       procedure inimage;
-      if not open__ then error("inimage : fichier ferme")
+      if not open__ then error("inimage: file closed")
       else
       begin
          setpos(1);
@@ -644,8 +644,8 @@ exit:
          locate(loc__ + 1)
       end inimage;
       procedure outimage;
-      if not open__ then error("outimage : fichier ferme")
-      else if loc__ > maxloc__ then error("outimage : debordement du fichier")
+      if not open__ then error("outimage: file closed")
+      else if loc__ > maxloc__ then error("outimage: file overflow")
       else
       begin
          __dwrite(handle__, loc__, image);
@@ -680,7 +680,7 @@ exit:
          while t.more do t.putchar(inchar)
       end intext;
       integer procedure inint;
-      if lastitem then error("inint : fin de fichier")
+      if lastitem then error("inint: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -688,7 +688,7 @@ exit:
          setpos(pos + t.pos - 1)
       end inint;
       long real procedure inreal;
-      if lastitem then error("inreal : fin de fichier")
+      if lastitem then error("inreal: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -696,7 +696,7 @@ exit:
          setpos(pos + t.pos - 1)
       end inreal;
       integer procedure infrac;
-      if lastitem then error("infrac : fin de fichier")
+      if lastitem then error("infrac: end of file")
       else
       begin text t;
          t :- image.sub(pos, length - pos + 1);
@@ -712,7 +712,7 @@ exit:
          while t.more do begin if not more then outimage; __copychars(image, t) end
       end outtext;
       text procedure field__(w); integer w;
-      if w > length then error("item trop long pour l'image du fichier")
+      if w > length then error("item too long for the file image")
       else
       begin
          if pos + w - 1 > length then outimage;
@@ -771,7 +771,7 @@ exit:
       boolean procedure close;
       if open__ then begin __fclose(handle__); open__ := false; close := endfile__ := true end;
       short integer procedure inbyte;
-      if endfile__ then error("inbyte : fin de fichier")
+      if endfile__ then error("inbyte: end of file")
       else
       begin integer b;
          b := __binbyte(handle__);
@@ -798,7 +798,7 @@ exit:
       boolean procedure close;
       if open__ then begin __fclose(handle__); open__ := false; close := true end;
       procedure outbyte(x); short integer x;
-      if not open__ then error("outbyte : fichier ferme")
+      if not open__ then error("outbyte: file closed")
       else __boutbyte(handle__, x);
       procedure outtext(t); text t;
       begin t.setpos(1); while t.more do outbyte(rank(t.getchar)) end;
@@ -820,16 +820,16 @@ exit:
       boolean procedure close;
       if open__ then begin maxloc__ := 0; __fclose(handle__); open__ := false; close := true end;
       integer procedure lastloc;
-         if not open__ then error("lastloc : fichier ferme") else lastloc := __blastloc(handle__);
+         if not open__ then error("lastloc: file closed") else lastloc := __blastloc(handle__);
       procedure locate(p); integer p;
-         if p < 1 or p > maxloc__ then error("locate : parametre hors limites") else loc__ := p;
+         if p < 1 or p > maxloc__ then error("locate: parameter out of range") else loc__ := p;
       short integer procedure inbyte;
-      if not open__ then error("inbyte : fichier ferme")
+      if not open__ then error("inbyte: file closed")
       else if loc__ <= lastloc then
       begin inbyte := __bdread(handle__, loc__); loc__ := loc__ + 1 end;
       procedure outbyte(x); short integer x;
-      if not open__ then error("outbyte : fichier ferme")
-      else if loc__ > maxloc__ then error("outbyte : debordement du fichier")
+      if not open__ then error("outbyte: file closed")
+      else if loc__ > maxloc__ then error("outbyte: file overflow")
       else begin __bdwrite(handle__, loc__, x); loc__ := loc__ + 1 end;
       boolean procedure checkpoint; checkpoint := if open__ then __fflush(handle__) else false;
       integer procedure lock(t, i, j); real t; integer i, j;
@@ -849,7 +849,7 @@ exit:
       begin t.setpos(1); while t.more do outbyte(rank(t.getchar)) end;
    end directbytefile;
 
-   comment ==================================================== programme;
+   comment ==================================================== program;
    sysin_ :- new infile("SYSIN");
    sysin_.kind__ := 100;
    sysout_ :- new printfile("SYSOUT");

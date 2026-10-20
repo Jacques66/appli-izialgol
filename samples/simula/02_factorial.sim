@@ -1,0 +1,10 @@
+! A recursive typed procedure ;
+begin
+   integer procedure factorial(n); integer n;
+      factorial := if n <= 1 then 1 else n * factorial(n - 1);
+   integer i;
+   for i := 0 step 1 until 12 do
+   begin
+      outint(i, 3); outtext("! = "); outint(factorial(i), 10); outimage
+   end
+end

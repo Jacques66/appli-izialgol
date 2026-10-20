@@ -1,0 +1,56 @@
+! Traffic control, after the car and police example of the original SIMULA
+  manual (quoted by Dahl in his account of the birth of SIMULA): cars drive
+  along a stretch of road, and a police patrol checks the speed of every
+  car on the road at regular intervals and fines the speeders.
+  Shows: processes that are also members of a set (the road), inspection
+  of other processes through remote access, Into / Out, Normal drawings. ;
+Simulation Begin
+   Real roadLength, speedLimit, tolerance;
+   Integer seed, carCount, fines, passed;
+   Ref (Head) road;
+
+   Process Class Car (number, speed); Integer number; Real speed; Begin
+      Boolean fined;
+      Into (road);
+      Hold (roadLength / speed * 60);      ! minutes needed for the stretch ;
+      Out;
+      passed := passed + 1;
+   End;
+
+   Process Class Police; Begin
+      Ref (Car) c;
+      While True Do Begin
+         Hold (4);
+         c :- road.First;
+         While c =/= None Do Begin
+            If Not c.fined And c.speed > speedLimit + tolerance Then Begin
+               c.fined := True;
+               fines := fines + 1;
+               OutFix (Time, 1, 7); OutText (" min: car "); OutInt (c.number, 3);
+               OutText (" measured at "); OutFix (c.speed, 1, 5);
+               OutText (" km/h - fined"); OutImage;
+            End;
+            c :- c.Suc;
+         End;
+      End;
+   End;
+
+   Process Class Traffic; Begin
+      While Time < 60 Do Begin
+         carCount := carCount + 1;
+         Activate New Car (carCount, Normal (85, 10, seed));
+         Hold (Negexp (0.5, seed));
+      End;
+   End;
+
+   seed := 97;
+   roadLength := 6; speedLimit := 90; tolerance := 10;
+   road :- New Head;
+   Activate New Traffic;
+   Activate New Police Delay 1;
+   Hold (70);
+   OutImage;
+   OutText ("Cars that entered the road        : "); OutInt (carCount, 5); OutImage;
+   OutText ("Cars that left the stretch        : "); OutInt (passed, 5); OutImage;
+   OutText ("Fines                             : "); OutInt (fines, 5); OutImage;
+End;

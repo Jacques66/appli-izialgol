@@ -1,13 +1,13 @@
 namespace Studio.Simula.Compiler;
 
-// ---------------------------------------------------------------- types syntaxiques
+// ---------------------------------------------------------------- syntactic types
 
 public enum BaseType { None, Integer, ShortInteger, Real, LongReal, Boolean, Character, Text, Ref, Label, Switch, Notype }
 
 public sealed class TypeSpec
 {
     public BaseType Base;
-    public string? RefClass;     // pour ref(C)
+    public string? RefClass;     // for ref(C)
     public SrcPos Pos;
     public static TypeSpec Of(BaseType b, SrcPos p) => new() { Base = b, Pos = p };
     public override string ToString() => Base switch
@@ -19,7 +19,7 @@ public sealed class TypeSpec
     };
 }
 
-// ---------------------------------------------------------------- noeuds
+// ---------------------------------------------------------------- nodes
 
 public abstract class Node
 {
@@ -46,7 +46,7 @@ public sealed class ArraySegment
 
 public sealed class ArrayDecl : Decl
 {
-    public TypeSpec Type = null!;   // Real si absent
+    public TypeSpec Type = null!;   // Real when omitted
     public List<ArraySegment> Segments = new();
 }
 
@@ -66,16 +66,16 @@ public sealed class ParamSpec
     public SrcPos Pos;
     public ParamMode Mode;
     public ParamKind Kind;
-    public TypeSpec? Type;       // null : non specifie / sans type (procedure propre, label, switch)
+    public TypeSpec? Type;       // null: unspecified / untyped (proper procedure, label, switch)
     public bool Specified;
 }
 
 public sealed class ProcDecl : Decl
 {
     public string Name = "", Orig = "";
-    public TypeSpec? Type;          // null = procedure propre
+    public TypeSpec? Type;          // null = proper procedure
     public List<ParamSpec> Params = new();
-    public Stmt? Body;              // null pour une specification (virtual ... is) ou externe
+    public Stmt? Body;              // null for a specification (virtual ... is) or external
     public bool IsExternalSpec;
     public string? NativeKind;      // external <kind> procedure
 }
@@ -84,7 +84,7 @@ public sealed class VirtualSpec
 {
     public string Name = "", Orig = "";
     public SrcPos Pos;
-    public ParamKind Kind;           // Simple pour 'procedure' sans specif. ; Label ; Switch
+    public ParamKind Kind;           // Simple for an unspecified 'procedure'; Label; Switch
     public bool IsProcedure;
     public TypeSpec? Type;
     public ProcDecl? Heading;        // virtual: procedure p is procedure p(..); ...;
@@ -100,8 +100,8 @@ public sealed class ClassDecl : Decl
     public List<(string Name, SrcPos Pos)> Protected = new();
     public List<VirtualSpec> Virtuals = new();
     public List<Decl> Decls = new();
-    public List<Stmt> Before = new();    // instructions avant inner
-    public List<Stmt> After = new();     // instructions apres inner
+    public List<Stmt> Before = new();    // statements before inner
+    public List<Stmt> After = new();     // statements after inner
     public bool HasInner;
     public SrcPos InnerPos;
     public List<string> InnerLabels = new();
@@ -118,7 +118,7 @@ public sealed class ExternalDecl : Decl
     public ProcDecl? Spec;
 }
 
-// ---------------------------------------------------------------- instructions
+// ---------------------------------------------------------------- statements
 
 public abstract class Stmt : Node
 {
@@ -132,22 +132,22 @@ public sealed class BlockStmt : Stmt
     public List<Decl> Decls = new();
     public List<Stmt> Stmts = new();
     public bool IsCompound => Decls.Count == 0;
-    // bloc prefixe
+    // prefixed block
     public string? Prefix;
     public List<Expr> PrefixArgs = new();
     public SrcPos PrefixPos;
     public SrcPos EndPos;
-    public bool IsProgramBlock;     // bloc de l'environnement
+    public bool IsProgramBlock;     // environment block
 }
 
 public sealed class AssignStmt : Stmt
 {
-    // a := b := expr ; chaque cible avec son operateur
+    // a := b := expr; each target with its operator
     public List<(Expr Target, bool IsRef)> Targets = new();
     public Expr Value = null!;
 }
 
-public sealed class ExprStmt : Stmt { public Expr E = null!; }   // appel de procedure, new C(...)
+public sealed class ExprStmt : Stmt { public Expr E = null!; }   // procedure call, new C(...)
 
 public sealed class IfStmt : Stmt
 {
@@ -213,7 +213,7 @@ public sealed class NotextLit : Expr { }
 
 public sealed class Ident : Expr { public string Name = "", Orig = ""; }
 
-/// <summary>x(args) : appel de procedure, element de tableau ou de switch.</summary>
+/// <summary>x(args): procedure call, array element or switch element.</summary>
 public sealed class CallExpr : Expr { public Expr Fn = null!; public List<Expr> Args = new(); }
 
 public sealed class DotExpr : Expr { public Expr Obj = null!; public string Name = "", Orig = ""; public SrcPos NamePos; }

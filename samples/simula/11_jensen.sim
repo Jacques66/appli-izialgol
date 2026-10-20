@@ -1,15 +1,15 @@
-! Appel par nom : le procede de Jensen ;
+! Call by name: Jensen's device ;
 begin
    integer i;
    real array a(1:5);
-   real procedure somme(k, bas, haut, terme); name k, terme; integer k, bas, haut; real terme;
+   real procedure sum(k, low, high, term); name k, term; integer k, low, high; real term;
    begin real s;
-      k := bas;
-      while k <= haut do begin s := s + terme; k := k + 1 end;
-      somme := s
+      k := low;
+      while k <= high do begin s := s + term; k := k + 1 end;
+      sum := s
    end;
    for i := 1 step 1 until 5 do a(i) := i * 1.5;
-   outtext("somme des a(i)       = "); outfix(somme(i, 1, 5, a(i)), 2, 0); outimage;
-   outtext("somme des i**2       = "); outfix(somme(i, 1, 10, i ** 2), 0, 0); outimage;
-   outtext("somme des 1/i        = "); outfix(somme(i, 1, 100, 1 / i), 6, 0); outimage
+   outtext("sum of a(i)       = "); outfix(sum(i, 1, 5, a(i)), 2, 0); outimage;
+   outtext("sum of i**2       = "); outfix(sum(i, 1, 10, i ** 2), 0, 0); outimage;
+   outtext("sum of 1/i        = "); outfix(sum(i, 1, 100, 1 / i), 6, 0); outimage
 end

@@ -1,14 +1,14 @@
-! Tours de Hanoi ;
+! Towers of Hanoi ;
 begin
-   integer coups;
-   procedure deplace(n, depart, arrivee, inter); integer n; character depart, arrivee, inter;
+   integer moves;
+   procedure move(n, source, target, spare); integer n; character source, target, spare;
       if n > 0 then
       begin
-         deplace(n - 1, depart, inter, arrivee);
-         coups := coups + 1;
-         outtext("disque "); outint(n, 0); outtext(" : "); outchar(depart); outtext(" -> "); outchar(arrivee); outimage;
-         deplace(n - 1, inter, arrivee, depart)
+         move(n - 1, source, spare, target);
+         moves := moves + 1;
+         outtext("disk "); outint(n, 0); outtext(": "); outchar(source); outtext(" -> "); outchar(target); outimage;
+         move(n - 1, spare, target, source)
       end;
-   deplace(4, 'A', 'C', 'B');
-   outint(coups, 0); outtext(" deplacements"); outimage
+   move(4, 'A', 'C', 'B');
+   outint(moves, 0); outtext(" moves"); outimage
 end

@@ -3,29 +3,29 @@ namespace Studio.Simula.Runtime;
 public enum Op
 {
     Nop,
-    // constantes et pile
+    // constants and stack
     PushI,          // v
     PushR,          // idx (constante reelle)
     PushNone,
-    PushText,       // idx (constante texte)
+    PushText,       // idx (text constant)
     Pop,
     Dup,
     // variables
     Ld, St,                 // slot
-    StT,                    // slot (stocke une copie du descripteur texte)
+    StT,                    // slot (stores a copy of the text descriptor)
     LdO, StO, StTO,         // hops slot
-    LdG, StG, StTG,         // slot (bloc de l'environnement)
-    LdF, StF, StFK, StTF, StTFK,  // slot ; objet sous la valeur
-    LdE, StE, StEK, StTE, StTEK,  // n : nombre d'indices
-    LdThis,                 // hops : cadre englobant
-    LdGThis,                // cadre de l'environnement
-    // parametres par nom / thunks
-    LdN,                    // hops slot formalArith : evalue le thunk
+    LdG, StG, StTG,         // slot (environment block)
+    LdF, StF, StFK, StTF, StTFK,  // slot; object below the value
+    LdE, StE, StEK, StTE, StTEK,  // n: number of subscripts
+    LdThis,                 // hops: enclosing frame
+    LdGThis,                // environment frame
+    // name parameters / thunks
+    LdN,                    // hops slot formalArith: evaluates the thunk
     StN, StNK,              // hops slot formalArith
-    EvalThunk,              // formalArith : thunk sur la pile
+    EvalThunk,              // formalArith: thunk on the stack
     MkThunk,                // unit setEntry actualArith actualType actualKind actualDims qualId
-    RetThunk,               // fin d'un thunk (valeur sur la pile)
-    RetThunkSet,            // fin d'un thunk en affectation
+    RetThunk,               // end of a thunk (value on the stack)
+    RetThunkSet,            // end of a thunk in assignment mode
     // conversions
     I2R, I2RU, R2I, I2S, R2S, CloneT, CopyT, CopyArr,
     ChkQual,                // classId : verifie l'appartenance (none permis)
@@ -40,38 +40,38 @@ public enum Op
     Not, And, Or, Imp, Eqv,
     Is, In, Qua,            // classId
     Concat,                 // n
-    TAssign, TAssignK,      // affectation de valeur texte
+    TAssign, TAssignK,      // text value assignment
     StepTest,               // isReal : [delta c limit] -> bool
     // controle
     Jmp, Jf, Jt,            // pc
-    JmpSlot,                // slot : saut a l'adresse contenue dans la variable
+    JmpSlot,                // slot: jump to the address held in the variable
     Stmt,                   // line col
     EnterBlk,               // blockId
     ExitBlk,
-    Goto,                   // labelId hops  (saut non local statique)
-    GotoV,                  // LabelValue sur la pile
+    Goto,                   // labelId hops  (static non-local jump)
+    GotoV,                  // LabelValue on the stack
     MkLabel,                // labelId hops
-    MkLabelVirt,            // vidx : objet sur la pile
+    MkLabelVirt,            // vidx: object on the stack
     MkSwitch,               // unit hops
-    MkSwitchVirt,           // vidx : objet sur la pile
-    NewArr,                 // elemType dims : bornes sur la pile
-    NewArrLike,             // nouveau tableau aux memes bornes
-    SwitchSel,              // indice sur la pile, SwitchValue dessous -> LabelValue
-    SwitchSelL,             // unit hops ; indice sur la pile
+    MkSwitchVirt,           // vidx: object on the stack
+    NewArr,                 // elemType dims: bounds on the stack
+    NewArrLike,             // new array with the same bounds
+    SwitchSel,              // index on the stack, SwitchValue below -> LabelValue
+    SwitchSelL,             // unit hops; index on the stack
     RetSwitch,
     // appels
     Call,                   // proc hops argc flags  (hops -1 : environnement)
-    CallR,                  // proc argc flags (objet sous les arguments)
-    CallV,                  // vidx argc flags generic (objet sous les arguments)
-    CallP,                  // argc flags generic (ProcValue sous les arguments)
+    CallR,                  // proc argc flags (object below the arguments)
+    CallV,                  // vidx argc flags generic (object below the arguments)
+    CallP,                  // argc flags generic (ProcValue below the arguments)
     MkProc,                 // proc hops
-    MkProcR,                // proc  (objet sur la pile)
-    MkProcV,                // vidx  (objet sur la pile)
+    MkProcR,                // proc  (object on the stack)
+    MkProcV,                // vidx  (object on the stack)
     Ret,
     Native,                 // id argc
     // objets
     New,                    // class hops argc
-    NewS,                   // class argc (cadre statique sous les arguments)
+    NewS,                   // class argc (static frame below the arguments)
     NewBlk,                 // class hops argc
     EndObj,
     Detach,
@@ -146,13 +146,13 @@ public sealed class ClassInfo
     public int Id;
     public string Name = "";
     public ClassInfo? Prefix;
-    public int Level;               // 0 pour la classe racine
+    public int Level;               // 0 for the root class
     public int NSlots;
     public CodeUnit Body = null!;
     public int[] ParamSlots = Array.Empty<int>();
     public VirtualEntry[] VTable = Array.Empty<VirtualEntry>();
     public bool IsPrefixedBlock;
-    public ClassInfo[] Chain = Array.Empty<ClassInfo>();   // Chain[k] = prefixe de niveau k
+    public ClassInfo[] Chain = Array.Empty<ClassInfo>();   // Chain[k] = prefix of level k
     public List<VarDebug> Attrs = new();
 
     public bool IsSubclassOf(ClassInfo c) => c.Level <= Level && Chain[c.Level] == c;

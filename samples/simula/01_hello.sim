@@ -1,0 +1,5 @@
+! First program: writes a line of text on the standard output (sysout) ;
+begin
+   outtext("Hello, world!");
+   outimage
+end

@@ -1,0 +1,1 @@
+integer procedure square(n); integer n; square := n * n;
