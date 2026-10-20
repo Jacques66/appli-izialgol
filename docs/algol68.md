@@ -465,3 +465,21 @@ print(a(10, INT: 1, INT: -1, INT: -1, INT: 1, INT: 0))
   courant ; l'ordre d'évaluation des opérandes et des éléments collatéraux est de gauche à
   droite (le RR le laisse indéfini).
 - Profondeur de récursion limitée à 100 000 appels imbriqués.
+
+---
+
+## 14. Tests
+
+`dotnet run --project tests/Algol68Tests` compile et exécute chaque programme de
+`samples/algol68` et compare :
+
+- la sortie au fichier `.out` (l'entrée standard est lue dans `.in` s'il existe) ;
+- les diagnostics attendus à `.err` (une ligne par erreur : `ligne: fragment du message`) ;
+- l'erreur d'exécution attendue à `.rte` (`ligne: fragment du message`).
+
+Des tests internes vérifient en plus le débogueur (points d'arrêt, pas à pas, pile,
+variables, pause demandée, pause sur erreur), l'annulation (boucle infinie, branches `PAR`,
+pause), la sérialisation, les performances (10 millions d'itérations), la pile des erreurs
+et la robustesse du compilateur sur des programmes altérés.
+Options : `--filter texte` (sélection par chemin), `--show fichier.a68` (exécute un programme
+et affiche sa sortie), `-v` (liste détaillée).
