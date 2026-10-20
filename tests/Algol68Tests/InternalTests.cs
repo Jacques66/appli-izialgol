@@ -134,9 +134,93 @@ static class InternalTests
         }
     }
 
+    static void MiscTests()
+    {
+        // annulation d'une boucle infinie
+        {
+            var cr = Compile("INT n := 0;\nDO n +:= 1 OD\n");
+            var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
+            using var cts = new CancellationTokenSource(300);
+            var sw = Stopwatch.StartNew();
+            var res = exec.Run(cts.Token);
+            Check("annulation-boucle", res.Cancelled && sw.ElapsedMilliseconds < 5000, $"cancelled={res.Cancelled} en {sw.ElapsedMilliseconds} ms");
+        }
+        // annulation dans des branches PAR et pendant une attente de semaphore
+        {
+            var cr = Compile("SEMA s = LEVEL 0;\nPAR (DO SKIP OD, (DOWN s; SKIP), DO SKIP OD)\n");
+            var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
+            using var cts = new CancellationTokenSource(300);
+            var res = exec.Run(cts.Token);
+            Check("annulation-par", res.Cancelled, $"cancelled={res.Cancelled} erreur={res.Error}");
+        }
+        // annulation pendant une pause du debogueur
+        {
+            var cr = Compile("print(1);\nprint(2)\n");
+            var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
+            var cts = new CancellationTokenSource();
+            exec.Debugger.StopOnEntry = true;
+            exec.Debugger.Paused += pi => cts.CancelAfter(100); // ne reprend jamais
+            var res = exec.Run(cts.Token);
+            Check("annulation-en-pause", res.Cancelled, $"cancelled={res.Cancelled}");
+        }
+        // serialisation : sources + inclusions, rechargement par Deserialize
+        {
+            var inc = new SourceFile("lib.a68", "PROC double = (INT x) INT: 2 * x;\n");
+            var opts = new CompileOptions { IncludeResolver = (n, from) => n == "lib.a68" ? inc : null };
+            var cr = lang.Compile(new SourceFile("main.a68", "PR include \"lib.a68\" PR\nprint((double(21), newline))\n"), opts);
+            if (!cr.Success) { Program.Fail("interne/serialisation", string.Join("\n", cr.Diagnostics)); }
+            else
+            {
+                var bytes = cr.Program!.Serialize();
+                var p2 = lang.Deserialize(bytes);
+                var (o, res, _) = Program.Execute(p2, null);
+                Check("serialisation", p2.LanguageId == "algol68" && res.Error == null && o == "        +42\n", $"sortie [{o}] {res.Error}");
+            }
+        }
+        // inclusion introuvable
+        ExpectCompileError("inclusion-absente", "PR include \"absent.a68\" PR\nSKIP\n", "introuvable", 1);
+        // performances : 10 millions d'iterations
+        {
+            var cr = Compile("INT s := 0;\nFOR i TO 10000000 DO s +:= i MOD 3 OD;\nprint(s)\n");
+            var sw = Stopwatch.StartNew();
+            var (o, res, _) = Program.Execute(cr.Program!, null);
+            Check("performances-10M", res.Error == null && o.Trim() == "+10000000" && sw.Elapsed.TotalSeconds < 5,
+                $"sortie {o} en {sw.Elapsed.TotalSeconds:F2} s");
+        }
+        // pile d'appels dans l'erreur d'execution
+        {
+            var cr = Compile("PROC g = (INT n) INT: 10 % n;\nPROC f = (INT n) INT: g(n - 1);\nprint(f(1))\n", "pile.a68");
+            var (_, res, _) = Program.Execute(cr.Program!, null);
+            var st = res.Error == null ? "" : string.Join(";", res.Error.Stack.Select(s => $"{s.Name}@{s.Line}"));
+            Check("pile-erreur", res.Error != null && res.Error.Line == 1 && res.Error.File == "pile.a68" && st == "g@1;f@2;programme principal@3",
+                $"{res.Error} pile={st}");
+        }
+        // position exacte des diagnostics
+        {
+            var cr = Compile("BEGIN\n   INT x := 1;\n   x := y + 1\nEND\n");
+            var d = cr.Diagnostics.FirstOrDefault();
+            Check("position-diagnostic", d != null && d.Line == 3 && d.Column == 9 && d.Severity == Severity.Error, d?.ToString() ?? "aucun");
+        }
+        // erreur dans une branche PAR : propagation et arret des autres branches
+        ExpectRuntimeError("erreur-par", "[2] INT t;\nPAR (DO SKIP OD, t[3] := 1)\n", "hors des bornes", 2);
+        // point d'arret dans une branche parallele
+        {
+            const string src = "INT a := 0, b := 0;\nPAR (a := 1,\n     b := 2);\nprint((a + b, newline))\n";
+            var (p, res, o) = RunDebug(src, d => d.SetBreakpoints("dbg.a68", new[] { 3 }), (d, pi) => 0);
+            Check("debogueur-par", res.Error == null && Lines(p) == "3" && o == "         +3\n", $"pauses {Lines(p)} sortie {o} {res.Error}");
+        }
+        // impression de structure avec champ non initialise
+        ExpectRuntimeError("champ-non-initialise", "STRUCT (INT a, b) s;\na OF s := 1;\nprint(s)\n", "non initialisee", 3);
+        // valeurs exactes de quelques conversions (algorithmes a68g)
+        Expect("conversions", "print((whole(0, 0), whole(-5, 3), fixed(2.5, 0, 0), fixed(-0.25, 0, 2), float(0.0, 10, 3, 2), newline))",
+            "0 -53-.25 +0.000e+0\n");
+        Expect("stop", "print((\"a\", newline)); stop; print(\"b\")", "a\n");
+    }
+
     public static void Run()
     {
         Expect("bonjour", "print((\"Bonjour\", newline))", "Bonjour\n");
         DebuggerTests();
+        MiscTests();
     }
 }

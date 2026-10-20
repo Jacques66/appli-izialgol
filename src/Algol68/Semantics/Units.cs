@@ -884,7 +884,7 @@ public sealed partial class Compiler
     Node GenCollateral(CollateralAst c, Mode target)
     {
         if (target.IsVoid || target == M.Any)
-            return new SeqVoidNode(c.Units.Select(u => Gen(u, target == M.Any ? M.Any : M.Void, Strength.Strong)).ToArray()).At<SeqVoidNode>(c);
+            return new SeqVoidNode(c.Units.Select(u => Stmt(Gen(u, target == M.Any ? M.Any : M.Void, Strength.Strong), u)).ToArray()).At<SeqVoidNode>(c);
         if (target is RowMode rm)
         {
             if (rm.Dims == 1)
@@ -963,7 +963,7 @@ public sealed partial class Compiler
 
     Node GenPar(ParallelAst par)
     {
-        var units = par.Units.Select(u => Gen(u, M.Void, Strength.Strong)).ToArray();
+        var units = par.Units.Select(u => Stmt(Gen(u, M.Void, Strength.Strong), u)).ToArray();
         return new ParNode(units, cur.Level).At<ParNode>(par);
     }
 }

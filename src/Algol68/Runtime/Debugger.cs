@@ -29,6 +29,7 @@ public sealed class Debugger : IDebugger
     readonly object pauseLock = new();
     readonly ManualResetEventSlim resume = new(false);
     volatile bool paused;
+    internal bool IsPaused => paused;
     List<Frame> pausedFrames = new();
     int pausedLine, pausedCol; string pausedFile = "";
     int pausedDepth;

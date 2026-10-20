@@ -169,7 +169,6 @@ public static partial class Prelude
     public const int BitsWidth = 32;
     public const int LongBitsWidth = 116;
 
-    [ThreadStatic] static int currentLL;
     static int llDigits = DefaultLongLongDigits;
     /// <summary>Precision courante de LONG LONG (fixee a la compilation par PR precision PR).</summary>
     public static int LLDigits => llDigits;
