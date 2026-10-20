@@ -4,6 +4,13 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Simula\Simula.csproj" />
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
+    <!-- Garantit que Runner.exe (mono-fichier) est construit pour l'option -o. -->
+    <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Runner\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\SimC\CliMain.cs" Link="CliMain.cs" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -11,6 +18,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>a68c</AssemblyName>
+    <RootNamespace>Studio.A68C</RootNamespace>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <Product>Simula 67 &amp; Algol 68 Studio</Product>
   </PropertyGroup>
 
 </Project>

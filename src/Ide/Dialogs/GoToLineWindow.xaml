@@ -1,0 +1,16 @@
+<Window x:Class="Studio.Ide.Dialogs.GoToLineWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Aller à la ligne" SizeToContent="WidthAndHeight" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Brush.PanelBackground}"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
+    <StackPanel Margin="16" Width="300">
+        <TextBlock x:Name="Prompt" Margin="0,0,0,6"/>
+        <TextBox x:Name="LineBox" Padding="4,3"/>
+        <TextBlock x:Name="ErrorText" Foreground="{DynamicResource Brush.Error}" Margin="0,4,0,0" Visibility="Collapsed"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Style="{StaticResource DialogButton}" Content="OK" IsDefault="True" Click="OnOk"/>
+            <Button Style="{StaticResource DialogButton}" Content="Annuler" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

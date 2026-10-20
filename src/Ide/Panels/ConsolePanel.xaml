@@ -1,0 +1,48 @@
+<UserControl x:Class="Studio.Ide.Panels.ConsolePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ae="http://icsharpcode.net/sharpdevelop/avalonedit">
+    <DockPanel Background="{DynamicResource Brush.PanelBackground}">
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,2">
+            <DockPanel LastChildFill="True">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button Style="{StaticResource ToolButton}" Click="OnClear" ToolTip="Effacer la console">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Clear}"/>
+                    </Button>
+                    <Button x:Name="EofButton" Style="{StaticResource ToolButton}" Click="OnEof" IsEnabled="False"
+                            ToolTip="Envoyer la fin de fichier au programme (Ctrl+Z)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Eof}" Fill="{DynamicResource Brush.IconBlue}"/>
+                            <TextBlock Text="Fin de fichier" Margin="4,0,0,0" Foreground="{DynamicResource Brush.Text}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="StopButton" Style="{StaticResource ToolButton}" Click="OnStop" IsEnabled="False"
+                            ToolTip="Arrêter le programme (Maj+F5)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Stop}" Fill="{DynamicResource Brush.IconRed}"/>
+                            <TextBlock Text="Arrêter" Margin="4,0,0,0" Foreground="{DynamicResource Brush.Text}"/>
+                        </StackPanel>
+                    </Button>
+                    <CheckBox x:Name="ClearOnRunBox" Content="Effacer à chaque exécution" VerticalAlignment="Center" Margin="10,0,0,0"
+                              Checked="OnClearOnRunChanged" Unchecked="OnClearOnRunChanged"/>
+                </StackPanel>
+                <TextBlock x:Name="StatusText" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0"
+                           Foreground="{DynamicResource Brush.TextDim}"/>
+            </DockPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="4,3">
+            <DockPanel>
+                <TextBlock x:Name="Prompt" DockPanel.Dock="Left" Text="›" FontFamily="{StaticResource CodeFont}" FontWeight="Bold"
+                           VerticalAlignment="Center" Margin="2,0,6,0" Foreground="{DynamicResource Brush.TextDim}"/>
+                <Button DockPanel.Dock="Right" x:Name="SendButton" Style="{StaticResource DialogButton}" Content="Envoyer"
+                        Click="OnSend" IsEnabled="False" MinWidth="70" Padding="8,2"/>
+                <TextBox x:Name="Input" FontFamily="{StaticResource CodeFont}" IsEnabled="False"
+                         PreviewKeyDown="OnInputKeyDown" VerticalContentAlignment="Center"
+                         ToolTip="Entrée du programme : Entrée = envoyer la ligne, Ctrl+Z = fin de fichier, ↑/↓ = historique"/>
+            </DockPanel>
+        </Border>
+        <ae:TextEditor x:Name="Output" IsReadOnly="True" WordWrap="True" ShowLineNumbers="False"
+                       FontFamily="{StaticResource CodeFont}" FontSize="13" Padding="6,2"
+                       HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"/>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,38 @@
+<Window x:Class="Studio.Ide.Dialogs.FindReplaceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Rechercher" SizeToContent="Height" Width="460" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource Brush.PanelBackground}"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
+    <Grid Margin="14">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Rechercher :" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBox x:Name="FindBox" Grid.Column="1" Padding="4,3" FontFamily="{StaticResource CodeFont}"/>
+        <TextBlock x:Name="ReplaceLabel" Grid.Row="1" Text="Remplacer par :" VerticalAlignment="Center" Margin="0,6,8,0"/>
+        <TextBox x:Name="ReplaceBox" Grid.Row="1" Grid.Column="1" Padding="4,3" Margin="0,6,0,0" FontFamily="{StaticResource CodeFont}"/>
+        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8,0,0">
+            <CheckBox x:Name="MatchCaseBox" Content="Respecter la _casse"/>
+            <CheckBox x:Name="WholeWordBox" Content="_Mot entier"/>
+            <CheckBox x:Name="RegexBox" Content="Expression _régulière"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Grid.RowSpan="3" Margin="10,0,0,0">
+            <Button Style="{StaticResource DialogButton}" Content="_Suivant" IsDefault="True" Click="OnNext" Margin="0,0,0,4"/>
+            <Button Style="{StaticResource DialogButton}" Content="_Précédent" Click="OnPrevious" Margin="0,0,0,4"/>
+            <Button x:Name="ReplaceButton" Style="{StaticResource DialogButton}" Content="R_emplacer" Click="OnReplace" Margin="0,0,0,4"/>
+            <Button x:Name="ReplaceAllButton" Style="{StaticResource DialogButton}" Content="Remplacer _tout" Click="OnReplaceAll" Margin="0,0,0,4"/>
+            <Button Style="{StaticResource DialogButton}" Content="Fermer" IsCancel="True" Click="OnClose" Margin="0"/>
+        </StackPanel>
+        <TextBlock x:Name="StatusText" Grid.Row="3" Grid.ColumnSpan="3" Margin="0,10,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource Brush.TextDim}"/>
+    </Grid>
+</Window>

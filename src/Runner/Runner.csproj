@@ -11,6 +11,24 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AssemblyName>Runner</AssemblyName>
+    <RootNamespace>Studio.Runner</RootNamespace>
+    <!-- Necessaire pour la publication mono-fichier win-x64 (exe autonomes). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <Product>Simula 67 &amp; Algol 68 Studio</Product>
   </PropertyGroup>
+
+  <!--
+    Apres chaque build "normal", publie aussi Runner en mono-fichier dependant du framework dans
+    bin\$(Configuration)\single\Runner.exe : c'est ce fichier que simc, a68c et l'IDE copient
+    (avec le programme compile ajoute a la fin) pour produire un .exe autonome.
+    build.ps1 publie directement en mono-fichier (PublishSingleFile=true) : la cible est alors ignoree.
+  -->
+  <Target Name="PublishSingleFileRunner" AfterTargets="Build"
+          Condition="'$(_RunnerSinglePublish)' != 'true' and '$(PublishSingleFile)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=false;PublishSingleFile=true;PublishDir=$(MSBuildProjectDirectory)\bin\$(Configuration)\single\;_RunnerSinglePublish=true;BuildProjectReferences=false" />
+  </Target>
 
 </Project>

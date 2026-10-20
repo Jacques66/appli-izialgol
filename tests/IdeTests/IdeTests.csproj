@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Studio.IdeTests</RootNamespace>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Common\Common.csproj" />
+    <ProjectReference Include="..\..\src\Simula\Simula.csproj" />
+    <ProjectReference Include="..\..\src\Algol68\Algol68.csproj" />
+    <!-- Construits pour les tests de bout en bout (exe autonome, CLI), sans reference d'assembly. -->
+    <ProjectReference Include="..\..\src\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\src\SimC\SimC.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\src\A68C\A68C.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Runner\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Ide\Language\*.cs" Link="Language\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

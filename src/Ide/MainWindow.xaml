@@ -1,12 +1,574 @@
-﻿<Window x:Class="Ide.MainWindow"
+<Window x:Class="Studio.Ide.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Ide"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        xmlns:panels="clr-namespace:Studio.Ide.Panels"
+        Title="Simula 67 &amp; Algol 68 Studio" Height="820" Width="1280" MinWidth="640" MinHeight="420"
+        Icon="Assets/app.ico" AllowDrop="True"
+        Background="{DynamicResource Brush.WindowBackground}" Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{StaticResource UiFont}" FontSize="12.5"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <DockPanel>
+        <!-- ============================== Menu ============================== -->
+        <Menu DockPanel.Dock="Top" Padding="2,2,2,0">
+            <MenuItem Header="_Fichier">
+                <MenuItem Header="Nouveau programme _Simula 67" Command="{Binding CmdNewSimula}" InputGestureText="Ctrl+N">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Nouveau programme _Algol 68" Command="{Binding CmdNewAlgol}" InputGestureText="Ctrl+Maj+N">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem x:Name="NewEchoItem" Header="Nouveau programme _Echo (test)" Command="{Binding CmdNewEcho}" Visibility="Collapsed"/>
+                <Separator/>
+                <MenuItem Header="_Ouvrir…" Command="{Binding CmdOpen}" InputGestureText="Ctrl+O">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Ouvrir un _dossier…" Command="{Binding CmdOpenFolder}"/>
+                <MenuItem x:Name="RecentFilesMenu" Header="Fichiers _récents" SubmenuOpened="OnRecentMenuOpened">
+                    <MenuItem Header="(aucun)" IsEnabled="False"/>
+                </MenuItem>
+                <MenuItem x:Name="RecentFoldersMenu" Header="Dossiers ré_cents" SubmenuOpened="OnRecentFoldersMenuOpened">
+                    <MenuItem Header="(aucun)" IsEnabled="False"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Enregistrer" Command="{Binding CmdSave}" InputGestureText="Ctrl+S">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Save}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Enregistrer _sous…" Command="{Binding CmdSaveAs}"/>
+                <MenuItem Header="_Tout enregistrer" Command="{Binding CmdSaveAll}" InputGestureText="Ctrl+Maj+S">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.SaveAll}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Fermer" Command="{Binding CmdClose}" InputGestureText="Ctrl+W"/>
+                <MenuItem Header="Fermer _tout" Command="{Binding CmdCloseAll}"/>
+                <Separator/>
+                <MenuItem Header="_Quitter" Command="{Binding CmdExit}" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="É_dition">
+                <MenuItem Header="_Annuler" Command="Undo" InputGestureText="Ctrl+Z">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Undo}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Rétablir" Command="Redo" InputGestureText="Ctrl+Y">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Redo}"/></MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Co_uper" Command="Cut" InputGestureText="Ctrl+X"/>
+                <MenuItem Header="_Copier" Command="Copy" InputGestureText="Ctrl+C"/>
+                <MenuItem Header="Co_ller" Command="Paste" InputGestureText="Ctrl+V"/>
+                <MenuItem Header="_Tout sélectionner" Command="SelectAll" InputGestureText="Ctrl+A"/>
+                <Separator/>
+                <MenuItem Header="_Rechercher…" Command="{Binding CmdFind}" InputGestureText="Ctrl+F">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Find}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="R_emplacer…" Command="{Binding CmdReplace}" InputGestureText="Ctrl+H"/>
+                <MenuItem Header="Occurrence _suivante" Command="{Binding CmdFindNext}" InputGestureText="F3"/>
+                <MenuItem Header="Occurrence _précédente" Command="{Binding CmdFindPrevious}" InputGestureText="Maj+F3"/>
+                <MenuItem Header="_Aller à la ligne…" Command="{Binding CmdGoToLine}" InputGestureText="Ctrl+G"/>
+                <Separator/>
+                <MenuItem Header="Compléter le _mot" Command="{Binding CmdComplete}" InputGestureText="Ctrl+Espace"/>
+                <MenuItem Header="_Commenter la sélection" Command="{Binding CmdComment}" InputGestureText="Ctrl+K">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Comment}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Décommenter la sélection" Command="{Binding CmdUncomment}" InputGestureText="Ctrl+Maj+K"/>
+                <MenuItem Header="Réin_denter la sélection" Command="{Binding CmdReindent}" InputGestureText="Ctrl+I"/>
+                <Separator/>
+                <MenuItem Header="_Replier tout" Command="{Binding CmdFoldAll}" InputGestureText="Ctrl+M, Ctrl+O"/>
+                <MenuItem Header="_Déplier tout" Command="{Binding CmdUnfoldAll}" InputGestureText="Ctrl+M, Ctrl+L"/>
+            </MenuItem>
+            <MenuItem Header="_Affichage">
+                <MenuItem x:Name="ShowExplorerItem" Header="_Explorateur" IsCheckable="True" Click="OnTogglePanels"/>
+                <MenuItem x:Name="ShowOutlineItem" Header="_Structure" IsCheckable="True" Click="OnTogglePanels"/>
+                <MenuItem x:Name="ShowBottomItem" Header="_Panneau inférieur" IsCheckable="True" Click="OnTogglePanels"/>
+                <Separator/>
+                <MenuItem Header="_Sortie" Command="{Binding CmdShowPanel}" CommandParameter="output" InputGestureText="Ctrl+Alt+O"/>
+                <MenuItem Header="Liste d'_erreurs" Command="{Binding CmdShowPanel}" CommandParameter="errors" InputGestureText="Ctrl+Alt+E"/>
+                <MenuItem Header="_Console" Command="{Binding CmdShowPanel}" CommandParameter="console" InputGestureText="Ctrl+Alt+C"/>
+                <MenuItem Header="_Pile d'appels" Command="{Binding CmdShowPanel}" CommandParameter="stack" InputGestureText="Ctrl+Alt+P"/>
+                <MenuItem Header="_Variables" Command="{Binding CmdShowPanel}" CommandParameter="variables" InputGestureText="Ctrl+Alt+V"/>
+                <Separator/>
+                <MenuItem Header="_Zoom avant" Command="{Binding CmdZoomIn}" InputGestureText="Ctrl++"/>
+                <MenuItem Header="Zoom a_rrière" Command="{Binding CmdZoomOut}" InputGestureText="Ctrl+-"/>
+                <MenuItem Header="Taille _normale" Command="{Binding CmdZoomReset}" InputGestureText="Ctrl+0"/>
+                <Separator/>
+                <MenuItem x:Name="WordWrapItem" Header="_Retour automatique à la ligne" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <MenuItem x:Name="LineNumbersItem" Header="_Numéros de ligne" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <MenuItem x:Name="WhitespaceItem" Header="Afficher les _espaces" IsCheckable="True" Click="OnEditorOptionChanged"/>
+                <Separator/>
+                <MenuItem Header="_Thème">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Theme}"/></MenuItem.Icon>
+                    <MenuItem x:Name="ThemeLightItem" Header="_Clair" IsCheckable="True" Click="OnThemeLight"/>
+                    <MenuItem x:Name="ThemeDarkItem" Header="_Sombre" IsCheckable="True" Click="OnThemeDark"/>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Construire">
+                <MenuItem Header="_Construire (compiler)" Command="{Binding CmdBuild}" InputGestureText="F7">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Build}" Fill="{DynamicResource Brush.IconOrange}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Générer un .exe autonome…" Command="{Binding CmdGenerateExe}" InputGestureText="Ctrl+Maj+E">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Package}" Fill="{DynamicResource Brush.IconPurple}"/></MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem x:Name="LanguageMenu" Header="_Langage du fichier" SubmenuOpened="OnLanguageMenuOpened"/>
+                <Separator/>
+                <MenuItem x:Name="BackgroundCheckItem" Header="_Vérification en arrière-plan" IsCheckable="True" Click="OnBuildOptionChanged"/>
+                <MenuItem x:Name="DebugInfoItem" Header="Informations de _mise au point dans les .exe" IsCheckable="True" Click="OnBuildOptionChanged"/>
+            </MenuItem>
+            <MenuItem Header="_Déboguer">
+                <MenuItem x:Name="DebugMenuItem" Header="_Démarrer le débogage" Command="{Binding CmdDebug}" InputGestureText="F5">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Play}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Exécuter sans débogage" Command="{Binding CmdRun}" InputGestureText="Ctrl+F5">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.PlayOutline}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Arrêter" Command="{Binding CmdStop}" InputGestureText="Maj+F5">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Stop}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Redémarrer" Command="{Binding CmdRestart}" InputGestureText="Ctrl+Maj+F5"/>
+                <MenuItem Header="_Pause" Command="{Binding CmdPause}" InputGestureText="Ctrl+Alt+Pause">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Pause}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Pas à pas _détaillé" Command="{Binding CmdStepInto}" InputGestureText="F11">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepInto}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Pas à pas _principal" Command="{Binding CmdStepOver}" InputGestureText="F10">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOver}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Pas à pas _sortant" Command="{Binding CmdStepOut}" InputGestureText="Maj+F11">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOut}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Basculer le point d'arrêt" Command="{Binding CmdToggleBreakpoint}" InputGestureText="F9">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Breakpoint}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Supprimer _tous les points d'arrêt" Command="{Binding CmdClearBreakpoints}" InputGestureText="Ctrl+Maj+F9"/>
+                <Separator/>
+                <MenuItem x:Name="StopOnEntryItem" Header="S'arrêter à la première _instruction" IsCheckable="True" Click="OnDebugOptionChanged"/>
+                <MenuItem x:Name="BreakOnErrorItem" Header="S'arrêter sur _erreur d'exécution" IsCheckable="True" Click="OnDebugOptionChanged"/>
+                <MenuItem x:Name="ExternalConsoleItem" Header="Exécuter dans une console Windows e_xterne" IsCheckable="True" Click="OnDebugOptionChanged"/>
+            </MenuItem>
+            <MenuItem x:Name="ExamplesMenu" Header="_Exemples" SubmenuOpened="OnExamplesMenuOpened">
+                <MenuItem Header="(aucun exemple trouvé)" IsEnabled="False"/>
+            </MenuItem>
+            <MenuItem Header="_Aide">
+                <MenuItem Header="Aide _Simula 67" Command="{Binding CmdHelp}" CommandParameter="simula">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Aide _Algol 68" Command="{Binding CmdHelp}" CommandParameter="algol68">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Aide sur le langage du fichier _courant" Command="{Binding CmdHelp}" InputGestureText="F1"/>
+                <MenuItem Header="_Raccourcis clavier" Command="{Binding CmdHelp}" CommandParameter="shortcuts"/>
+                <Separator/>
+                <MenuItem Header="_À propos de Simula 67 &amp; Algol 68 Studio" Command="{Binding CmdAbout}"/>
+            </MenuItem>
+        </Menu>
 
-    </Grid>
+        <!-- ============================== Barre d'outils ============================== -->
+        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,3">
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewSimula}" ToolTip="Nouveau programme Simula 67 (Ctrl+N)">
+                    <Grid>
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconBlue}"/>
+                        <TextBlock Text="S" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource Brush.IconBlue}" Margin="6,6,0,0"/>
+                    </Grid>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdNewAlgol}" ToolTip="Nouveau programme Algol 68 (Ctrl+Maj+N)">
+                    <Grid>
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconGreen}"/>
+                        <TextBlock Text="A" FontSize="8" FontWeight="Bold" Foreground="{DynamicResource Brush.IconGreen}" Margin="6,6,0,0"/>
+                    </Grid>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdOpen}" ToolTip="Ouvrir (Ctrl+O)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSave}" ToolTip="Enregistrer (Ctrl+S)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Save}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdSaveAll}" ToolTip="Tout enregistrer (Ctrl+Maj+S)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.SaveAll}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
+                <Button Style="{StaticResource ToolButton}" Command="Undo" ToolTip="Annuler (Ctrl+Z)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Undo}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="Redo" ToolTip="Rétablir (Ctrl+Y)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Redo}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdFind}" ToolTip="Rechercher / remplacer (Ctrl+F, Ctrl+H)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Find}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleComment}" ToolTip="Commenter / décommenter (Ctrl+K)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Comment}"/>
+                </Button>
+                <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdBuild}" ToolTip="Construire (F7)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Build}" Fill="{DynamicResource Brush.IconOrange}"/>
+                        <TextBlock Text="Construire" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdDebug}" ToolTip="Démarrer le débogage / Continuer (F5)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Play}" Fill="{DynamicResource Brush.IconGreen}"/>
+                        <TextBlock x:Name="DebugButtonText" Text="Déboguer" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdRun}" ToolTip="Exécuter sans débogage (Ctrl+F5)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.PlayOutline}" Fill="{DynamicResource Brush.IconGreen}"/>
+                        <TextBlock Text="Exécuter" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdPause}" ToolTip="Pause (Ctrl+Alt+Pause)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Pause}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStop}" ToolTip="Arrêter (Maj+F5)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Stop}" Fill="{DynamicResource Brush.IconRed}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepInto}" ToolTip="Pas à pas détaillé (F11)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepInto}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOver}" ToolTip="Pas à pas principal (F10)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOver}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdStepOut}" ToolTip="Pas à pas sortant (Maj+F11)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.StepOut}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdToggleBreakpoint}" ToolTip="Basculer le point d'arrêt (F9)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Breakpoint}" Fill="{DynamicResource Brush.IconRed}"/>
+                </Button>
+                <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdGenerateExe}" ToolTip="Générer un .exe autonome (Ctrl+Maj+E)">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Package}" Fill="{DynamicResource Brush.IconPurple}"/>
+                        <TextBlock Text=".exe" Margin="4,0,2,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <ToggleButton x:Name="ExternalConsoleToggle" Style="{StaticResource ToolToggle}" Click="OnExternalConsoleToggle"
+                              ToolTip="Exécuter dans une console Windows externe">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Console}"/>
+                </ToggleButton>
+                <Border Width="1" Margin="5,2" Background="{DynamicResource Brush.Border}"/>
+                <Button Style="{StaticResource ToolButton}" Command="{Binding CmdHelp}" ToolTip="Aide (F1)">
+                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconBlue}"/>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- ============================== Barre d'etat ============================== -->
+        <Border x:Name="StatusBarBorder" DockPanel.Dock="Bottom" Background="{DynamicResource Brush.StatusBar}" Padding="8,2">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <TextBlock x:Name="StatusPosition" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusInsert" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusEncoding" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0" VerticalAlignment="Center"/>
+                    <Button x:Name="StatusLanguage" Style="{StaticResource ToolButton}" Padding="6,0" Click="OnStatusLanguageClick"
+                            ToolTip="Langage du fichier (cliquer pour changer)">
+                        <TextBlock x:Name="StatusLanguageText" Foreground="{DynamicResource Brush.StatusBarText}" FontWeight="SemiBold"/>
+                    </Button>
+                    <TextBlock x:Name="StatusZoom" Foreground="{DynamicResource Brush.StatusBarText}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock x:Name="StatusState" Foreground="{DynamicResource Brush.StatusBarText}" FontWeight="SemiBold" VerticalAlignment="Center" Text="Prêt"/>
+                <TextBlock x:Name="StatusMessage" Foreground="{DynamicResource Brush.StatusBarText}" Margin="16,0,0,0" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================== Zone principale ============================== -->
+        <Grid x:Name="MainGrid">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="120"/>
+                <RowDefinition x:Name="BottomSplitterRow" Height="5"/>
+                <RowDefinition x:Name="BottomRow" Height="220"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftColumn" Width="230"/>
+                <ColumnDefinition x:Name="LeftSplitterColumn" Width="5"/>
+                <ColumnDefinition Width="*" MinWidth="200"/>
+                <ColumnDefinition x:Name="RightSplitterColumn" Width="5"/>
+                <ColumnDefinition x:Name="RightColumn" Width="220"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Explorateur -->
+            <DockPanel x:Name="ExplorerPanel" Grid.Column="0" Background="{DynamicResource Brush.PanelBackground}">
+                <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" Height="28"
+                        BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Command="{Binding CmdOpenFolder}" ToolTip="Ouvrir un dossier…">
+                                <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerRefresh" ToolTip="Actualiser">
+                                <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Refresh}"/>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Padding="3" Click="OnExplorerCollapse" ToolTip="Réduire tout">
+                                <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Collapse}"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock x:Name="ExplorerTitle" Text="EXPLORATEUR" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                </Border>
+                <TreeView x:Name="ExplorerTree" MouseDoubleClick="OnExplorerDoubleClick" KeyDown="OnExplorerKeyDown"
+                          VirtualizingPanel.IsVirtualizing="True">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                            <Setter Property="ToolTip" Value="{Binding FullPath}"/>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Ouvrir" Click="OnExplorerOpen"/>
+                            <MenuItem Header="Ouvrir dans l'Explorateur Windows" Click="OnExplorerReveal"/>
+                            <Separator/>
+                            <MenuItem Header="Actualiser" Click="OnExplorerRefresh"/>
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <Grid Width="16" Height="16">
+                                    <Path Style="{StaticResource IconPath}" Data="{Binding Icon}" Fill="{Binding IconBrush}"/>
+                                    <TextBlock Text="{Binding Badge}" FontSize="7.5" FontWeight="Bold" Foreground="{Binding IconBrush}"
+                                               Margin="6,6,0,0"/>
+                                </Grid>
+                                <TextBlock Text="{Binding Name}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </DockPanel>
+            <GridSplitter x:Name="LeftSplitter" Grid.Column="1" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
+
+            <!-- Editeurs -->
+            <Grid Grid.Column="2">
+                <TabControl x:Name="DocTabs" Style="{StaticResource DocTabControl}" SelectionChanged="OnDocTabChanged"/>
+                <ScrollViewer x:Name="WelcomePanel" VerticalScrollBarVisibility="Auto" Background="{DynamicResource Brush.Welcome}">
+                    <StackPanel Margin="48,36" MaxWidth="760" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="Assets/app256.png" Width="64" Height="64"/>
+                            <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="Simula 67 &amp; Algol 68 Studio" FontSize="26" FontWeight="Light"/>
+                                <TextBlock Text="Environnement de développement pour deux grands langages historiques"
+                                           Foreground="{DynamicResource Brush.TextDim}" FontSize="13"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <Grid Margin="0,28,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Démarrer" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewSimula}" Content="Nouveau programme Simula 67"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewAlgol}" Content="Nouveau programme Algol 68"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpen}" Content="Ouvrir un fichier…"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Ouvrir un dossier…"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula" Content="Aide Simula 67"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol68" Content="Aide Algol 68"/>
+                                <TextBlock Text="Fichiers récents" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,8"/>
+                                <ItemsControl x:Name="WelcomeRecent">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource LinkButton}" Click="OnWelcomeRecentClick" Tag="{Binding}" ToolTip="{Binding}">
+                                                <TextBlock Text="{Binding Converter={x:Static panels:FileNameConverter.Instance}}"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="WelcomeNoRecent" Text="(aucun)" Foreground="{DynamicResource Brush.TextDim}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="24,0,0,0">
+                                <TextBlock Text="Exemples" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <ItemsControl x:Name="WelcomeSamples">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource LinkButton}" Click="OnWelcomeRecentClick" Tag="{Binding}" ToolTip="{Binding}">
+                                                <TextBlock Text="{Binding Converter={x:Static panels:SampleNameConverter.Instance}}"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="WelcomeNoSamples" Text="(dossier samples introuvable)" Foreground="{DynamicResource Brush.TextDim}"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Margin="0,28,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextDim}">
+                            Raccourcis : F7 construire · F5 déboguer · Ctrl+F5 exécuter · F9 point d'arrêt · F10/F11 pas à pas ·
+                            Ctrl+Espace compléter · Ctrl+F rechercher · F1 aide. Glissez-déposez des fichiers dans la fenêtre pour les ouvrir.
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <GridSplitter x:Name="RightSplitter" Grid.Column="3" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
+
+            <!-- Structure -->
+            <DockPanel x:Name="OutlinePanel" Grid.Column="4" Background="{DynamicResource Brush.PanelBackground}">
+                <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" Height="28"
+                        BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+                    <TextBlock x:Name="OutlineTitle" Text="STRUCTURE" Style="{StaticResource PanelHeaderText}" TextTrimming="CharacterEllipsis"/>
+                </Border>
+                <TextBox x:Name="OutlineFilter" DockPanel.Dock="Top" Margin="4" TextChanged="OnOutlineFilterChanged"
+                         ToolTip="Filtrer la structure"/>
+                <TextBlock x:Name="OutlineEmpty" DockPanel.Dock="Top" Margin="10,6" TextWrapping="Wrap" Foreground="{DynamicResource Brush.TextDim}"
+                           Text="Aucune procédure, classe, opérateur ou mode."/>
+                <ListBox x:Name="OutlineList" SelectionMode="Single" MouseLeftButtonUp="OnOutlineClick" KeyDown="OnOutlineKeyDown"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="{Binding Indent}" ToolTip="{Binding ToolTipText}">
+                                <Border Width="16" Height="16" CornerRadius="3" Background="{Binding Badge}">
+                                    <TextBlock Text="{Binding Letter}" Foreground="White" FontSize="10" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="{Binding Name}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Detail}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Brush.TextDim}" FontSize="11"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter x:Name="BottomSplitter" Grid.Row="1" Grid.ColumnSpan="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"/>
+
+            <!-- ============================== Panneau inferieur ============================== -->
+            <TabControl x:Name="BottomTabs" Grid.Row="2" Grid.ColumnSpan="5" Style="{StaticResource PanelTabControl}"
+                        ItemContainerStyle="{StaticResource PanelTabItem}">
+                <TabItem x:Name="OutputTab" Header="Sortie">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,2">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource ToolButton}" Click="OnClearOutput" ToolTip="Effacer la sortie">
+                                    <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Clear}"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                        <TextBox x:Name="OutputBox" IsReadOnly="True" BorderThickness="0" FontFamily="{StaticResource CodeFont}" FontSize="12.5"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                                 Background="{DynamicResource Brush.EditorBackground}" MouseDoubleClick="OnOutputDoubleClick"
+                                 ToolTip="Double-cliquer sur un diagnostic pour aller à la ligne">
+                            <TextBox.Template>
+                                <ControlTemplate TargetType="TextBox">
+                                    <Border Background="{TemplateBinding Background}">
+                                        <ScrollViewer x:Name="PART_ContentHost" Padding="4,2"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </TextBox.Template>
+                        </TextBox>
+                    </DockPanel>
+                </TabItem>
+                <TabItem x:Name="ErrorsTab">
+                    <TabItem.Header>
+                        <TextBlock x:Name="ErrorsTabHeader" Text="Erreurs"/>
+                    </TabItem.Header>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="4,2">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="FilterErrors" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.ErrorMark}" Fill="{DynamicResource Brush.Error}"/>
+                                        <TextBlock x:Name="FilterErrorsText" Text="0 erreur" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </ToggleButton>
+                                <ToggleButton x:Name="FilterWarnings" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.WarningMark}" Fill="{DynamicResource Brush.Warning}"/>
+                                        <TextBlock x:Name="FilterWarningsText" Text="0 avertissement" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </ToggleButton>
+                                <ToggleButton x:Name="FilterInfos" Style="{StaticResource ToolToggle}" IsChecked="True" Click="OnErrorFilterChanged">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.InfoMark}" Fill="{DynamicResource Brush.Info}"/>
+                                        <TextBlock x:Name="FilterInfosText" Text="0 message" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </ToggleButton>
+                            </StackPanel>
+                        </Border>
+                        <ListView x:Name="ErrorList" MouseDoubleClick="OnErrorDoubleClick" KeyDown="OnErrorKeyDown">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="28">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Path Style="{StaticResource IconPath}" Data="{Binding Icon}" Fill="{Binding IconBrush}"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Description" Width="620">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Message}"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Fichier" Width="160" DisplayMemberBinding="{Binding FileName}"/>
+                                    <GridViewColumn Header="Ligne" Width="55" DisplayMemberBinding="{Binding LineText}"/>
+                                    <GridViewColumn Header="Col." Width="45" DisplayMemberBinding="{Binding ColumnText}"/>
+                                    <GridViewColumn Header="Origine" Width="90" DisplayMemberBinding="{Binding Origin}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </TabItem>
+                <TabItem x:Name="ConsoleTab" Header="Console">
+                    <panels:ConsolePanel x:Name="ConsoleView"/>
+                </TabItem>
+                <TabItem x:Name="StackTab" Header="Pile d'appels">
+                    <Grid>
+                        <ListView x:Name="StackList" MouseDoubleClick="OnStackDoubleClick" KeyDown="OnStackKeyDown">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="26">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Arrow}" Fill="{Binding MarkerBrush}"
+                                                      Visibility="{Binding MarkerVisibility}"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Procédure / bloc" Width="300" DisplayMemberBinding="{Binding Name}"/>
+                                    <GridViewColumn Header="Fichier" Width="200" DisplayMemberBinding="{Binding FileName}"/>
+                                    <GridViewColumn Header="Ligne" Width="60" DisplayMemberBinding="{Binding LineText}"/>
+                                    <GridViewColumn Header="Col." Width="50" DisplayMemberBinding="{Binding ColumnText}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                        <TextBlock x:Name="StackEmpty" Margin="10" Foreground="{DynamicResource Brush.TextDim}"
+                                   Text="La pile d'appels est affichée lorsque le programme est en pause dans le débogueur."/>
+                    </Grid>
+                </TabItem>
+                <TabItem x:Name="VariablesTab" Header="Variables">
+                    <Grid>
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Background="{DynamicResource Brush.PanelHeader}" BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="0,0,0,1" Padding="8,3">
+                                <TextBlock x:Name="VariablesHeader" Foreground="{DynamicResource Brush.TextDim}" Text="Nom = valeur   (type)"/>
+                            </Border>
+                            <TreeView x:Name="VariablesTree" FontFamily="{StaticResource CodeFont}" FontSize="12.5">
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                            <TextBlock Text=" = " Foreground="{DynamicResource Brush.TextDim}"/>
+                                            <TextBlock Text="{Binding Value}" Foreground="{DynamicResource Brush.Accent}"/>
+                                            <TextBlock Text="{Binding TypeSuffix}" Foreground="{DynamicResource Brush.TextDim}"/>
+                                        </StackPanel>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </DockPanel>
+                        <TextBlock x:Name="VariablesEmpty" Margin="10,34,10,10" Foreground="{DynamicResource Brush.TextDim}"
+                                   Text="Les variables sont affichées lorsque le programme est en pause dans le débogueur."/>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
 </Window>
