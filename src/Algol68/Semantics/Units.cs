@@ -462,9 +462,13 @@ public sealed partial class Compiler
                 At = x.AtLwb != null ? GenMeekInt(x.AtLwb) : null,
             };
         }
+        bool transient = onName && (info.PrimTarget is RefMode { Sub: FlexMode } || IsTransient(prim));
+        Node res;
         if (ix.Length == 1 && !ix[0].Trimmer && row.Dims == 1)
-            return onName ? new Subscript1NameNode(prim, ix[0].Index!).At<Subscript1NameNode>(a) : new Subscript1ValueNode(prim, ix[0].Index!).At<Subscript1ValueNode>(a);
-        return new SliceNode(prim, ix, onName).At<SliceNode>(a);
+            res = onName ? new Subscript1NameNode(prim, ix[0].Index!).At<Subscript1NameNode>(a) : new Subscript1ValueNode(prim, ix[0].Index!).At<Subscript1ValueNode>(a);
+        else res = new SliceNode(prim, ix, onName).At<SliceNode>(a);
+        res.Transient = transient;
+        return res;
     }
 
     // ------------------------------------------------------------------ selections
@@ -528,6 +532,8 @@ public sealed partial class Compiler
             SelKind.RowName => new SelectRowNode(sec, info.Field, true),
             _ => new SelectRowNode(sec, info.Field, false),
         };
+        if (info.Kind == SelKind.RowName && (info.Target is RefMode { Sub: FlexMode } || IsTransient(sec))) n.Transient = true;
+        if (info.Kind == SelKind.Name && IsTransient(sec)) n.Transient = true;
         n.SetPos(sel);
         return (n, info.Result);
     }
@@ -549,6 +555,7 @@ public sealed partial class Compiler
         var sub = rm.Sub;
         var valMode = M.Normalize(sub);
         var src = Gen(asg.Source, valMode, Strength.Strong);
+        CheckTransient(src, asg.Source, "affecte");
         bool scopeCheck = valMode.HasNames;
         Node n;
         if (dest is SlotNode sn && !sub.NeedsCopy && !scopeCheck) n = new AssignSlotNode(sn.Hops, sn.Slot, src);
@@ -607,6 +614,7 @@ public sealed partial class Compiler
                 info.Vars.Add(new DebugVar { Name = p.Name, Slot = s.Slot, Mode = s.Mode, FromLine = rt.Line, ToLine = int.MaxValue, File = rt.File });
             }
             var body = Gen(rt.Body, pm.Result, Strength.Strong);
+            CheckTransient(body, rt.Body, "rendu par une routine");
             // le corps reduit a une unite est une instruction (points d'arret, pas a pas)
             info.Body = Stmt(body, rt.Body);
             info.FrameSize = ctx.NextSlot;
@@ -718,6 +726,7 @@ public sealed partial class Compiler
                     if (!cur.Ids.TryGetValue(name, out var s) || !ReferenceEquals(s.Pos, pos)) continue;
                     if (val is RoutineTextAst) pendingRoutineName = name;
                     var v = Gen(val, s.Mode, Strength.Strong);
+                    CheckTransient(v, val, "lie a un identificateur");
                     pendingRoutineName = null;
                     s.Declared = true;
                     yield return new IdentityDeclNode(s.Slot, v, s.Mode, s.Mode.NeedsCopy && !IsFresh(v)).At<IdentityDeclNode>(pos);
@@ -734,6 +743,7 @@ public sealed partial class Compiler
                     {
                         if (init is RoutineTextAst) pendingRoutineName = name;
                         iv = Gen(init, M.Normalize(sub), Strength.Strong);
+                        CheckTransient(iv, init, "affecte");
                         pendingRoutineName = null;
                     }
                     s.Declared = true;

@@ -1,0 +1,9 @@
+# Noms transitoires (RR 2.1.3.6.c) : usages permis sur les tranches de noms FLEX #
+BEGIN
+   STRING s := "abcdef";
+   s[2] := "B";                         # destination : permis #
+   s[3:4] := "CD";                      # destination d'une tranche : permis #
+   CHAR c = s[5];                       # dereference : permis #
+   [] CHAR t = s[1:3];                  # valeur de la tranche : permis #
+   print((s, " ", c, " ", t, " ", UPB s[2:4], newline))
+END

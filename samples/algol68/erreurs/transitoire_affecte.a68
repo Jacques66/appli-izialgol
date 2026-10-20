@@ -1,0 +1,4 @@
+FLEX [1:3] INT t := (1, 2, 3);
+REF [] INT r;
+r := t[1:2];
+SKIP

@@ -248,6 +248,7 @@ public sealed partial class Compiler
                 }
             case StepKind.RowName:
                 r = new RowNameNode(n, st.Dims, st.FromRow);
+                r.Transient = st.From is RefMode { Sub: FlexMode } || IsTransient(n);
                 break;
             case StepKind.Void:
                 r = new VoidNode(n);
@@ -371,5 +372,21 @@ public sealed partial class Compiler
             return cur;
         }
         return cur;
+    }
+}
+
+public sealed partial class Compiler
+{
+    static bool IsTransient(Node? n)
+    {
+        for (int g = 0; n != null && g < 16; g++, n = n.Wrapped) if (n.Transient) return true;
+        return false;
+    }
+
+    /// <summary>RR 2.1.3.6.c : un nom transitoire ne peut etre ni affecte, ni lie, ni rendu, ni operande.</summary>
+    void CheckTransient(Node n, Ast pos, string usage)
+    {
+        if (IsTransient(n))
+            Error(pos, $"nom transitoire (tranche ou selection d'un nom FLEX) : il ne peut pas etre {usage}");
     }
 }

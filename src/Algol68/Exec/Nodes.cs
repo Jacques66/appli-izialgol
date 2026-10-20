@@ -11,6 +11,8 @@ public abstract class Node
     public int Line, Col;
     public Mode? Mode;
     public bool Fresh;   // produit une valeur nouvellement allouee (pas de copie a la liaison)
+    public bool Transient; // nom transitoire (tranche ou selection d'un nom FLEX) : ne peut etre ni stocke ni lie
+    public virtual Node? Wrapped => null;
 
     public abstract Value Eval(Frame f);
     public virtual long EvalInt(Frame f) => Eval(f).N;
@@ -323,6 +325,7 @@ public sealed class IdentityDeclNode : Node
 public sealed class StmtNode : Node
 {
     readonly Node inner;
+    public override Node? Wrapped => inner;
     public StmtNode(Node inner) { this.inner = inner; SetPos(inner); Mode = inner.Mode; }
     public Node Inner => inner;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -650,6 +653,7 @@ public sealed class FuncNode : Node
 public sealed class UniteNode : Node
 {
     readonly Node a; readonly Mode member;
+    public override Node? Wrapped => a;
     public UniteNode(Node a, Mode member) { this.a = a; this.member = member; SetPos(a); }
     public override Value Eval(Frame f)
     {
@@ -663,6 +667,7 @@ public sealed class UniteNode : Node
 public sealed class ReuniteNode : Node
 {
     readonly Node a;
+    public override Node? Wrapped => a;
     public ReuniteNode(Node a) { this.a = a; SetPos(a); }
     public override Value Eval(Frame f) => a.Eval(f);
 }
@@ -695,6 +700,7 @@ public sealed class RowValueNode : Node
 public sealed class RowNameNode : Node
 {
     readonly Node a; readonly int addDims; readonly bool fromRow;
+    public override Node? Wrapped => a;
     public RowNameNode(Node a, int addDims, bool fromRow) { this.a = a; this.addDims = addDims; this.fromRow = fromRow; SetPos(a); }
     public override Value Eval(Frame f)
     {

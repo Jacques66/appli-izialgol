@@ -69,6 +69,7 @@ public sealed partial class Compiler
         }
         var l = Gen(d.Left, op.Mode.Params[0], Strength.Firm);
         var r = Gen(d.Right, op.Mode.Params[1], Strength.Firm);
+        CheckTransient(l, d.Left, "operande"); CheckTransient(r, d.Right, "operande");
         return (ApplyOp(op, new[] { l, r }, d), op.Mode.Result);
     }
 
@@ -81,6 +82,7 @@ public sealed partial class Compiler
             return (new ConstNode(default).At<ConstNode>(m), M.Any);
         }
         var a = Gen(m.Operand, op.Mode.Params[0], Strength.Firm);
+        CheckTransient(a, m.Operand, "operande");
         return (ApplyOp(op, new[] { a }, m), op.Mode.Result);
     }
 
