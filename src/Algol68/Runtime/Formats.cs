@@ -763,6 +763,7 @@ public sealed partial class Transput
 
     bool TryMatch(FileV f, string lit)
     {
+        PeekChar(f); // charge la ligne courante de l'entree standard avant de memoriser la position
         int savePos = f.Kind == FileKind.StandIn ? f.InPos : f.Pos;
         int sl = f.Line, sc = f.Char, sp = f.Page;
         foreach (char c in lit)

@@ -437,7 +437,7 @@ public sealed partial class Transput
             case RowMode or FlexMode:
                 {
                     var rm = m.AsRow!; var row = (RowV)v.O!;
-                    if (m is FlexMode) { sb.Append(row.Count.ToString(CultureInfo.InvariantCulture)).Append('\u001e'); }
+                    sb.Append(row.Count.ToString(CultureInfo.InvariantCulture)).Append('\u001e');
                     foreach (var e in row.Elements()) ToBin(rm.Elem, e, sb, at);
                     return;
                 }
@@ -519,6 +519,8 @@ public sealed partial class Transput
             case RowMode rm:
                 {
                     var row = arr[idx].O as RowV ?? throw RT.Err("rangee non initialisee", at);
+                    var cnt = int.Parse(NextRecord(fr, refFile, f, at), CultureInfo.InvariantCulture);
+                    if (cnt != row.Count) throw RT.Err($"lecture binaire : {cnt} elements enregistres pour une rangee de {row.Count}", at);
                     foreach (int k in row.Indices()) { var (a2, i2) = row.SlotAt(k); FromBin(fr, refFile, f, rm.Elem, a2, i2, at); }
                     return;
                 }

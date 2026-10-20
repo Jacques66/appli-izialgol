@@ -1,0 +1,62 @@
+# Transput avance : binaire, reset, set, evenements (line end, value error, char error, format end), stand error #
+BEGIN
+   FILE f;
+   establish(f, "donnees.bin", stand back channel);
+   [] INT valeurs = (3, 1, 4, 1, 5);
+   put bin(f, (valeurs, 2.5, TRUE, "fin", 3 I 4));
+   close(f);
+   open(f, "donnees.bin", stand back channel);
+   [5] INT relus; REAL x; BOOL b; STRING s; COMPL z;
+   get bin(f, (relus, x, b, s, z));
+   print((relus, x, b, " ", s, " ", RE z + IM z, newline));
+   close(f);
+   FILE t;
+   establish(t, "texte.txt", stand back channel);
+   put(t, ("alpha", newline, "beta", newline, "gamma"));
+   close(t);
+   open(t, "texte.txt", stand back channel);
+   STRING mot;
+   get(t, (mot, newline));
+   get(t, mot);
+   print((mot, " ", line number(t), newline));
+   reset(t);
+   get(t, mot);
+   print((mot, newline));
+   set(t, 1, 3, 2);
+   get(t, mot);
+   print((mot, newline));
+   close(t);
+   # evenement de fin de ligne : lecture d'un entier qui franchit une ligne #
+   FILE e; STRING source := "12" + REPR 10 + "34";
+   associate(e, source);
+   INT fins := 0;
+   on line end(e, (REF FILE ff) BOOL: (fins +:= 1; FALSE));
+   INT a, c;
+   get(e, (a, c));
+   print((a, c, fins, newline));
+   # erreur de valeur reparee #
+   FILE v; STRING mauvais := "abc 7";
+   associate(v, mauvais);
+   BOOL vu := FALSE;
+   on value error(v, (REF FILE ff) BOOL: (vu := TRUE; TRUE));
+   INT k := -1;
+   get(v, k);
+   print((vu, k, newline));
+   # erreur de caractere en lecture formatee, suggestion acceptee #
+   FILE w; STRING donnees := "x=5;y=6";
+   associate(w, donnees);
+   on char error(w, (REF FILE ff, REF CHAR ch) BOOL: (print(("attendu ", ch, newline)); TRUE));
+   INT p, q;
+   getf(w, ($"x="d","$, p));
+   getf(w, ($"y="d$, q));
+   print((p + q, newline));
+   # fin de format : le format est repris #
+   FILE o; STRING sortie := "";
+   associate(o, sortie);
+   INT tours := 0;
+   on format end(o, (REF FILE ff) BOOL: (tours +:= 1; FALSE));
+   putf(o, ($d","$, 1, 2, 3));
+   print((sortie, " ", tours, newline));
+   put(stand error, ("vers stand error", newline));
+   print((char number(stand out), newline))
+END

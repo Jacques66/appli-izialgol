@@ -125,8 +125,46 @@ public sealed partial class Compiler
     {
         var raw = BuildRaw(d);
         if (raw is IndicantMode im && im.Target == null) return M.Any;
-        try { return M.Intern(raw); }
+        Mode res;
+        try { res = M.Intern(raw); }
         catch (InvalidOperationException) { Error(d, "mode mal forme"); return M.Any; }
+        if (ContainsUnionDeclarer(d)) CheckUnions(res, d, new HashSet<Mode>(ReferenceEqualityComparer.Instance));
+        return res;
+    }
+
+    static bool ContainsUnionDeclarer(DeclarerAst d) => d switch
+    {
+        UnionDeclarer => true,
+        RefDeclarer r => ContainsUnionDeclarer(r.Sub),
+        FlexDeclarer f => ContainsUnionDeclarer(f.Sub),
+        RowDeclarer rd => ContainsUnionDeclarer(rd.Elem),
+        ProcDeclarer p => p.Params.Any(ContainsUnionDeclarer) || ContainsUnionDeclarer(p.Result),
+        StructDeclarer s => s.Fields.Any(f => ContainsUnionDeclarer(f.Mode)),
+        _ => false,
+    };
+
+    /// <summary>RR 4.7.1 : aucune composante d'une union ne peut etre fermement liee a une autre.</summary>
+    void CheckUnions(Mode m, Ast at, HashSet<Mode> seen)
+    {
+        if (!seen.Add(m)) return;
+        switch (m)
+        {
+            case UnionMode u:
+                for (int i = 0; i < u.Members.Length; i++)
+                    for (int j = 0; j < u.Members.Length; j++)
+                        if (i != j && FindCoercion(u.Members[i], u.Members[j], Strength.Firm) != null)
+                        {
+                            Error(at, $"union mal formee : les composantes {u.Members[i]} et {u.Members[j]} sont fermement liees");
+                            return;
+                        }
+                foreach (var x in u.Members) CheckUnions(x, at, seen);
+                break;
+            case RefMode r: CheckUnions(r.Sub, at, seen); break;
+            case FlexMode f: CheckUnions(f.Row, at, seen); break;
+            case RowMode rw: CheckUnions(rw.Elem, at, seen); break;
+            case ProcMode p: foreach (var x in p.Params) CheckUnions(x, at, seen); CheckUnions(p.Result, at, seen); break;
+            case StructMode s: foreach (var f in s.Fields) CheckUnions(f.Mode, at, seen); break;
+        }
     }
 
     Mode BuildRaw(DeclarerAst d)
@@ -220,6 +258,7 @@ public sealed partial class Compiler
         {
             case PrimDeclarer p:
                 if (p.Name == "STRING") return new RowGen(new Node?[] { null }, new Node?[] { null }, UninitGen.Instance);
+                if (p.Name == "COMPL") return new StructGen(new GenSpec[] { UninitGen.Instance, UninitGen.Instance });
                 return UninitGen.Instance;
             case RefDeclarer: case ProcDeclarer: case UnionDeclarer: return UninitGen.Instance;
             case FlexDeclarer fd: return MakeGen(fd.Sub, true);
