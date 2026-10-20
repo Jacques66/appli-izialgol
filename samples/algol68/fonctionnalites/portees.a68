@@ -1,0 +1,28 @@
+# Portees : masquage d'identificateurs, de modes, d'operateurs et de priorites ; blocs imbriques #
+BEGIN
+   INT x = 1;
+   MODE T = INT;
+   PRIO >> = 6;
+   OP >> = (INT a, b) INT: a + b + 100;
+   BEGIN
+      REAL x = 2.5;                  # masque l'identite INT x #
+      MODE T = STRING;               # masque le mode T #
+      T t := "mode local";
+      PRIO >> = 7;                   # priorite locale : >> lie plus fort que + #
+      OP >> = (INT a, b) INT: a * b;
+      print((x, " ", t, " ", 1 + 2 >> 3, newline))
+   END;
+   T t := 41;
+   print((x, t + 1, 1 + 2 >> 3, newline));
+   # identificateur visible dans toute sa portee : appel avant la declaration textuelle #
+   PROC a = INT: b * 2;
+   PROC b = INT: 21;
+   print((a, newline));
+   # boucle : le compteur est local a chaque tour #
+   INT somme := 0;
+   FOR x TO 3 DO somme +:= x OD;
+   print((somme, x, newline));
+   # declaration dans une clause de choix #
+   IF INT y = x + 1; y > 1 THEN print((y, newline)) FI;
+   CASE INT z = 2; z IN print("un"), print(("deux", newline)) ESAC
+END
