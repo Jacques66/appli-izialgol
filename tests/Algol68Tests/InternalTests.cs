@@ -117,6 +117,20 @@ static class InternalTests
             Check("debogueur-pause-sur-erreur", p.Count == 1 && p[0].reason == PauseReason.Exception && p[0].line == 2 && res.Error != null && stack == "f@2;programme principal@3",
                 $"pauses : {Lines(p)} pile : {stack} erreur : {res.Error}");
         }
+        // demande de pause pendant une boucle longue
+        {
+            var cr = Compile("INT n := 0;\nWHILE n < 100000000 DO\n   n +:= 1\nOD\n", "dbg.a68");
+            var exec = cr.Program!.CreateExecution(new TestIO(null, Path.GetTempPath()));
+            var dbg = exec.Debugger;
+            PauseInfo? got = null; string nval = "";
+            dbg.Paused += pi => { got = pi; nval = dbg.GetVariables(0).First(v => v.Name == "n").Value; dbg.Continue(); };
+            var timer = new Timer(_ => dbg.RequestPause(), null, 200, Timeout.Infinite);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var res = exec.Run(cts.Token);
+            timer.Dispose();
+            Check("debogueur-pause-demandee", res.Error == null && got != null && got.Reason == PauseReason.PauseRequest && got.Line is 2 or 3 && nval != "0",
+                $"pause {got?.Reason} ligne {got?.Line} n={nval} {res.Error}");
+        }
         // structures et rangees explorables
         {
             const string src = "MODE P = STRUCT (INT x, [3] REAL v);\nP p;\nx OF p := 4; v OF p := (1, 2, 3);\nprint(x OF p)\n";

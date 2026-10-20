@@ -30,7 +30,7 @@ public sealed class Algol68Language : ILanguageService
                 var compiler = new Compiler(diags, lexer.PrecisionPragmat);
                 var info = compiler.CompileProgram(ast);
                 if (diags.Any(d => d.Severity == Severity.Error)) return Done(diags, null);
-                return Done(diags, new CompiledProgram(info, main, lexer.Included.ToList()));
+                return Done(diags, new CompiledProgram(info, main, lexer.Included.ToList()) { LongLongDigits = compiler.LongLongDigits });
             }
         }
         catch (Exception e)

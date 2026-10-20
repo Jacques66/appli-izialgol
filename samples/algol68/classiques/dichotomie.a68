@@ -1,0 +1,20 @@
+# Recherche dichotomique dans une rangee triee #
+BEGIN
+   PROC chercher = ([] INT t, INT x) INT:
+   BEGIN
+      INT bas := LWB t, haut := UPB t, trouve := 0;
+      WHILE bas <= haut AND trouve = 0 DO
+         INT milieu = (bas + haut) % 2;
+         IF t[milieu] = x THEN trouve := milieu
+         ELIF t[milieu] < x THEN bas := milieu + 1
+         ELSE haut := milieu - 1
+         FI
+      OD;
+      trouve
+   END;
+   [] INT premiers = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37);
+   FOR x FROM 1 BY 6 TO 37 DO
+      print((whole(x, -3), " -> ", whole(chercher(premiers, x), 0), newline))
+   OD;
+   print(chercher(premiers[@0], 37)); print(newline)
+END

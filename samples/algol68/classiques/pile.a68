@@ -1,0 +1,20 @@
+# Pile generique : union, structure recursive, HEAP, procedures sur des noms #
+BEGIN
+   MODE ELEMENT = UNION (INT, STRING);
+   MODE CELLULE = STRUCT (ELEMENT val, REF CELLULE dessous);
+   MODE PILE = REF CELLULE;
+   PROC empiler = (REF PILE p, ELEMENT e) VOID: p := HEAP CELLULE := (e, p);
+   PROC depiler = (REF PILE p) ELEMENT:
+      IF PILE (p) IS NIL THEN print(("pile vide", newline)); SKIP
+      ELSE ELEMENT e = val OF p; p := dessous OF p; e
+      FI;
+   PROC vide = (PILE p) BOOL: p IS NIL;
+   PILE p := NIL;
+   empiler(p, 1); empiler(p, "deux"); empiler(p, 3);
+   WHILE NOT vide(p) DO
+      CASE depiler(p) IN
+         (INT i): print(("entier ", whole(i, 0), newline)),
+         (STRING s): print(("chaine ", s, newline))
+      ESAC
+   OD
+END

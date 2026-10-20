@@ -1,0 +1,9 @@
+PR precision = 100 PR
+# Precision de LONG LONG reglee par pragmat : 100 chiffres #
+BEGIN
+   print((long long pi, newline));
+   print((long long int width, long long real width, newline));
+   LONG LONG INT f := LONG LONG 1;
+   FOR i TO 69 DO f *:= LENG LENG i OD;
+   print((whole(f, 0), newline))
+END

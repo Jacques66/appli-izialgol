@@ -13,6 +13,8 @@ public sealed class CompiledProgram : ICompiledProgram
     public SourceFile MainSource { get; }
     public IReadOnlyList<SourceFile> Includes { get; }
     public string MainFile => MainSource.Path;
+    /// <summary>Precision de LONG LONG (PR precision PR) a retablir avant l'execution.</summary>
+    public int LongLongDigits { get; init; } = Prelude.DefaultLongLongDigits;
 
     public CompiledProgram(RoutineInfo main, SourceFile src, IReadOnlyList<SourceFile> includes)
     {
@@ -68,6 +70,7 @@ public sealed class Execution : IProgramExecution
     {
         ExecutionResult? result = null;
         ctx.Token = cancellationToken;
+        Prelude.SetLongLong(program.LongLongDigits);
         using var reg = cancellationToken.Register(() =>
         {
             ctx.CancelRequested = true;

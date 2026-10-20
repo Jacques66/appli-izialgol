@@ -1,0 +1,12 @@
+# Triangle de Pascal #
+BEGIN
+   INT n = 6;
+   [0:n] INT ligne;
+   FOR i FROM 0 TO n DO
+      ligne[i] := 1;
+      FOR j FROM i - 1 BY -1 TO 1 DO ligne[j] +:= ligne[j - 1] OD;
+      print(" " * (2 * (n - i)));
+      FOR j FROM 0 TO i DO print(whole(ligne[j], -4)) OD;
+      print(newline)
+   OD
+END
