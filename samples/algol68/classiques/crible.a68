@@ -1,0 +1,16 @@
+CO Crible d'Eratosthene CO
+BEGIN
+   INT n = 100;
+   [2:n] BOOL prime;
+   FOR i FROM 2 TO n DO prime[i] := TRUE OD;
+   FOR i FROM 2 WHILE i * i <= n DO
+      IF prime[i] THEN
+         FOR j FROM i * i BY i TO n DO prime[j] := FALSE OD
+      FI
+   OD;
+   INT count := 0;
+   FOR i FROM 2 TO n DO
+      IF prime[i] THEN print(whole(i, -4)); count +:= 1 FI
+   OD;
+   print((newline, "nombre de premiers : ", whole(count, 0), newline))
+END

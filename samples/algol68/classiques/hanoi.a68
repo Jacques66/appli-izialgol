@@ -1,0 +1,17 @@
+COMMENT Tours de Hanoi COMMENT
+BEGIN
+   INT moves := 0;
+   BOOL show := TRUE;
+   PROC hanoi = (INT n, CHAR from, to, via) VOID:
+      IF n > 0 THEN
+         hanoi(n - 1, from, via, to);
+         moves +:= 1;
+         IF show THEN print(("disque ", whole(n, 0), " : ", from, " -> ", to, newline)) FI;
+         hanoi(n - 1, via, to, from)
+      FI;
+   hanoi(3, "A", "C", "B");
+   print(("coups : ", whole(moves, 0), newline));
+   show := FALSE; moves := 0;
+   hanoi(10, "A", "C", "B");
+   print(("coups pour 10 disques : ", whole(moves, 0), newline))
+END

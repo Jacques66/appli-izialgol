@@ -1,0 +1,9 @@
+disque 1 : A -> C
+disque 2 : A -> B
+disque 1 : C -> B
+disque 3 : A -> C
+disque 1 : B -> A
+disque 2 : B -> C
+disque 1 : A -> C
+coups : 7
+coups pour 10 disques : 1023

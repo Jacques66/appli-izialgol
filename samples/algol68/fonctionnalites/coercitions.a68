@@ -1,0 +1,43 @@
+# Coercitions : deproceduring, dereferencing, widening, rowing, uniting, voiding, balancing #
+BEGIN
+   INT compteur := 0;
+   PROC suivant = INT: compteur +:= 1;
+   INT a = suivant; INT b = suivant;              # deproceduring #
+   print((a, b, newline));
+   REF INT r = compteur;
+   INT c = r;                                     # dereferencing #
+   print((c + 1, newline));
+   REF REF INT rr = LOC REF INT := r;
+   INT d = rr;                                    # double dereferencing #
+   print((d, newline));
+   REAL x = 2;                                    # widening INT -> REAL #
+   COMPL z = x;                                   # widening REAL -> COMPL #
+   LONG REAL lx = LENG 1.5;
+   [] BOOL bits = 2r101;                          # widening BITS -> [] BOOL #
+   print((x, newline));
+   print((z, newline));
+   print((lx, newline));
+   print((UPB bits, bits[UPB bits], bits[UPB bits - 1], bits[UPB bits - 2], newline));
+   [] INT un = 7;                                 # rowing #
+   print((LWB un, UPB un, un[1], newline));
+   [,] INT matrice = un;
+   print((1 UPB matrice, 2 UPB matrice, matrice[1, 1], newline));
+   STRING s = "x";
+   print((UPB s, newline));
+   UNION (INT, BOOL) u = TRUE;                    # uniting #
+   print(((u | (BOOL bb): bb | FALSE), newline));
+   compteur;                                      # voiding #
+   suivant;                                       # deproceduring puis voiding #
+   print((compteur, newline));
+   PROC moyenne = ([] REAL t) REAL:
+      (REAL somme := 0; FOR i FROM LWB t TO UPB t DO somme +:= t[i] OD; somme / (UPB t - LWB t + 1));
+   print((moyenne((1, 2, 3, 4)), newline));
+   print((IF a < b THEN 1 ELSE 2.5 FI, newline)); # contexte fort : chaque branche est unie separement #
+   print(((a < b | 1 | 2.5) * 2, newline));       # contexte ferme : balancing vers REAL #
+   REAL q := (a > b | 1 | 0.5);
+   print((q, newline));
+   print((REAL (1) / 3, newline));                # cast #
+   REF INT rc = compteur;
+   rc := 10;
+   print((compteur, newline))
+END

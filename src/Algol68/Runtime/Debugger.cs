@@ -199,7 +199,10 @@ public sealed class Debugger : IDebugger
             var v = fr.S[dv.Slot];
             if (v.O == null && dv.Mode is not PrimMode) continue;   // pas encore elaboree
             if (!seen.Add(dv.Name)) continue;
-            res.Add(Describe(dv.Name, dv.Mode, v));
+            // une variable (nom) est montree par sa valeur
+            if (dv.Mode is RefMode rm && v.O is RefV r && r.A != null)
+                res.Add(Describe(dv.Name, rm.Sub, r.A[r.I]));
+            else res.Add(Describe(dv.Name, dv.Mode, v));
         }
         res.Reverse();
         return res;

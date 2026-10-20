@@ -42,9 +42,6 @@ public static class Calls
         nf.Line = site.Line; nf.Col = site.Col; nf.File = site.File;
         try
         {
-            var ctx = nf.Ctx;
-            if (ctx.Attention) ctx.OnAttention(nf, site);
-            ctx.Debugger.OnEnter(nf);
             var v = nf.Info.Body.Eval(nf);
             if (nf.Info.CheckResultScope && RT.ScopeOf(v, nf.Info.ResultMode!) >= nf.Depth)
                 throw RT.Err($"violation de portee : la routine « {nf.Info.Name} » rend une valeur locale", site);
@@ -54,7 +51,6 @@ public static class Calls
         {
             ts.Top = nf.Caller;
             ts.CallDepth--;
-            nf.Ctx.Debugger.OnLeave(nf);
         }
     }
 }

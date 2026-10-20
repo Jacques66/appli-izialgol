@@ -607,7 +607,8 @@ public sealed partial class Compiler
                 info.Vars.Add(new DebugVar { Name = p.Name, Slot = s.Slot, Mode = s.Mode, FromLine = rt.Line, ToLine = int.MaxValue, File = rt.File });
             }
             var body = Gen(rt.Body, pm.Result, Strength.Strong);
-            info.Body = body;
+            // le corps reduit a une unite est une instruction (points d'arret, pas a pas)
+            info.Body = Stmt(body, rt.Body);
             info.FrameSize = ctx.NextSlot;
             info.CheckResultScope = pm.Result.HasNames;
             info.ResultMode = pm.Result;
@@ -625,6 +626,25 @@ public sealed partial class Compiler
     // ------------------------------------------------------------------ clauses suites
 
     Node Stmt(Node n) => n is StmtNode ? n : new StmtNode(n);
+    Node Stmt(Node n, UnitAst u)
+    {
+        if (n is StmtNode) return n;
+        var s = new StmtNode(n);
+        var st = StartOf(u);
+        s.File = st.File; s.Line = st.Line; s.Col = st.Col;
+        return s;
+    }
+
+    /// <summary>Premier symbole d'une unite (position des instructions).</summary>
+    static Ast StartOf(UnitAst u) => u switch
+    {
+        DyadicAst d => StartOf(d.Left),
+        AssignAst a => StartOf(a.Dest),
+        IdentityRelAst ir => StartOf(ir.Left),
+        ApplyAst ap => StartOf(ap.Primary),
+        AndThenAst at => StartOf(at.Left),
+        _ => u,
+    };
 
     public Node GenSerial(SerialAst s, Mode target, Strength st, bool newRange)
     {
@@ -647,7 +667,7 @@ public sealed partial class Compiler
                         if (r.Labels.TryGetValue(l, out var ls)) { ls.Target.Serial = serial; ls.Target.Index = stmts.Count; hasLabels = true; }
                     bool y = i == last || s.ExitAfter.Contains(i);
                     var node = y ? Gen(lu.Unit, target, st) : Gen(lu.Unit, M.Void, Strength.Strong);
-                    stmts.Add(Stmt(node)); yields.Add(y); completes.Add(y);
+                    stmts.Add(Stmt(node, lu.Unit)); yields.Add(y); completes.Add(y);
                 }
                 else
                 {
@@ -789,7 +809,7 @@ public sealed partial class Compiler
         try
         {
             var sel = GenSerial(c.Selector, M.Int, Strength.Meek, true);
-            var cases = c.In.Select(u => Gen(u, target, Strength.Strong)).ToArray();
+            var cases = c.In.Select(u => Stmt(Gen(u, target, Strength.Strong), u)).ToArray();
             Node? outp = c.Out != null ? GenSerial(c.Out, target, Strength.Strong, true)
                 : c.Ouse != null ? Gen(c.Ouse, target, Strength.Strong)
                 : target.IsVoid ? null : GenSkip(target, c);
@@ -847,7 +867,7 @@ public sealed partial class Compiler
                 }
                 accept.Add(acc); rewrap.Add(cm is UnionMode);
                 slots.Add(cc.Name != null ? cr.Ids[cc.Name].Slot : -1);
-                units.Add(WithRange(cr, () => Gen(cc.Unit, target, Strength.Strong)));
+                units.Add(WithRange(cr, () => Stmt(Gen(cc.Unit, target, Strength.Strong), cc.Unit)));
             }
             node.Accept = accept.ToArray(); node.RewrapUnion = rewrap.ToArray(); node.Slots = slots.ToArray(); node.Cases = units.ToArray();
             node.Out = c.Out != null ? GenSerial(c.Out, target, Strength.Strong, true)

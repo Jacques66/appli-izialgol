@@ -1,0 +1,53 @@
+# Declarations de modes : equivalence structurelle, modes recursifs, bornes effectives #
+BEGIN
+   MODE POINT = STRUCT (REAL x, y);
+   MODE VECTEUR = STRUCT (REAL x, y);          # meme structure : modes equivalents #
+   POINT p := (1.5, 2.5);
+   VECTEUR v := p;
+   print((x OF v, y OF v, newline));
+
+   MODE ARBRE = STRUCT (INT valeur, REF ARBRE gauche, droite);
+   PROC inserer = (REF REF ARBRE a, INT x) VOID:
+      IF REF ARBRE (a) IS NIL THEN a := HEAP ARBRE := (x, NIL, NIL)
+      ELIF x < valeur OF a THEN inserer(gauche OF a, x)
+      ELSE inserer(droite OF a, x)
+      FI;
+   PROC parcourir = (REF ARBRE a) VOID:
+      IF a ISNT NIL THEN parcourir(gauche OF a); print(whole(valeur OF a, -3)); parcourir(droite OF a) FI;
+   REF ARBRE racine := NIL;
+   FOR i TO 8 DO inserer(racine, (i * 37) MOD 23) OD;
+   parcourir(racine); print(newline);
+
+   # recursion mutuelle entre indicants #
+   MODE LISTE = REF CELLULE, CELLULE = STRUCT (INT tete, LISTE queue);
+   LISTE l := NIL;
+   FOR i TO 4 DO l := HEAP CELLULE := (i * i, l) OD;
+   INT somme := 0;
+   WHILE l ISNT LISTE (NIL) DO somme +:= tete OF l; l := queue OF l OD;
+   print(("somme des carres : ", whole(somme, 0), newline));
+
+   # bornes effectives dans une declaration de mode #
+   INT n = 3;
+   MODE VEC = [1:n] REAL;
+   VEC a := (1, 2, 3);
+   VEC b;
+   b := a;
+   b[2] := 20;
+   print((UPB a, a[2], b[2], newline));
+
+   # unions : ordre indifferent, aplatissement #
+   MODE U1 = UNION (INT, REAL), U2 = UNION (REAL, INT);
+   U1 x := 3;
+   U2 y := x;
+   UNION (CHAR, U1) w := "c";
+   print(((y | (INT i): i | -1), (w | (CHAR c): c | "?"), newline));
+   w := 2.5;
+   CASE w IN (REAL r): print(r), (INT i): print(i) OUT print("autre") ESAC;
+   print(newline);
+   # mode PROC et variables de procedures #
+   MODE FONCTION = PROC (REAL) REAL;
+   FONCTION carre = (REAL t) REAL: t * t;
+   [] FONCTION tableau = (carre, (REAL t) REAL: t + 1, sqrt);
+   FOR i TO UPB tableau DO print(fixed(tableau[i](4), 0, 1)); print(" ") OD;
+   print(newline)
+END

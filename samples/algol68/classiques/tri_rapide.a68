@@ -1,0 +1,24 @@
+# Tri rapide (Hoare) sur une rangee passee par nom #
+BEGIN
+   PROC quicksort = (REF [] INT a, INT lo, hi) VOID:
+      IF lo < hi THEN
+         INT pivot = a[(lo + hi) % 2];
+         INT i := lo, j := hi;
+         WHILE i <= j DO
+            WHILE a[i] < pivot DO i +:= 1 OD;
+            WHILE a[j] > pivot DO j -:= 1 OD;
+            IF i <= j THEN
+               INT t = a[i]; a[i] := a[j]; a[j] := t;
+               i +:= 1; j -:= 1
+            FI
+         OD;
+         quicksort(a, lo, j);
+         quicksort(a, i, hi)
+      FI;
+   [] INT data = (38, 27, 43, 3, 9, 82, 10, 3, -5, 100, 0, 64);
+   [1:UPB data] INT v := data;
+   quicksort(v, 1, UPB v);
+   FOR k TO UPB v DO print(whole(v[k], -4)) OD;
+   print(newline);
+   print((data[1], data[UPB data], newline))
+END

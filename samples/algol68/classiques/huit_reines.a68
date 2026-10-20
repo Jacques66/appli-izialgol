@@ -1,0 +1,29 @@
+# Probleme des huit reines : retour arriere #
+BEGIN
+   INT n = 8;
+   [n] INT col;
+   INT solutions := 0;
+   PROC safe = (INT row, c) BOOL:
+   BEGIN
+      BOOL ok := TRUE;
+      FOR r TO row - 1 WHILE ok DO
+         IF col[r] = c OR ABS (col[r] - c) = row - r THEN ok := FALSE FI
+      OD;
+      ok
+   END;
+   PROC place = (INT row) VOID:
+      FOR c TO n DO
+         IF safe(row, c) THEN
+            col[row] := c;
+            IF row = n THEN
+               solutions +:= 1;
+               IF solutions = 1 THEN
+                  FOR r TO n DO print(whole(col[r], -2)) OD; print(newline)
+               FI
+            ELSE place(row + 1)
+            FI
+         FI
+      OD;
+   place(1);
+   print(("solutions : ", whole(solutions, 0), newline))
+END

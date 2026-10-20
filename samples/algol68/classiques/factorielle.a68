@@ -1,0 +1,12 @@
+# Factorielles : recursion, whole, LONG LONG INT #
+BEGIN
+   PROC fact = (INT n) INT: (n <= 1 | 1 | n * fact(n - 1));
+   FOR i FROM 0 TO 12 DO
+      print((whole(i, -2), "! = ", whole(fact(i), 0), newline))
+   OD;
+   print((fact(10), newline));
+   LONG LONG INT f := LONG LONG 1;
+   FOR i TO 30 DO f *:= LENG LENG i OD;
+   print(("30! = ", whole(f, 0), newline));
+   print((f, newline))
+END
