@@ -1,0 +1,39 @@
+! Probleme des huit reines (retour arriere) ;
+begin
+   integer array col(1:8);
+   boolean array libre_col(1:8), diag1(2:16), diag2(-7:7);
+   integer solutions, i;
+
+   procedure affiche;
+   begin integer l, c;
+      for l := 1 step 1 until 8 do
+      begin
+         for c := 1 step 1 until 8 do outtext(if col(l) = c then " R" else " .");
+         outimage
+      end;
+      outimage
+   end;
+
+   procedure place(l); integer l;
+   begin integer c;
+      for c := 1 step 1 until 8 do
+         if libre_col(c) and diag1(l + c) and diag2(l - c) then
+         begin
+            col(l) := c;
+            libre_col(c) := diag1(l + c) := diag2(l - c) := false;
+            if l = 8 then
+            begin
+               solutions := solutions + 1;
+               if solutions = 1 then affiche
+            end
+            else place(l + 1);
+            libre_col(c) := diag1(l + c) := diag2(l - c) := true
+         end
+   end;
+
+   for i := 1 step 1 until 8 do libre_col(i) := true;
+   for i := 2 step 1 until 16 do diag1(i) := true;
+   for i := -7 step 1 until 7 do diag2(i) := true;
+   place(1);
+   outtext("Nombre de solutions : "); outint(solutions, 0); outimage
+end

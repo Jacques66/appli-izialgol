@@ -1,0 +1,16 @@
+disque 1 : A -> B
+disque 2 : A -> C
+disque 1 : B -> C
+disque 3 : A -> B
+disque 1 : C -> A
+disque 2 : C -> B
+disque 1 : A -> B
+disque 4 : A -> C
+disque 1 : B -> C
+disque 2 : B -> A
+disque 1 : C -> A
+disque 3 : B -> C
+disque 1 : A -> B
+disque 2 : A -> C
+disque 1 : B -> C
+15 deplacements

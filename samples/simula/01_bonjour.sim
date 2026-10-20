@@ -1,0 +1,5 @@
+! Premier programme : affichage d'un texte sur la sortie standard (sysout) ;
+begin
+   outtext("Bonjour, le monde !");
+   outimage
+end

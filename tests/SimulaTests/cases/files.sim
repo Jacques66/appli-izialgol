@@ -1,0 +1,36 @@
+begin
+   ref(outfile) o; ref(infile) f; ref(directfile) d; ref(outbytefile) ob; ref(inbytefile) ib;
+   integer i, s; text t;
+   o :- new outfile("test_sortie.txt");
+   o.open(blanks(80));
+   for i := 1 step 1 until 5 do begin o.outint(i * i, 4); o.outtext(" ligne"); o.outimage end;
+   o.close;
+   f :- new infile("test_sortie.txt");
+   if not f.open(blanks(80)) then outtext("echec ouverture");
+   inspect f do
+   begin
+      while not lastitem do begin s := s + inint; inimage end;
+      close
+   end;
+   outtext("somme des carres = "); outint(s, 0); outimage;
+   f :- new infile("inexistant.txt");
+   outtext(if f.open(blanks(10)) then "ouvert ?" else "inexistant : open = false"); outimage;
+   d :- new directfile("test_direct.txt");
+   d.setaccess("anycreate");
+   d.open(blanks(20));
+   d.locate(3); d.outtext("troisieme"); d.outimage;
+   d.locate(1); d.outtext("premier"); d.outimage;
+   outint(d.lastloc, 3); outimage;
+   d.locate(3); d.inimage; outtext(d.image.strip); outimage;
+   d.locate(2); d.inimage; d.image.setpos(1); outtext(if d.image.getchar = char(0) then "image non ecrite" else "?"); outimage;
+   d.close;
+   ob :- new outbytefile("test_octets.bin");
+   ob.open; for i := 65 step 1 until 70 do ob.outbyte(i); ob.outtext("xyz"); ob.close;
+   ib :- new inbytefile("test_octets.bin");
+   ib.open; t :- blanks(20); t :- ib.intext(t); outtext(t); outint(t.length, 3); outimage; ib.close;
+   o :- new outfile("test_sortie.txt"); o.setaccess("purge"); o.open(blanks(10)); o.close;
+   f :- new infile("test_sortie.txt");
+   outtext(if f.open(blanks(10)) then "pas supprime" else "fichier supprime (purge)"); outimage;
+   d :- new directfile("test_direct.txt"); d.setaccess("purge"); d.open(blanks(20)); d.close;
+   ib :- new inbytefile("test_octets.bin"); ib.setaccess("purge"); ib.open; ib.close
+end

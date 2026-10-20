@@ -1,0 +1,16 @@
+! Crible d'Eratosthene : nombres premiers jusqu'a 200 ;
+begin
+   integer n = 200;
+   boolean array compose(2:n);
+   integer i, j, compte;
+   for i := 2 step 1 until n do
+      if not compose(i) then
+      begin
+         compte := compte + 1;
+         outint(i, 5);
+         if mod(compte, 10) = 0 then outimage;
+         for j := i * i step i until n do compose(j) := true
+      end;
+   outimage;
+   outtext("Nombre de nombres premiers : "); outint(compte, 0); outimage
+end

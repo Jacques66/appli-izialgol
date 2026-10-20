@@ -1,0 +1,28 @@
+! Listes doublement chainees avec la classe standard SIMSET ;
+simset begin
+   link class personne(nom, age); text nom; integer age;;
+   ref(head) groupe;
+   ref(personne) p;
+
+   procedure insere_trie(x); ref(personne) x;
+   begin ref(personne) q;
+      q :- groupe.first;
+      while q =/= none and then q.age <= x.age do q :- q.suc;
+      if q == none then x.into(groupe) else x.precede(q)
+   end;
+
+   groupe :- new head;
+   insere_trie(new personne("Alice", 34));
+   insere_trie(new personne("Bruno", 27));
+   insere_trie(new personne("Chloe", 41));
+   insere_trie(new personne("David", 19));
+   outtext("Membres par age croissant ("); outint(groupe.cardinal, 0); outtext(") :"); outimage;
+   p :- groupe.first;
+   while p =/= none do
+   begin
+      outtext("  "); outtext(p.nom); outint(p.age, 4); outimage;
+      p :- p.suc
+   end;
+   groupe.first.out;
+   outtext("Apres retrait du plus jeune, premier : "); outtext(groupe.first qua personne.nom); outimage
+end

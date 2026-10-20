@@ -1,0 +1,6 @@
+begin
+   class c; begin outtext("c"); outimage end;
+   ref(c) x;
+   x :- new c;
+   resume(x)
+end

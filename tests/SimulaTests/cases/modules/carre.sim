@@ -1,0 +1,1 @@
+integer procedure carre(n); integer n; carre := n * n;

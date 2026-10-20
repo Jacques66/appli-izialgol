@@ -1,0 +1,14 @@
+! Lecture au clavier (sysin) : moyenne d'une serie de nombres ;
+begin
+   integer n, i; real s, x;
+   outtext("Combien de nombres ? "); breakoutimage;
+   n := inint;
+   for i := 1 step 1 until n do
+   begin
+      outtext("nombre "); outint(i, 0); outtext(" : "); breakoutimage;
+      x := inreal;
+      s := s + x
+   end;
+   outimage;
+   outtext("moyenne = "); outfix(s / n, 3, 0); outimage
+end

@@ -1,0 +1,10 @@
+begin
+   class compte; protected solde; hidden protected secret;
+   begin integer solde, secret; end;
+   compte class sous;
+   begin procedure p; secret := 1; procedure q; solde := 2; end;
+   ref(compte) c;
+   c :- new compte;
+   c.solde := 3;
+   inspect c do secret := 4
+end

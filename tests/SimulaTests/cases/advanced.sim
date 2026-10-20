@@ -1,0 +1,79 @@
+begin
+   ! virtuels dont les correspondances ont des entetes differentes : appel generique ;
+   class forme; virtual: procedure dessine; begin end;
+   forme class carre; begin procedure dessine(n); integer n; begin outtext("carre "); outint(n, 0) end; end;
+   forme class rond; begin procedure dessine(t); text t; begin outtext("rond "); outtext(t) end; end;
+
+   ! classe avec parametres comme prefixe de bloc ;
+   class compteur(debut); integer debut;
+   virtual: procedure trace;
+   begin integer n;
+      procedure tick; begin n := n + 1; trace end;
+      procedure trace; ;
+      n := debut;
+      inner;
+      outtext("compteur final = "); outint(n, 0); outimage
+   end;
+
+   ! chaine de prefixes et inner au milieu ;
+   class a; begin outtext("a1 "); inner; outtext("a2 ") end;
+   a class b; begin outtext("b1 "); inner; outtext("b2 ") end;
+   b class c; begin outtext("c ") end;
+
+   ! etiquette virtuelle ;
+   class machine; virtual: label arret;
+   begin integer etape;
+      etape := 1;
+      goto arret;
+      outtext("jamais");
+   end;
+   machine class machine2;
+   begin
+arret: outtext("arret atteint a l'etape "); outint(etape, 0); outimage
+   end;
+
+   ! protection ;
+   class compte; protected solde; hidden protected secret;
+   begin integer solde, secret;
+      procedure depot(x); integer x; solde := solde + x;
+      integer procedure lire; lire := solde;
+   end;
+   compte class compte_epargne;
+   begin procedure interets; solde := solde + solde // 10; end;
+
+   ! parametre procedure formel avec ses propres parametres ;
+   real procedure integre(f, a, b, n); real procedure f; real a, b; integer n;
+   begin real h, s; integer i;
+      h := (b - a) / n;
+      for i := 0 step 1 until n - 1 do s := s + f(a + (i + 0.5) * h);
+      integre := s * h
+   end;
+   real procedure cube(x); real x; cube := x * x * x;
+
+   ! produit scalaire de Jensen avec tableaux ;
+   real procedure inner_product(a, b, k, n); name a, b, k; real a, b; integer k, n;
+   begin real s; k := 1; while k <= n do begin s := s + a * b; k := k + 1 end; inner_product := s end;
+
+   ref(forme) f1, f2; ref(compte_epargne) ce; integer i; real array u, w(1:3);
+
+   f1 :- new carre; f2 :- new rond;
+   f1.dessine(4); outtext(" / "); f2.dessine("bleu"); outimage;
+
+   compteur(10) begin
+      procedure trace; begin outtext("tick "); outint(n, 0); outimage end;
+      tick; tick
+   end;
+
+   new c; outimage;
+   new b; outimage;
+
+   new machine2;
+
+   ce :- new compte_epargne;
+   ce.depot(100); ce.interets; outint(ce.lire, 0); outimage;
+
+   outfix(integre(cube, 0, 2, 100), 4, 0); outimage;
+
+   for i := 1 step 1 until 3 do begin u(i) := i; w(i) := 2 * i end;
+   outfix(inner_product(u(i), w(i), i, 3), 1, 0); outimage
+end

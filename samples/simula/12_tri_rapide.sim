@@ -1,0 +1,26 @@
+! Tri rapide (quicksort) d'un tableau d'entiers ;
+begin
+   integer array t(1:20);
+   integer i, u;
+
+   procedure tri(a, g, d); integer array a; integer g, d;
+   begin integer i, j, pivot, x;
+      if g < d then
+      begin
+         pivot := a((g + d) // 2); i := g; j := d;
+         while i <= j do
+         begin
+            while a(i) < pivot do i := i + 1;
+            while a(j) > pivot do j := j - 1;
+            if i <= j then begin x := a(i); a(i) := a(j); a(j) := x; i := i + 1; j := j - 1 end
+         end;
+         tri(a, g, j); tri(a, i, d)
+      end
+   end;
+
+   u := 7;
+   for i := 1 step 1 until 20 do t(i) := randint(1, 100, u);
+   for i := 1 step 1 until 20 do outint(t(i), 4); outimage;
+   tri(t, 1, 20);
+   for i := 1 step 1 until 20 do outint(t(i), 4); outimage
+end
