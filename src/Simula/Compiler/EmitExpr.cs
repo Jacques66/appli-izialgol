@@ -382,8 +382,6 @@ public sealed partial class SimCompiler
                 }
         }
         var l = EmitExpr(be.L);
-        int nopAt = Here;
-        E(Op.Nop);
         var r = EmitExpr(be.R);
         if (l.IsErr || r.IsErr) return be.Op is T.Lt or T.Le or T.Eq or T.Ge or T.Gt or T.Ne or T.RefEq or T.RefNe or T.KAnd or T.KOr or T.KImp or T.KEqv ? SType.Bool : SType.Err;
         switch (be.Op)
@@ -394,8 +392,8 @@ public sealed partial class SimCompiler
                     var rt = ArithMax(l, r);
                     if (rt.IsReal)
                     {
-                        if (!l.IsReal) g.Code[nopAt] = (int)Op.I2R;
                         if (!r.IsReal) E(Op.I2R);
+                        if (!l.IsReal) E(Op.I2RU);
                         E(be.Op == T.Plus ? Op.AddR : be.Op == T.Minus ? Op.SubR : Op.MulR);
                     }
                     else E(be.Op == T.Plus ? Op.AddI : be.Op == T.Minus ? Op.SubI : Op.MulI);
@@ -404,8 +402,8 @@ public sealed partial class SimCompiler
             case T.Slash:
                 {
                     if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'/' sur {l} et {r}"); return SType.Err; }
-                    if (!l.IsReal) g.Code[nopAt] = (int)Op.I2R;
                     if (!r.IsReal) E(Op.I2R);
+                    if (!l.IsReal) E(Op.I2RU);
                     E(Op.DivR);
                     return l.B == BaseType.LongReal || r.B == BaseType.LongReal ? SType.LReal : SType.Real;
                 }
@@ -418,7 +416,7 @@ public sealed partial class SimCompiler
                     if (!l.IsArith || !r.IsArith) { Err(be.Pos, $"'**' sur {l} et {r}"); return SType.Err; }
                     if (l.IsIntLike && r.IsIntLike) { E(Op.PowII); return SType.Int; }
                     if (l.IsReal && r.IsIntLike) { E(Op.PowRI); return l; }
-                    if (!l.IsReal) g.Code[nopAt] = (int)Op.I2R;
+                    if (!l.IsReal) E(Op.I2RU);
                     E(Op.PowRR);
                     return l.B == BaseType.LongReal || r.B == BaseType.LongReal ? SType.LReal : SType.Real;
                 }
@@ -429,8 +427,8 @@ public sealed partial class SimCompiler
                     {
                         if (l.IsReal || r.IsReal)
                         {
-                            if (!l.IsReal) g.Code[nopAt] = (int)Op.I2R;
                             if (!r.IsReal) E(Op.I2R);
+                            if (!l.IsReal) E(Op.I2RU);
                             E(Op.CmpR, rel);
                         }
                         else E(Op.CmpI, rel);

@@ -799,7 +799,6 @@ public sealed partial class SimCompiler
                 {
                     if (!Count(2)) return SType.Err;
                     var a = EmitExpr(args[0]);
-                    int nopAt = Here; E(Op.Nop);
                     var b = EmitExpr(args[1]);
                     if (a.IsErr || b.IsErr) return SType.Err;
                     if (a.IsArith && b.IsArith)
@@ -807,8 +806,8 @@ public sealed partial class SimCompiler
                         var rt = ArithMax(a, b);
                         if (rt.IsReal)
                         {
-                            if (!a.IsReal) g.Code[nopAt] = (int)Op.I2R;
                             if (!b.IsReal) E(Op.I2R);
+                            if (!a.IsReal) E(Op.I2RU);
                             E(Op.Native, N(name + "r"), 2);
                         }
                         else E(Op.Native, N(name + "i"), 2);

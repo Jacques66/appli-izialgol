@@ -36,6 +36,8 @@ public sealed partial class Vm
         Natives.DecimalMark = '.';
         Env = new Frame(prog.Main, prog.EnvSlots, 16, FrameKind.Env);
         Env.Base = prog.EnvSlots;
+        dbgActive = dbg.Active;
+        dbg.ActivityChanged = () => dbgActive = dbg.Active;
         try
         {
             Execute();
@@ -307,6 +309,7 @@ public sealed partial class Vm
 
                         // ---------------------------------------- conversions
                         case Op.I2R: s[sp - 1] = Value.Real(s[sp - 1].I); break;
+                        case Op.I2RU: s[sp - 2] = Value.Real(s[sp - 2].I); break;
                         case Op.R2I: s[sp - 1] = new Value { I = Natives.ToInt(s[sp - 1].R) }; break;
                         case Op.I2S:
                             {
@@ -483,7 +486,7 @@ public sealed partial class Vm
                         case Op.Stmt:
                             pc += 2;
                             if (--budget <= 0) Tick();
-                            if (dbg.Active)
+                            if (dbgActive)
                             {
                                 f.Pc = pc; f.Sp = sp;
                                 dbg.OnStatement(this, f, pc, code[pc - 2], code[pc - 1]);
@@ -860,9 +863,12 @@ public sealed partial class Vm
         }
     }
 
+    bool dbgActive;
+
     void Tick()
     {
-        budget = 20000;
+        budget = 2000;
+        dbgActive = dbg.Active;
         if (ct.IsCancellationRequested) throw new CancelException();
         if (dbg.PauseRequested) { }
     }

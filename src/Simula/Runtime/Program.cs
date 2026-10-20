@@ -27,7 +27,7 @@ public enum Op
     RetThunk,               // fin d'un thunk (valeur sur la pile)
     RetThunkSet,            // fin d'un thunk en affectation
     // conversions
-    I2R, R2I, I2S, R2S, CloneT, CopyT, CopyArr,
+    I2R, I2RU, R2I, I2S, R2S, CloneT, CopyT, CopyArr,
     ChkQual,                // classId : verifie l'appartenance (none permis)
     ChkArr,                 // elemType dims
     // arithmetique

@@ -663,6 +663,38 @@ public sealed partial class SimCompiler
                     {
                         if (f.IsRef) { Err(el.Pos, "step ... until interdit avec ':-'"); break; }
                         int dSlot = tempOf[el];
+                        long? stepConst = el.B is IntLit sil ? sil.Value
+                            : el.B is UnExpr { Op: T.Minus, E: IntLit nil } ? -nil.Value : null;
+                        if (stepConst is long stp && stp != 0)
+                        {
+                            // pas constant : DELTA*(C-A3) <= 0 se reduit a une comparaison
+                            AssignControlled(f, el.A);
+                            int testc = Here;
+                            var cvc = EmitExpr(cv);
+                            var ltc = EmitExpr(el.C);
+                            if (!ltc.IsArith && !ltc.IsErr) Err(el.C.Pos, "limite arithmetique attendue");
+                            int relc = (int)(stp > 0 ? T.Le : T.Ge);
+                            if (cvc.IsReal || ltc.IsReal)
+                            {
+                                if (!ltc.IsReal) E(Op.I2R);
+                                if (!cvc.IsReal) E(Op.I2RU);
+                                E(Op.CmpR, relc);
+                            }
+                            else E(Op.CmpI, relc);
+                            var jc = EJump(Op.Jf);
+                            CallBody();
+                            var planc = TargetPrefix(cv, false);
+                            var cc = EmitExpr(cv);
+                            E(Op.PushI, (int)stp);
+                            SType sumc;
+                            if (cc.IsReal) { E(Op.I2R); E(Op.AddR); sumc = SType.Real; }
+                            else { E(Op.AddI); sumc = SType.Int; }
+                            AssignConvert(sumc, planc, el.Pos);
+                            planc.Store(this, false);
+                            E(Op.Jmp, testc);
+                            Patch(jc);
+                            break;
+                        }
                         // C := A
                         var ct = AssignControlled(f, el.A);
                         // DELTA := B
@@ -684,13 +716,12 @@ public sealed partial class SimCompiler
                         E(Op.St, dSlot);
                         var plan = TargetPrefix(cv, false);
                         var c2 = EmitExpr(cv);
-                        int nopAt = Here; E(Op.Nop);
                         E(Op.Ld, dSlot);
                         SType sum;
                         if (c2.IsReal || bt.IsReal)
                         {
-                            if (!c2.IsReal) g.Code[nopAt] = (int)Op.I2R;
                             if (!bt.IsReal) E(Op.I2R);
+                            if (!c2.IsReal) E(Op.I2RU);
                             E(Op.AddR);
                             sum = SType.Real;
                         }

@@ -32,6 +32,9 @@ public sealed class SimDebugger : IDebugger
     public bool BreakOnError { get; set; }
     public event Action<PauseInfo>? Paused;
 
+    internal Action? ActivityChanged;
+    void Changed() => ActivityChanged?.Invoke();
+
     internal bool Active => hasBreakpoints || pauseRequested || mode != Mode.Run || (StopOnEntry && !entryDone);
     internal bool PauseRequested => pauseRequested;
 
@@ -42,6 +45,7 @@ public sealed class SimDebugger : IDebugger
             breakpoints[Norm(file)] = new HashSet<int>(lines);
             hasBreakpoints = breakpoints.Values.Any(h => h.Count > 0);
         }
+        Changed();
     }
 
     static string Norm(string f)
@@ -49,7 +53,7 @@ public sealed class SimDebugger : IDebugger
         try { return Path.GetFullPath(f); } catch { return f; }
     }
 
-    public void RequestPause() => pauseRequested = true;
+    public void RequestPause() { pauseRequested = true; Changed(); }
     public void Continue() => Release(Mode.Run);
     public void StepInto() => Release(Mode.Into);
     public void StepOver() => Release(Mode.Over);
@@ -63,6 +67,7 @@ public sealed class SimDebugger : IDebugger
             stepFrame = pausedFrame;
             stepLine = pausedFrame != null && vm != null ? vm.PosOf(pausedFrame, pausedPc).Line : -1;
         }
+        Changed();
         resume.Release();
     }
 
@@ -88,7 +93,7 @@ public sealed class SimDebugger : IDebugger
         var (file, _, _) = machine.PosOf(f, pc);
         if (IsPrelude(file)) return;
         PauseReason? reason = null;
-        if (StopOnEntry && !entryDone) { entryDone = true; reason = PauseReason.Entry; }
+        if (StopOnEntry && !entryDone) { entryDone = true; reason = PauseReason.Entry; Changed(); }
         else if (pauseRequested) { pauseRequested = false; reason = PauseReason.PauseRequest; }
         else
         {
@@ -134,6 +139,7 @@ public sealed class SimDebugger : IDebugger
         try { Paused?.Invoke(new PauseInfo(reason, file, line, col, msg)); } catch { }
         resume.Wait();
         pausedFrame = null;
+        Changed();
         if (stopped) throw new CancelException();
     }
 
