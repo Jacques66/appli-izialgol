@@ -875,8 +875,13 @@ public sealed partial class Vm
 
     static bool Operating(Frame f, SimObject o)
     {
-        for (Frame? x = f; x != null; x = x.Dyn)
+        // enveloppe dynamique (7.3.4) : un objet reactive (resumed) mene a sa tete de systeme
+        int n = 0;
+        for (Frame? x = f; x != null && n < 1_000_000; n++)
+        {
             if (x == o) return true;
+            x = x is SimObject so && so.State == ObjState.Resumed ? so.Static : x.Dyn;
+        }
         return false;
     }
 
