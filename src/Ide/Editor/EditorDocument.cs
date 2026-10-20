@@ -280,6 +280,8 @@ public sealed class EditorDocument : INotifyPropertyChanged
         _ => string.Equals(w, "end", StringComparison.OrdinalIgnoreCase),
     };
 
+    public void CloseCompletion() => _completion?.Close();
+
     public void ShowCompletion()
     {
         var doc = Editor.Document;

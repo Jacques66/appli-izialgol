@@ -108,6 +108,34 @@ public static class SelfTest
     static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
     struct RECT { public int Left, Top, Right, Bottom; }
 
+    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+    static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, int rop);
+
+    /// <summary>Capture de l'ecran a l'emplacement de la fenetre (inclut les menus deroulants).</summary>
+    public static void CaptureFromScreen(Window win, string path)
+    {
+        try
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+            GetWindowRect(hwnd, out var r);
+            int width = r.Right - r.Left, height = r.Bottom - r.Top;
+            var screen = GetDC(IntPtr.Zero);
+            var mem = CreateCompatibleDC(screen);
+            var bmp = CreateCompatibleBitmap(screen, width, height);
+            var old = SelectObject(mem, bmp);
+            BitBlt(mem, 0, 0, width, height, screen, r.Left, r.Top, 0x00CC0020 /* SRCCOPY */);
+            SelectObject(mem, old);
+            var source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            DeleteObject(bmp); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
+            var enc = new PngBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(source));
+            using var fs = File.Create(path);
+            enc.Save(fs);
+            Info("capture : " + path);
+        }
+        catch (Exception ex) { Info("capture impossible : " + ex.Message); }
+    }
+
     /// <summary>Capture d'une fenetre avec PrintWindow (inclut les controles Win32 comme WebBrowser).</summary>
     public static void CaptureScreen(Window win, string path)
     {
@@ -418,8 +446,24 @@ public static class SelfTest
             sim.Editor.CaretOffset = sim.Editor.Document.GetLineByNumber(17).Offset + 3;
             sim.ShowCompletion();
             Info("complétion ouverte");
+            await Task.Delay(300);
+            sim.CloseCompletion();
             await Task.Delay(100);
             sim.Editor.TextArea.Focus();
+
+            // ---- 10b. Menus (rendu des menus deroulants, capture de l'ecran)
+            w.Topmost = true;
+            w.Activate();
+            var debugMenu = w.DebugMenuItem.Parent as System.Windows.Controls.MenuItem;
+            if (debugMenu != null)
+            {
+                debugMenu.IsSubmenuOpen = true;
+                await Task.Delay(600);
+                Check(debugMenu.IsSubmenuOpen, "menu Déboguer ouvert");
+                CaptureFromScreen(w, Path.Combine(dir, "7-menu.png"));
+                debugMenu.IsSubmenuOpen = false;
+            }
+            w.Topmost = false;
 
             // ---- 11. Theme sombre
             w.SetTheme(true);
