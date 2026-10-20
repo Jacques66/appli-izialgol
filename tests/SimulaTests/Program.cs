@@ -98,7 +98,9 @@ int DebugTest()
     foreach (var d in res.Diagnostics)
         diag.AppendLine($"{Path.GetFileName(d.File)}({d.Line},{d.Column}): {(d.Severity == Severity.Error ? "erreur" : "avertissement")}: {d.Message}");
     if (!res.Success) return (false, "", diag.ToString());
-    var io = new MemIO(input, Path.GetDirectoryName(Path.GetFullPath(path))!);
+    var wd = Path.Combine(Path.GetTempPath(), "simulatests_" + Environment.ProcessId);
+    Directory.CreateDirectory(wd);
+    var io = new MemIO(input, wd);
     var exec = res.Program!.CreateExecution(io);
     var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
     var er = exec.Run(cts.Token);

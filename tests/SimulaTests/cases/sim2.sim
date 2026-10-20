@@ -1,0 +1,45 @@
+begin
+   simulation class labo;
+   begin
+      integer traces;
+      procedure note(t); text t; begin outfix(time, 2, 6); outtext(" "); outtext(t); outimage; traces := traces + 1 end;
+   end;
+
+   labo begin
+      ref(head) q;
+      ref(p) a, b, c;
+      real surf, dernier, valeur;
+
+      process class p(nom); text nom;
+      begin
+         note(nom & " demarre");
+         hold(1);
+         note(nom & " apres hold(1)");
+         wait(q);
+         note(nom & " reveille");
+      end;
+
+      q :- new head;
+      a :- new p("A"); b :- new p("B"); c :- new p("C");
+      activate a;
+      activate b delay 0.5;
+      activate c at 0.25 prior;
+      note("principal");
+      hold(0.1);
+      outtext(if a.idle then "A passif" else "A planifie"); outtext(" / evtime(B) = "); outfix(b.evtime, 2, 0); outimage;
+      hold(5);
+      note("tous en attente");
+      outint(q.cardinal, 3); outimage;
+      activate q.first qua p after current;
+      reactivate q.last qua p before current;
+      hold(0);
+      note("apres reveils");
+      cancel(b);
+      accum(surf, dernier, valeur, 2);
+      hold(2);
+      accum(surf, dernier, valeur, 0);
+      outtext("integrale = "); outfix(surf, 2, 0); outimage;
+      outtext("traces = "); outint(traces, 0); outimage;
+      if current == main then outtext("current = main"); outimage
+   end
+end
