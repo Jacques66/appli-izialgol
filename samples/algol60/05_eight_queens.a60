@@ -1,0 +1,40 @@
+comment The eight queens problem by backtracking (after Dijkstra and Wirth).
+        Counts the solutions and prints the first one;
+begin
+   integer array col[1:8];
+   Boolean array row[1:8], up[2:16], down[-7:7];
+   integer i, solutions;
+
+   procedure print;
+   begin integer r, c;
+      for r := 1 step 1 until 8 do
+      begin
+         for c := 1 step 1 until 8 do
+            outstring(1, if col[c] = r then " Q" else " .");
+         outstring(1, "\n")
+      end
+   end print;
+
+   procedure try(c); value c; integer c;
+   begin integer r;
+      for r := 1 step 1 until 8 do
+         if row[r] ∧ up[r + c] ∧ down[r - c] then
+         begin
+            col[c] := r; row[r] := up[r + c] := down[r - c] := false;
+            if c < 8 then try(c + 1)
+            else
+            begin
+               solutions := solutions + 1;
+               if solutions = 1 then print
+            end;
+            row[r] := up[r + c] := down[r - c] := true
+         end
+   end try;
+
+   for i := 1 step 1 until 8 do row[i] := true;
+   for i := 2 step 1 until 16 do up[i] := true;
+   for i := -7 step 1 until 7 do down[i] := true;
+   solutions := 0;
+   try(1);
+   outstring(1, "number of solutions: "); outinteger(1, solutions); outstring(1, "\n")
+end

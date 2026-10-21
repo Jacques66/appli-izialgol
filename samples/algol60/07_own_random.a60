@@ -1,0 +1,27 @@
+comment own variables keep their value between calls: a pseudo-random generator
+        (Lehmer, "minimal standard" multiplier 16807) used to throw a die;
+begin
+   integer i;
+   integer array histogram[1:6];
+
+   real procedure random;
+   begin own integer seed; own Boolean started;
+      integer hi, lo;
+      if ¬ started then begin seed := 4711; started := true end;
+      comment Schrage's method avoids overflow: 2147483647 = 16807 × 127773 + 2836;
+      hi := seed ÷ 127773; lo := seed - hi × 127773;
+      seed := 16807 × lo - 2836 × hi;
+      if seed <= 0 then seed := seed + 2147483647;
+      random := seed / 2147483647
+   end random;
+
+   for i := 1 step 1 until 6 do histogram[i] := 0;
+   for i := 1 step 1 until 6000 do
+   begin integer face;
+      face := entier(random × 6) + 1;
+      histogram[face] := histogram[face] + 1
+   end;
+   outstring(1, "6000 dice throws:\n");
+   for i := 1 step 1 until 6 do
+   begin outstring(1, "face "); outinteger(1, i); outstring(1, ": "); outinteger(1, histogram[i]); outstring(1, "\n") end
+end

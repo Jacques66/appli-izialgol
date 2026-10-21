@@ -1,0 +1,9 @@
+comment Unsigned integer labels of the Revised Report, in definitions, goto and switch lists;
+begin integer i; switch s := 20, 30;
+   i := 0;
+10: i := i + 1; if i < 3 then goto 10; outinteger(1, i);
+   go to s[2];
+20: outstring(1, "twenty\n");
+030: outstring(1, "thirty\n");
+   begin real array a[1:10]; a[10] := 5; outreal(1, a[10]) end
+end

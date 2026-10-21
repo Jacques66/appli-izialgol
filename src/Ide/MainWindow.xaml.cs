@@ -33,6 +33,8 @@ public partial class MainWindow : Window
 
     public ICommand CmdNewSimula { get; }
     public ICommand CmdNewAlgol { get; }
+    public ICommand CmdNewAlgol60 { get; }
+    public ICommand CmdNewSimulaI { get; }
     public ICommand CmdNewEcho { get; }
     public ICommand CmdOpen { get; }
     public ICommand CmdOpenFolder { get; }
@@ -84,6 +86,8 @@ public partial class MainWindow : Window
 
         CmdNewSimula = new RelayCommand(_ => NewDocument(LanguageDefinitions.Simula));
         CmdNewAlgol = new RelayCommand(_ => NewDocument(LanguageDefinitions.Algol68));
+        CmdNewAlgol60 = new RelayCommand(_ => NewDocument(LanguageDefinitions.Algol60));
+        CmdNewSimulaI = new RelayCommand(_ => NewDocument(LanguageDefinitions.SimulaI));
         CmdNewEcho = new RelayCommand(_ => NewDocument(LanguageDefinitions.Echo));
         CmdOpen = new RelayCommand(_ => OpenWithDialog());
         CmdOpenFolder = new RelayCommand(_ => OpenFolderWithDialog());
@@ -895,7 +899,7 @@ public partial class MainWindow : Window
 
     void ShowHelp(string? topic)
     {
-        topic ??= ActiveDocument?.Language.Id switch { "algol68" => "algol68", _ => "simula" };
+        topic ??= ActiveDocument?.Language.Id switch { "algol68" => "algol68", "algol60" => "algol60", "simula1" => "simula1", _ => "simula" };
         if (_helpWindow == null || !_helpWindow.IsLoaded)
         {
             _helpWindow = new Dialogs.HelpWindow();
@@ -1018,11 +1022,11 @@ public partial class MainWindow : Window
     }
 }
 
-/// <summary>Language badge shown in the tab (SIM, A68, ECHO).</summary>
+/// <summary>Language badge shown in the tab (SIM, A68, A60, S1, ECHO).</summary>
 public sealed class LanguageBadgeConverter : IValueConverter
 {
     public static readonly LanguageBadgeConverter Instance = new();
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
-        value is LanguageDefinition l ? l.Id switch { "simula" => "SIM", "algol68" => "A68", _ => "ECHO" } : "";
+        value is LanguageDefinition l ? l.Id switch { "simula" => "SIM", "algol68" => "A68", "algol60" => "A60", "simula1" => "S1", _ => "ECHO" } : "";
     public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotSupportedException();
 }

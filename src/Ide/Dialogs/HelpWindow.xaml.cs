@@ -10,7 +10,7 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-/// <summary>Help: renders docs/simula.md and docs/algol68.md (Markdig → HTML).</summary>
+/// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md and docs/simula1.md (Markdig → HTML).</summary>
 public partial class HelpWindow : Window
 {
     public sealed record TocEntry(string Title, string Id, int Level)
@@ -49,8 +49,10 @@ public partial class HelpWindow : Window
         {
             case "simula":
             case "algol68":
+            case "algol60":
+            case "simula1":
             {
-                title = topic == "simula" ? "Simula 67" : "Algol 68";
+                title = topic switch { "simula" => "Simula 67", "algol68" => "Algol 68", "algol60" => "Algol 60", _ => "Simula I" };
                 var docs = PathLocator.DocsDirectory;
                 var file = docs == null ? null : System.IO.Path.Combine(docs, topic + ".md");
                 if (file != null && System.IO.File.Exists(file))
@@ -169,8 +171,19 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
             ScrollTo(s[(s.IndexOf('#') + 1)..]);
             return;
         }
-        if (s.EndsWith("simula.md", StringComparison.OrdinalIgnoreCase) || s.Contains("simula.md#")) { e.Cancel = true; ShowTopic("simula"); return; }
-        if (s.EndsWith("algol68.md", StringComparison.OrdinalIgnoreCase) || s.Contains("algol68.md#")) { e.Cancel = true; ShowTopic("algol68"); return; }
+        foreach (var topic in new[] { "simula1", "simula", "algol68", "algol60" })
+        {
+            var file = topic + ".md";
+            if (s.EndsWith(file, StringComparison.OrdinalIgnoreCase) || s.Contains(file + "#", StringComparison.OrdinalIgnoreCase))
+            {
+                // "simula.md" must not match "…simula1.md": check the character before the file name
+                int at = s.LastIndexOf(file, StringComparison.OrdinalIgnoreCase);
+                if (at > 0 && char.IsLetterOrDigit(s[at - 1])) continue;
+                e.Cancel = true;
+                ShowTopic(topic);
+                return;
+            }
+        }
         if (uri.Scheme is "http" or "https" or "mailto")
         {
             e.Cancel = true;
@@ -197,6 +210,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 |---|---|
 | <kbd>Ctrl+N</kbd> | New Simula 67 program |
 | <kbd>Ctrl+Shift+N</kbd> | New Algol 68 program |
+| (menu only) | **File › New Algol 60 program** / **New Simula I program** |
 | <kbd>Ctrl+O</kbd> | Open |
 | <kbd>Ctrl+S</kbd> | Save |
 | <kbd>Ctrl+Shift+S</kbd> | Save all |
@@ -261,9 +275,9 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 
 ## Writing a program
 
-* **File › New Simula 67 program** (<kbd>Ctrl+N</kbd>) or **Algol 68** (<kbd>Ctrl+Shift+N</kbd>) creates a tab with a template.
-* The language is chosen from the extension (`.sim` or `.a68`); it can be changed in **Build › File language** or by clicking the language name in the status bar.
-* The **Examples** menu opens the programs of the `samples` folder.
+* **File › New Simula 67 program** (<kbd>Ctrl+N</kbd>), **Algol 68** (<kbd>Ctrl+Shift+N</kbd>), **Algol 60** or **Simula I** creates a tab with a template.
+* The language is chosen from the extension (`.sim` Simula 67, `.a68` Algol 68, `.a60` or `.alg` Algol 60, `.s1` Simula I); it can be changed in **Build › File language** or by clicking the language name in the status bar.
+* The **Examples** menu opens the programs of the `samples` folder (one submenu per language).
 * Files can be dragged and dropped into the window; a dropped folder becomes the root of the explorer.
 * The session (open tabs, breakpoints, caret position, layout) is restored at start-up.
 
@@ -275,6 +289,18 @@ Keywords are case-insensitive. Comments: `comment … ;`, `! … ;` and the text
 
 UPPER stropping: upper-case words (`BEGIN`, `INT`, `PROC`…) are bold words; QUOTE stropping (`'BEGIN'`) is recognised too.
 Comments: `CO … CO`, `COMMENT … COMMENT`, `# … #`.
+
+## Algol 60
+
+Two representations: reserved words (`begin`, `real`, `Boolean`…, case-insensitive) or quote stropping (`'BEGIN'`, `'REAL'`…), chosen automatically when the text contains `'BEGIN'` or `'COMMENT'`.
+Comments: `comment … ;` and the text that follows `end` up to the next `;`, `end` or `else`.
+Strings: `""text""` (escapes `\n`, `\t`, `\""`, `\\`), `` `text' `` and `‘text’`. The publication symbols `× ÷ ↑ ≤ ≥ ≠ ¬ ∧ ∨ ⊃ ≡ ⏨` are accepted as well as their ASCII forms.
+Input and output go through `outstring`, `outinteger`, `outreal`, `ininteger`, `inreal`, `inchar`… (channel 1 is the console). See **Help › Algol 60 help**.
+
+## Simula I
+
+Algol 60 extended with the `SIMULA begin … end` block, `activity` declarations, `element` and `set` variables, `activate`, `hold`, `passivate`, `wait`, `inspect … when … otherwise`…
+Comments after `end` also stop at `when` and `otherwise`. There is no `text` type: strings are written with `outstring`. See **Help › Simula I help**.
 
 ## Build and run
 
@@ -296,6 +322,8 @@ Comments: `CO … CO`, `COMMENT … COMMENT`, `# … #`.
 ```
 simc program.sim [-o program.exe] [--run] [--no-debug]
 a68c program.a68 [-o program.exe] [--run] [--no-debug]
+a60c program.a60 [-o program.exe] [--run] [--no-debug]
+s1c  program.s1  [-o program.exe] [--run] [--no-debug]
 ```
 ";
 }

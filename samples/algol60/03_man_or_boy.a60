@@ -1,0 +1,18 @@
+'COMMENT' Donald Knuth's man or boy test (1964), written with quote stropping as on
+          many Algol 60 compilers of the time. A correct implementation of recursion,
+          call by name and non-local access prints -67 for k = 10;
+'BEGIN'
+   'REAL' 'PROCEDURE' A(k, x1, x2, x3, x4, x5);
+      'VALUE' k; 'INTEGER' k; 'REAL' x1, x2, x3, x4, x5;
+   'BEGIN'
+      'REAL' 'PROCEDURE' B;
+      'BEGIN' k := k - 1; B := A := A(k, B, x1, x2, x3, x4) 'END';
+      'IF' k <= 0 'THEN' A := x4 + x5 'ELSE' B
+   'END';
+   'INTEGER' k;
+   'FOR' k := 0 'STEP' 1 'UNTIL' 10 'DO'
+   'BEGIN'
+      outstring(1, "k = "); outinteger(1, k);
+      outstring(1, ": "); outreal(1, A(k, 1, -1, -1, 1, 0)); outstring(1, "\n")
+   'END'
+'END'

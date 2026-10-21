@@ -27,6 +27,8 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Simula\Simula.csproj" />
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
+    <ProjectReference Include="..\Algol60\Algol60.csproj" />
+    <ProjectReference Include="..\SimulaI\SimulaI.csproj" />
     <!-- Single-file Runner.exe (bin\...\single) for "Generate .exe" and the external console. -->
     <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>

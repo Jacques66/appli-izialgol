@@ -1,5 +1,5 @@
-// Shared logic of the command-line compilers simc (Simula 67) and a68c (Algol 68).
-// This file is linked into the A68C project.
+// Shared logic of the command-line compilers simc (Simula 67), a68c (Algol 68),
+// a60c (Algol 60) and s1c (Simula I). This file is linked into the other CLI projects.
 
 using System.Text;
 using Studio.Common;

@@ -1,11 +1,15 @@
 # Simula 67 & Algol 68 Studio
 
-A complete Windows development environment for two historic languages:
+A complete Windows development environment for four historic languages:
 
 * **Simula 67** (Dahl and Nygaard, 1967) — the first object-oriented language: classes, subclasses,
   virtual procedures, coroutines, discrete-event simulation (`Simulation`, `SimSet`);
 * **Algol 68** (van Wijngaarden et al., 1968) — modes, user-defined operators, orthogonality,
-  structures and unions.
+  structures and unions;
+* **Algol 60** (Revised Report 1963, Modified Report 1976) — block structure, call by name,
+  `own` variables, switches; reserved-word and quote-stropping representations;
+* **Simula I** (Dahl and Nygaard, 1965) — Algol 60 extended for discrete-event simulation:
+  activities, processes, elements and sets.
 
 The project contains:
 
@@ -14,6 +18,8 @@ The project contains:
 | IDE | `Simula67Studio.exe` | editor, build, console, debugger, help |
 | Simula 67 compiler | `simc.exe` | command-line compilation, standalone executables |
 | Algol 68 compiler | `a68c.exe` | the same for Algol 68 |
+| Algol 60 compiler | `a60c.exe` | the same for Algol 60 |
+| Simula I compiler | `s1c.exe` | the same for Simula I |
 | Launcher | `Runner.exe` | base of the generated standalone executables (not meant to be run on its own) |
 
 The compilers produce a program that is interpreted by the language's runtime; a "standalone
@@ -30,7 +36,7 @@ executable" is a copy of `Runner.exe` with the compiled program appended to it.
 ## Building
 
 ```powershell
-# Full distribution in dist\ (IDE, Runner, simc, a68c, samples, documentation)
+# Full distribution in dist\ (IDE, Runner, simc, a68c, a60c, s1c, samples, documentation)
 powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 # With the tests and the IDE start-up test
@@ -40,9 +46,9 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 -Test
 Contents of `dist\`:
 
 ```
-dist\Simula67Studio.exe   dist\Runner.exe   dist\simc.exe   dist\a68c.exe
-dist\samples\simula\*.sim dist\samples\algol68\...\*.a68
-dist\docs\simula.md       dist\docs\algol68.md       dist\README.md
+dist\Simula67Studio.exe   dist\Runner.exe   dist\simc.exe   dist\a68c.exe   dist\a60c.exe   dist\s1c.exe
+dist\samples\simula\*.sim dist\samples\algol68\...\*.a68 dist\samples\algol60\*.a60 dist\samples\simula1\*.s1
+dist\docs\simula.md       dist\docs\algol68.md       dist\docs\algol60.md   dist\docs\simula1.md   dist\README.md
 ```
 
 For development, `dotnet build Simula67Studio.sln` is enough: every build of `src\Runner` also
@@ -64,13 +70,16 @@ Start `Simula67Studio.exe` (optionally with files or a folder as arguments).
     characters `'c'`.
   * Algol 68 — UPPER stropping (upper-case words in bold) and QUOTE stropping (`'BEGIN'`);
     comments `CO … CO`, `COMMENT … COMMENT`, `# … #`; pragmats `PR … PR`; strings.
+  * Algol 60 and Simula I — reserved words or quote stropping (`'BEGIN'`); comments
+    `comment … ;` and end comments; strings `"…"`, `` `…' `` and `‘…’`; the publication
+    symbols `× ÷ ↑ ≤ ≥ ≠ ¬ ∧ ∨ ⊃ ≡ ⏨`.
 * Line numbers, current-line highlight, **folding** (begin/end, procedures and classes;
   BEGIN/END, IF/FI, DO/OD, CASE/ESAC, multi-line parentheses), **matching** of parentheses and
   blocks, **automatic indentation**, **completion** (Ctrl+Space: keywords, standard procedures,
   identifiers of the file).
 * Find / replace (plain text, whole word, match case, regular expression), go to line,
   comment / uncomment, re-indent, zoom (Ctrl+mouse wheel).
-* The language is chosen from the extension (`.sim`, `.a68`) and can be changed (menu
+* The language is chosen from the extension (`.sim`, `.a68`, `.a60`/`.alg`, `.s1`) and can be changed (menu
   *Build › File language* or a click on the status bar).
 * Resizable panels: folder **explorer** (left), file **outline** (procedures, classes,
   PROC/OP/MODE — click to go there, filter) (right), and at the bottom **Output**, **Errors**,
@@ -123,14 +132,17 @@ Start `Simula67Studio.exe` (optionally with files or a folder as arguments).
 
 ### Help
 
-The **Help** menu shows `docs/simula.md` and `docs/algol68.md` (looked up next to the executable,
-then in the parent folders), the list of keyboard shortcuts and a guide to the environment.
+The **Help** menu shows `docs/simula.md`, `docs/algol68.md`, `docs/algol60.md` and
+`docs/simula1.md` (looked up next to the executable, then in the parent folders), the list of
+keyboard shortcuts and a guide to the environment.
 
 ## Command line
 
 ```
 simc file.sim [-o output.exe] [--run] [--no-debug]
 a68c file.a68 [-o output.exe] [--run] [--no-debug]
+a60c file.a60 [-o output.exe] [--run] [--no-debug]
+s1c  file.s1  [-o output.exe] [--run] [--no-debug]
 ```
 
 | Option | Effect |
@@ -152,6 +164,8 @@ Ctrl+C interrupts it.
 ## Tests
 
 ```powershell
+dotnet run --project tests\SimulaTests           # Simula 67, Algol 60 and Simula I samples and cases
+dotnet run --project tests\Algol68Tests          # Algol 68 compiler
 dotnet run --project tests\IdeTests              # tooling, debugger, standalone exe, CLI, editor
 dotnet run --project tests\IdeTests -- --samples # + compile/run the samples
 Simula67Studio.exe --smoke-test --screenshot capture.png   # start-up + screenshot + shutdown
@@ -168,12 +182,16 @@ exercises the real Simula 67 and Algol 68 compilers. The result is written to `s
 
 ```
 src\Common      shared contract (ILanguageService, IDebugger, ExePackage…)
-src\Simula      Simula 67 compiler and runtime
+src\Simula      Simula 67 compiler and runtime (also the engine of Algol 60 and Simula I)
+src\Algol60     Algol 60: lexer for its representations, environmental block (Modified Report)
+src\SimulaI     Simula I: vocabulary, runtime (SIMULA block, processes, sets)
 src\Algol68     Algol 68 compiler and runtime
 src\Runner      launcher of the standalone exes; Shared\ = shared code (language registry,
                 console execution, Runner.exe lookup, "echo" test language)
-src\SimC        simc (CliMain.cs is shared with a68c)
+src\SimC        simc (CliMain.cs is shared with a68c, a60c and s1c)
 src\A68C        a68c
+src\A60C        a60c
+src\S1C         s1c
 src\Ide         WPF IDE (AvalonEdit, Markdig)
 tests\          tests of the compilers and of the tooling
 samples\        samples; docs\ language documentation

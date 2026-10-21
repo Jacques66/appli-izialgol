@@ -207,6 +207,15 @@ public sealed partial class SimCompiler
                 case VarDecl vd:
                     foreach (var it in vd.Items)
                     {
+                        if (dialect == Dialect.SimulaI && it.Const == null && vd.Type.Base == BaseType.Ref && vd.Type.RefClass == "set__"
+                            && it.Pos.File != preludeFile && scope.Syms.TryGetValue(it.Name, out var setSym) && setSym is VarSym setVar)
+                        {
+                            // Simula I: a declared set exists from the start (empty)
+                            var setPlan = TargetPrefix(new Ident { Name = it.Name, Orig = it.Orig, Pos = it.Pos }, true);
+                            var st = EmitExpr(new NewExpr { Class = "set__", Orig = "set", Args = { new NoneLit { Pos = it.Pos } }, Pos = it.Pos });
+                            AssignConvert(st, setPlan, it.Pos);
+                            setPlan.Store(this, false);
+                        }
                         if (it.Const == null) continue;
                         if (scope.Syms.TryGetValue(it.Name, out var s) && s is VarSym v)
                         {
@@ -895,6 +904,7 @@ public sealed partial class SimCompiler
 
     void EmitInspect(InspectStmt ins)
     {
+        if (dialect == Dialect.SimulaI && ins.Pos.File != preludeFile) ins.Obj = SimulaIProcess(ins.Obj);
         int temp = tempOf[ins];
         var ot = EmitExpr(ins.Obj);
         if (!ot.IsRef && !ot.IsErr) Err(ins.Obj.Pos, "inspect: object expression expected");
@@ -957,10 +967,10 @@ public sealed partial class SimCompiler
         var args = new List<Expr>
         {
             new BoolLit { Value = a.Reactivate, Pos = a.Pos },
-            a.Obj,
+            dialect == Dialect.SimulaI && a.Pos.File != preludeFile ? SimulaIProcess(a.Obj) : a.Obj,
             new TextLit { Value = a.Code, Pos = a.Pos },
             a.Time ?? new RealLit { Value = 0, Pos = a.Pos },
-            a.Other ?? new NoneLit { Pos = a.Pos },
+            a.Other == null ? new NoneLit { Pos = a.Pos } : dialect == Dialect.SimulaI && a.Pos.File != preludeFile ? SimulaIProcess(a.Other) : a.Other,
             new BoolLit { Value = a.Prior, Pos = a.Pos },
         };
         EmitProcCall(f.Value, p, args, a.Pos, wantResult: false);

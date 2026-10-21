@@ -8,6 +8,8 @@
     dist\Runner.exe           the launcher used as the base of standalone .exe files
     dist\simc.exe             command-line Simula 67 compiler
     dist\a68c.exe             command-line Algol 68 compiler
+    dist\a60c.exe             command-line Algol 60 compiler
+    dist\s1c.exe              command-line Simula I compiler
   then copies samples\ and docs\ into dist\.
 
 .PARAMETER Configuration
@@ -58,6 +60,8 @@ New-Item -ItemType Directory -Force $stage | Out-Null
 Publish "src\Runner\Runner.csproj" "Runner"
 Publish "src\SimC\SimC.csproj" "simc"
 Publish "src\A68C\A68C.csproj" "a68c"
+Publish "src\A60C\A60C.csproj" "a60c"
+Publish "src\S1C\S1C.csproj" "s1c"
 Publish "src\Ide\Ide.csproj" "Simula67Studio"
 
 Step "Copying samples and documentation"
@@ -75,10 +79,17 @@ $runner = Join-Path $dist "Runner.exe"
 if ($LASTEXITCODE -ne 2) { throw "Runner.exe without a program should return exit code 2 (got $LASTEXITCODE)" }
 & (Join-Path $dist "simc.exe") --version
 if ($LASTEXITCODE -ne 0) { throw "simc --version failed" }
-& (Join-Path $dist "a68c.exe") --version
-if ($LASTEXITCODE -ne 0) { throw "a68c --version failed" }
+foreach ($tool in "a68c", "a60c", "s1c") {
+    & (Join-Path $dist "$tool.exe") --version
+    if ($LASTEXITCODE -ne 0) { throw "$tool --version failed" }
+}
 
 if ($Test) {
+    Step "Tests (tests\SimulaTests: Simula 67, Algol 60, Simula I)"
+    # no --nologo here: dotnet run would pass it to the program as a file filter
+    & dotnet run --project (Join-Path $root "tests\SimulaTests") -c $Configuration
+    if ($LASTEXITCODE -ne 0) { throw "some tests failed" }
+
     Step "Tests (tests\IdeTests)"
     & dotnet run --project (Join-Path $root "tests\IdeTests") -c $Configuration --nologo
     if ($LASTEXITCODE -ne 0) { throw "some tests failed" }

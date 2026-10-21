@@ -17,6 +17,12 @@
                 <MenuItem Header="New _Algol 68 program" Command="{Binding CmdNewAlgol}" InputGestureText="Ctrl+Shift+N">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="New Algol 6_0 program" Command="{Binding CmdNewAlgol60}">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconOrange}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="New Simula _I program" Command="{Binding CmdNewSimulaI}">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.New}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
+                </MenuItem>
                 <MenuItem x:Name="NewEchoItem" Header="New _Echo program (test)" Command="{Binding CmdNewEcho}" Visibility="Collapsed"/>
                 <Separator/>
                 <MenuItem Header="_Open…" Command="{Binding CmdOpen}" InputGestureText="Ctrl+O">
@@ -155,6 +161,12 @@
                 </MenuItem>
                 <MenuItem Header="_Algol 68 help" Command="{Binding CmdHelp}" CommandParameter="algol68">
                     <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconGreen}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Algol 6_0 help" Command="{Binding CmdHelp}" CommandParameter="algol60">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconOrange}"/></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Simula _I help" Command="{Binding CmdHelp}" CommandParameter="simula1">
+                    <MenuItem.Icon><Path Style="{StaticResource IconPath}" Data="{StaticResource Icon.Help}" Fill="{DynamicResource Brush.IconRed}"/></MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Help for the _current file's language" Command="{Binding CmdHelp}" InputGestureText="F1"/>
                 <MenuItem Header="_Keyboard shortcuts" Command="{Binding CmdHelp}" CommandParameter="shortcuts"/>
@@ -349,7 +361,7 @@
                             <Image Source="Assets/app256.png" Width="64" Height="64"/>
                             <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="Simula 67 &amp; Algol 68 Studio" FontSize="26" FontWeight="Light"/>
-                                <TextBlock Text="A development environment for two great historic languages"
+                                <TextBlock Text="A development environment for great historic languages: Simula 67, Algol 68, Algol 60 and Simula I"
                                            Foreground="{DynamicResource Brush.TextDim}" FontSize="13"/>
                             </StackPanel>
                         </StackPanel>
@@ -362,10 +374,14 @@
                                 <TextBlock Text="Start" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewSimula}" Content="New Simula 67 program"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewAlgol}" Content="New Algol 68 program"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewAlgol60}" Content="New Algol 60 program"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdNewSimulaI}" Content="New Simula I program"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpen}" Content="Open a file…"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Open a folder…"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula" Content="Simula 67 help"/>
                                 <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol68" Content="Algol 68 help"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol60" Content="Algol 60 help"/>
+                                <Button Style="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula1" Content="Simula I help"/>
                                 <TextBlock Text="Recent files" FontSize="16" FontWeight="SemiBold" Margin="0,20,0,8"/>
                                 <ItemsControl x:Name="WelcomeRecent">
                                     <ItemsControl.ItemTemplate>

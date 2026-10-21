@@ -213,6 +213,34 @@ public static class SelfTest
         "   print((NORM POINT(3.0, 4.0), newline))\r\n" +
         "END\r\n";
 
+    public const string Algol60Sample =
+        "comment Example Algol 60: call by name;\r\n" +                                        // 1
+        "begin\r\n" +                                                                          // 2
+        "   integer i;\r\n" +                                                                  // 3
+        "   real procedure sum(i, lo, hi, term); value lo, hi; integer i, lo, hi; real term;\r\n" + // 4
+        "   begin real s;\r\n" +                                                               // 5
+        "      s := 0;\r\n" +                                                                  // 6
+        "      for i := lo step 1 until hi do s := s + term;\r\n" +                            // 7
+        "      sum := s\r\n" +                                                                 // 8
+        "   end sum;\r\n" +                                                                    // 9
+        "   Boolean procedure even(n); value n; integer n; even := n ÷ 2 × 2 = n;\r\n" +       // 10
+        "   outstring(1, \"H(10) = \"); outreal(1, sum(i, 1, 10, 1 / i)); outstring(1, `NL')\r\n" + // 11
+        "end of program\r\n";                                                                  // 12
+
+    public const string SimulaISample =
+        "comment Example Simula I: activities and a set;\r\n" +            // 1
+        "SIMULA begin\r\n" +                                               // 2
+        "   set queue;\r\n" +                                              // 3
+        "   activity customer(n); integer n;\r\n" +                        // 4
+        "   begin\r\n" +                                                   // 5
+        "      include(current, queue);\r\n" +                             // 6
+        "      hold(n);\r\n" +                                             // 7
+        "      outstring(1, \"served at \"); outreal(1, time)\r\n" +       // 8
+        "   end of customer;\r\n" +                                        // 9
+        "   activate new customer(3) delay 1;\r\n" +                       // 10
+        "   hold(10)\r\n" +                                                // 11
+        "end of simulation model\r\n";                                     // 12
+
     public static async Task RunSmokeAsync(MainWindow w)
     {
         try
@@ -221,9 +249,13 @@ public static class SelfTest
             Check(w.IsVisible, "main window shown");
             var sim = w.NewDocument(LanguageDefinitions.Simula, SimulaSample);
             var alg = w.NewDocument(LanguageDefinitions.Algol68, AlgolSample);
+            var a60 = w.NewDocument(LanguageDefinitions.Algol60, Algol60Sample);
+            var s1 = w.NewDocument(LanguageDefinitions.SimulaI, SimulaISample);
             Check(sim.Model.Tokens.Count > 20 && alg.Model.Tokens.Count > 20, "highlighting: Simula and Algol 68 tokens");
+            Check(a60.Model.Tokens.Count > 20 && s1.Model.Tokens.Count > 20, "highlighting: Algol 60 and Simula I tokens");
             Check(sim.Model.Folds.Count > 0 && alg.Model.Folds.Count > 0, "folding computed");
-            Check(w.Documents.Count == 2, "two tabs open");
+            Check(a60.Model.Folds.Count > 0 && s1.Model.Folds.Count > 0, "folding computed (Algol 60, Simula I)");
+            Check(w.Documents.Count == 4, "four tabs open");
             w.Activate(sim);
             await Task.Delay(900);
             if (App.Options.Screenshot != null) Capture(w, App.Options.Screenshot);
@@ -414,6 +446,23 @@ public static class SelfTest
             Check(alg.Model.Outline.Select(o => o.Name).SequenceEqual(new[] { "POINT", "fact", "NORM" }), "Algol 68 outline: " + string.Join(",", alg.Model.Outline.Select(o => o.Name)));
             Check(alg.Folding.AllFoldings.Count() >= 2, "Algol 68 folding: " + alg.Folding.AllFoldings.Count());
             Check(alg.Model.Tokens.Any(t => t.Kind == TokenKind.Comment && alg.Model.TokenText(t).Contains("several lines")), "multi-line CO comment");
+            // Algol 60 / Simula I
+            var a60 = w.NewDocument(LanguageDefinitions.Algol60, Algol60Sample);
+            await Task.Delay(450);
+            Check(a60.Model.Outline.Select(o => o.Name).SequenceEqual(new[] { "sum", "even" }), "Algol 60 outline: " + string.Join(",", a60.Model.Outline.Select(o => o.Name)));
+            Check(a60.Folding.AllFoldings.Count() >= 2, "Algol 60 folding: " + a60.Folding.AllFoldings.Count());
+            Check(a60.Model.Tokens.Any(t => t.Kind == TokenKind.Comment && a60.Model.TokenText(t) == "of program"), "Algol 60 end comment");
+            var s1 = w.NewDocument(LanguageDefinitions.SimulaI, SimulaISample);
+            await Task.Delay(450);
+            Check(s1.Model.Outline.Select(o => o.Name).SequenceEqual(new[] { "customer" }) && s1.Model.Outline[0].Kind == OutlineKind.Class,
+                "Simula I outline: " + string.Join(",", s1.Model.Outline.Select(o => o.Name)));
+            Check(s1.Folding.AllFoldings.Count() >= 2, "Simula I folding: " + s1.Folding.AllFoldings.Count());
+            Check(s1.Model.Tokens.Any(t => t.Kind == TokenKind.Builtin && s1.Model.TokenText(t) == "hold"), "Simula I standard procedure hold");
+            w.Activate(s1);
+            await Task.Delay(300);
+            Capture(w, Path.Combine(dir, "3b-simula1-editor.png"));
+            w.CloseDocument(a60, force: true);
+            w.CloseDocument(s1, force: true);
             // Automatic indentation after BEGIN
             alg.Editor.CaretOffset = alg.Editor.Document.GetLineByNumber(1).EndOffset;
             alg.Editor.TextArea.PerformTextInput("\n");
@@ -475,6 +524,8 @@ public static class SelfTest
             // ---- 12a. Real compilers: run and debug (warnings, non-blocking)
             await RealCompilerScenario(w, LanguageDefinitions.Simula, RealSimula, "Sum:", 5, "n");
             await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Sum:", 5, "n");
+            await RealCompilerScenario(w, LanguageDefinitions.Algol60, RealAlgol60, "Sum:", 5, "n");
+            await RealCompilerScenario(w, LanguageDefinitions.SimulaI, RealSimulaI, "Sum:", 5, "n");
 
             // ---- 12b. Samples (information)
             foreach (var sample in MainWindow.ListSamples().Take(300))
@@ -502,6 +553,13 @@ public static class SelfTest
                 help.ShowTopic("shortcuts");
                 await Task.Delay(800);
                 Check(help.TocList.Items.Count >= 5, "help: keyboard shortcuts");
+                foreach (var (topic, file) in new[] { ("algol60", "algol60.md"), ("simula1", "simula1.md") })
+                {
+                    help.ShowTopic(topic);
+                    await Task.Delay(800);
+                    bool exists = PathLocator.DocsDirectory != null && File.Exists(Path.Combine(PathLocator.DocsDirectory, file));
+                    Check(!exists || help.TocList.Items.Count > 3, $"table of contents of docs/{file} ({help.TocList.Items.Count} headings)");
+                }
                 help.Close();
             }
 
@@ -538,6 +596,35 @@ public static class SelfTest
         "   FOR i TO 3 DO add(i) OD;\r\n" +                          // 7
         "   print((\"Sum:\", whole(s, 3), newline))\r\n" +           // 8
         "END\r\n";                                                   // 9
+
+    const string RealAlgol60 =
+        "begin\r\n" +                                                                // 1
+        "   integer i, s;\r\n" +                                                     // 2
+        "   procedure add(n); value n; integer n;\r\n" +                             // 3
+        "   begin\r\n" +                                                             // 4
+        "      s := s + n\r\n" +                                                     // 5
+        "   end;\r\n" +                                                              // 6
+        "   s := 0;\r\n" +                                                           // 7
+        "   for i := 1 step 1 until 3 do add(i);\r\n" +                              // 8
+        "   outstring(1, \"Sum:\"); outinteger(1, s); outstring(1, \"\\n\")\r\n" +   // 9
+        "end\r\n";                                                                   // 10
+
+    const string RealSimulaI =
+        "SIMULA begin\r\n" +                                                         // 1
+        "   integer s;\r\n" +                                                        // 2
+        "   procedure add(n); value n; integer n;\r\n" +                             // 3
+        "   begin\r\n" +                                                             // 4
+        "      s := s + n\r\n" +                                                     // 5
+        "   end;\r\n" +                                                              // 6
+        "   activity adder(k); integer k;\r\n" +                                     // 7
+        "   begin\r\n" +                                                             // 8
+        "      hold(k); add(k)\r\n" +                                                // 9
+        "   end of adder;\r\n" +                                                     // 10
+        "   s := 0;\r\n" +                                                           // 11
+        "   activate new adder(1); activate new adder(2); activate new adder(3);\r\n" + // 12
+        "   hold(10);\r\n" +                                                         // 13
+        "   outstring(1, \"Sum:\"); outinteger(1, s); outstring(1, \"\\n\")\r\n" +   // 14
+        "end of simulation model\r\n";                                               // 15
 
     static int _realWarnings;
 

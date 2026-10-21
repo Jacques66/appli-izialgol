@@ -15,10 +15,14 @@
     <ProjectReference Include="..\..\src\Common\Common.csproj" />
     <ProjectReference Include="..\..\src\Simula\Simula.csproj" />
     <ProjectReference Include="..\..\src\Algol68\Algol68.csproj" />
+    <ProjectReference Include="..\..\src\Algol60\Algol60.csproj" />
+    <ProjectReference Include="..\..\src\SimulaI\SimulaI.csproj" />
     <!-- Built for the end-to-end tests (standalone exe, CLI), without assembly reference. -->
     <ProjectReference Include="..\..\src\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\..\src\SimC\SimC.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\..\src\A68C\A68C.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\src\A60C\A60C.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\..\src\S1C\S1C.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -23,7 +23,37 @@ static class ClassicNatives
             var t = TextRef.Str((TextRef?)s[b].O);
             return I(t.IndexOf((char)s[b + 1].I) + 1);
         });
+        def("__a60_realtext", "R>T", (vm, s, b) => new Value { O = TextRef.FromString(RealText(s[b].R)) });
         def("__a60_lowercase", "T>T", (vm, s, b) => new Value { O = TextRef.FromString(TextRef.Str((TextRef?)s[b].O).ToLowerInvariant()) });
+    }
+
+    /// <summary>
+    /// Layout of outreal in the Modified Report (1976) for a positive value: 16 significant
+    /// digits (the number given by epsilon), the point after the first digits when the decimal
+    /// exponent m satisfies -2 &lt;= m &lt; 15, otherwise one digit before the point and "e" m.
+    /// The digits are correctly rounded (the specimen body of the report truncates them after
+    /// repeated divisions by 10, which in binary arithmetic prints 12 as 11.99999999999999).
+    /// </summary>
+    static string RealText(double re)
+    {
+        const int n = 16;
+        var e = re.ToString("E15", CultureInfo.InvariantCulture);    // d.ddddddddddddddde+xxx
+        var digits = e.Substring(0, 1) + e.Substring(2, n - 1);
+        int m = int.Parse(e.Substring(e.IndexOf('E') + 1), CultureInfo.InvariantCulture);
+        var sb = new StringBuilder();
+        if (m >= n || m < -2)
+        {
+            sb.Append(digits[0]).Append('.').Append(digits, 1, n - 1).Append('e').Append(m).Append(' ');
+            return sb.ToString();
+        }
+        int p = m == n - 1 || m < 0 ? 0 : m + 1;
+        if (m < 0) sb.Append(m == -2 ? "0.0" : "0.");
+        for (int j = 1; j <= n; j++)
+        {
+            sb.Append(digits[j - 1]);
+            if (j == p) sb.Append('.');
+        }
+        return sb.Append(' ').ToString();
     }
 
     static bool IsSpace(int c) => c == ' ' || c == '\n' || c == '\t' || c == '\r';
@@ -91,5 +121,22 @@ static class ClassicNatives
         if (!digits) throw new SimulaError($"invalid character '{(c < 0 ? ' ' : (char)c)}' in inreal");
         CheckTerminator(vm, c, "inreal");
         return double.Parse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+    }
+}
+
+static class SimulaINatives
+{
+    /// <summary>Process designated by a Simula I element (attribute p__), or the object itself.</summary>
+    static object? ProcessOf(object? o)
+    {
+        if (o is not SimObject so) return null;
+        foreach (var a in so.Class.AllAttrs)
+            if (a.Name == "p__") return so.S[a.Slot].O;
+        return so;
+    }
+
+    public static void Register(Action<string, string, NativeFn> def)
+    {
+        def("__s1_same", "OO>B", (vm, s, b) => new Value { I = ReferenceEquals(ProcessOf(s[b].O), ProcessOf(s[b + 1].O)) ? 1 : 0 });
     }
 }

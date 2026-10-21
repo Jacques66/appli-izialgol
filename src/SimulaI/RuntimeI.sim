@@ -1,0 +1,276 @@
+   comment ==================================================================
+           Simula I runtime (Dahl and Nygaard, 1965), added to the Algol 60
+           environmental block. Processes are declared by activity
+           declarations inside a SIMULA block, and they are referenced through
+           element pointers. A process may be a member of several sets at
+           the same time, each membership being a separate element.
+           Identifiers ending in __ are internal.
+           ==================================================================;
+
+   comment --- standard procedures handled inline by the compiler;
+   procedure resume; ;
+   procedure error(t); text t; error(t);
+   integer procedure upperbound(a, i); real array a; integer i; upperbound := upperbound(a, i);
+   integer procedure lowerbound(a, i); real array a; integer i; lowerbound := lowerbound(a, i);
+
+   comment --- elements and sets;
+   class elem__(p__); ref(activity__) p__;
+   begin ref(elem__) suc__, pred__; ref(set__) owner__; end;
+
+   elem__ class set__;
+   begin suc__ :- pred__ :- this elem__ end;
+
+   ref(elem__) procedure head(S); ref(set__) S; head :- S;
+   ref(elem__) procedure first(S); ref(set__) S;
+      first :- if S.suc__ == S then none else S.suc__;
+   ref(elem__) procedure last(S); ref(set__) S;
+      last :- if S.pred__ == S then none else S.pred__;
+   ref(elem__) procedure suc(X); ref(elem__) X;
+      suc :- if X == none then none else X.suc__;
+   ref(elem__) procedure pred(X); ref(elem__) X;
+      pred :- if X == none then none else X.pred__;
+   boolean procedure exist(X); ref(elem__) X;
+      exist := X =/= none and then X.p__ =/= none;
+   boolean procedure empty(S); ref(set__) S; empty := S.suc__ == S;
+
+   integer procedure cardinal(S); ref(set__) S;
+   begin integer n; ref(elem__) e;
+      e :- S.suc__;
+      while e =/= S do begin n := n + 1; e :- e.suc__ end;
+      cardinal := n
+   end;
+
+   procedure include(X, S); ref(elem__) X; ref(set__) S;
+   begin ref(elem__) e;
+      if X =/= none then
+      begin
+         e :- new elem__(X.p__);
+         e.owner__ :- S;
+         e.pred__ :- S.pred__; e.suc__ :- S;
+         S.pred__.suc__ :- e; S.pred__ :- e
+      end
+   end include;
+
+   procedure remove(X); ref(elem__) X;
+      if X =/= none then
+      begin
+         if X.owner__ =/= none then
+         begin
+            X.pred__.suc__ :- X.suc__; X.suc__.pred__ :- X.pred__;
+            X.suc__ :- X.pred__ :- none; X.owner__ :- none
+         end
+      end remove;
+
+   boolean procedure member(X, S); ref(elem__) X; ref(set__) S;
+   begin ref(elem__) e;
+      if X =/= none then
+      begin
+         e :- S.suc__;
+         while e =/= S do
+         begin
+            if e.p__ == X.p__ then begin member := true; goto found__ end;
+            e :- e.suc__
+         end
+      end;
+   found__:
+   end member;
+
+   procedure clear(S); ref(set__) S; while S.suc__ =/= S do remove(S.suc__);
+
+   comment --- the sequencing set (SQS) and processes;
+   class evnote__(evtime__, proc__); real evtime__; ref(activity__) proc__;
+   begin ref(evnote__) suc__, pred__ end;
+
+   ref(evnote__) sqs__;
+   ref(activity__) mainp__;
+
+   procedure insafter__(ev, pos); ref(evnote__) ev, pos;
+   begin ev.pred__ :- pos; ev.suc__ :- pos.suc__; pos.suc__.pred__ :- ev; pos.suc__ :- ev end;
+
+   procedure out__(ev); ref(evnote__) ev;
+   begin ev.pred__.suc__ :- ev.suc__; ev.suc__.pred__ :- ev.pred__; ev.suc__ :- ev.pred__ :- none end;
+
+   procedure rank__(ev, afore); ref(evnote__) ev; boolean afore;
+   begin ref(evnote__) e;
+      e :- sqs__.pred__;
+      while e =/= sqs__ and then e.evtime__ > ev.evtime__ do e :- e.pred__;
+      if afore then
+         while e =/= sqs__ and then e.evtime__ = ev.evtime__ do e :- e.pred__;
+      insafter__(ev, e)
+   end rank__;
+
+   class activity__;
+   begin ref(evnote__) event__; boolean terminated__; ref(elem__) self__;
+      self__ :- new elem__(this activity__);
+      detach;
+      inner;
+      terminated__ := true;
+      passivate;
+      error("a terminated process was reactivated")
+   end activity__;
+
+   ref(evnote__) procedure firstev__;
+   begin
+      if sqs__ == none then error("Simula I statement outside a SIMULA block");
+      firstev__ :- sqs__.suc__
+   end;
+   ref(activity__) procedure proc__(X); ref(elem__) X; proc__ :- if X == none then none else X.p__;
+   ref(elem__) procedure selfelem__(p); ref(activity__) p; selfelem__ :- p.self__;
+   ref(elem__) procedure current; current :- firstev__.proc__.self__;
+   real procedure time; time := firstev__.evtime__;
+
+   boolean procedure idle(X); ref(elem__) X;
+      idle := if proc__(X) == none then true else proc__(X).event__ == none;
+   boolean procedure terminated(X); ref(elem__) X;
+      terminated := if proc__(X) == none then false else proc__(X).terminated__;
+   real procedure evtime(X); ref(elem__) X;
+      if idle(X) then error("evtime: the process is idle") else evtime := X.p__.event__.evtime__;
+   ref(elem__) procedure nextev(X); ref(elem__) X;
+      nextev :- if idle(X) then none
+                else if X.p__.event__.suc__ == sqs__ then none
+                else X.p__.event__.suc__.proc__.self__;
+
+   procedure activat__(reac, x, code, t, y, prio);
+      value code; ref(activity__) x, y; boolean reac, prio; text code; real t;
+   if x =/= none then inspect x do if not terminated__ then
+   begin ref(activity__) z; ref(evnote__) ev;
+      if reac then ev :- event__
+      else if event__ =/= none then goto exit;
+      z :- firstev__.proc__;
+      if code = "direct" then
+direct:  begin
+            event__ :- new evnote__(time, x);
+            insafter__(event__, sqs__)
+         end
+      else if code = "delay" then
+         begin t := t + time; goto at_ end
+      else if code = "at" then
+at_:     begin
+            if t < time then t := time;
+            if t = time and prio then goto direct;
+            event__ :- new evnote__(t, x);
+            rank__(event__, prio)
+         end
+      else if y == none or else y.event__ == none then event__ :- none
+      else
+         begin
+            if x == y then goto exit;
+            event__ :- new evnote__(y.event__.evtime__, x);
+            if code = "before" then insafter__(event__, y.event__.pred__)
+            else insafter__(event__, y.event__)
+         end;
+      if ev =/= none then
+      begin
+         out__(ev);
+         if sqs__.suc__ == sqs__ then error("reactivate: the sequencing set is empty")
+      end;
+      if z =/= firstev__.proc__ then resume(firstev__.proc__);
+exit:
+   end activat__;
+
+   procedure hold(t); real t;
+   begin ref(evnote__) ev;
+      ev :- firstev__;
+      if t > 0 then ev.evtime__ := ev.evtime__ + t;
+      if ev.suc__ =/= sqs__ and then ev.suc__.evtime__ <= ev.evtime__ then
+      begin out__(ev); rank__(ev, false); resume(firstev__.proc__) end
+   end hold;
+
+   procedure passivate;
+   begin ref(activity__) c;
+      c :- firstev__.proc__;
+      out__(c.event__); c.event__ :- none;
+      if sqs__.suc__ == sqs__ then error("passivate: no process left to activate (SQS empty)")
+      else resume(firstev__.proc__)
+   end passivate;
+
+   procedure wait(S); ref(set__) S;
+   begin include(current, S); passivate end;
+
+   procedure cancel(X); ref(elem__) X;
+   begin ref(activity__) p;
+      p :- proc__(X);
+      if p == firstev__.proc__ then passivate
+      else if p =/= none then
+      begin
+         if p.event__ =/= none then begin out__(p.event__); p.event__ :- none end
+      end
+   end cancel;
+
+   comment --- the SIMULA block;
+   class simula;
+   begin
+      activity__ class main_program__;
+      begin while true do detach end;
+      sqs__ :- new evnote__(-1, none);
+      sqs__.suc__ :- sqs__.pred__ :- sqs__;
+      mainp__ :- new main_program__;
+      mainp__.event__ :- new evnote__(0, mainp__);
+      insafter__(mainp__.event__, sqs__)
+   end simula;
+
+   comment --- random drawing (the integer seed U is called by name);
+   boolean procedure draw(a, U); name U; real a; integer U;
+   begin U := __rnext(U); draw := __rfrac(U) < a end;
+
+   integer procedure randint(a, b, U); name U; integer a, b, U;
+   begin
+      if b < a then error("randint: upper bound lower than the lower bound");
+      U := __rnext(U);
+      randint := entier(__rfrac(U) * (b - a + 1.0)) + a
+   end;
+
+   real procedure uniform(a, b, U); name U; real a, b; integer U;
+   begin
+      if b < a then error("uniform: upper bound lower than the lower bound");
+      U := __rnext(U);
+      uniform := a + (b - a) * __rfrac(U)
+   end;
+
+   real procedure normal(a, b, U); name U; real a, b; integer U;
+   begin U := __rnext(U); normal := a + b * __invnorm(__rfrac(U)) end;
+
+   real procedure negexp(a, U); name U; real a; integer U;
+   begin
+      if a <= 0 then error("negexp: the parameter must be positive");
+      U := __rnext(U);
+      negexp := - __lnr(__rfrac(U)) / a
+   end;
+
+   integer procedure poisson(a, U); name U; real a; integer U;
+   begin integer n; real lim, p;
+      if a > 20 then
+      begin
+         U := __rnext(U);
+         n := entier(a + sqrt(a) * __invnorm(__rfrac(U)) + 0.5);
+         if n < 0 then n := 0;
+         poisson := n
+      end
+      else
+      begin
+         lim := exp(-a);
+         U := __rnext(U); p := __rfrac(U);
+         while p >= lim do
+         begin n := n + 1; U := __rnext(U); p := p * __rfrac(U) end;
+         poisson := n
+      end
+   end;
+
+   integer procedure discrete(A, U); name U; real array A; integer U;
+   begin integer i, ub; real u;
+      ub := upperbound(A, 1);
+      U := __rnext(U); u := __rfrac(U);
+      i := lowerbound(A, 1);
+      while i <= ub and then A(i) <= u do i := i + 1;
+      discrete := i
+   end;
+
+   integer procedure histd(A, U); name U; real array A; integer U;
+   begin integer i, lb, ub; real s, u, acc;
+      lb := lowerbound(A, 1); ub := upperbound(A, 1);
+      for i := lb step 1 until ub do s := s + A(i);
+      U := __rnext(U); u := __rfrac(U) * s;
+      i := lb; acc := A(lb);
+      while acc <= u and i < ub do begin i := i + 1; acc := acc + A(i) end;
+      histd := i
+   end;

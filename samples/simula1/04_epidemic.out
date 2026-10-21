@@ -1,0 +1,12 @@
+day 0 susceptible 40 sick 0 immune 0 
+day 2 susceptible 38 sick 2 immune 0 
+day 4 susceptible 38 sick 1 immune 1 
+day 6 susceptible 33 sick 6 immune 1 
+day 8 susceptible 28 sick 10 immune 2 
+day 10 susceptible 20 sick 15 immune 5 
+day 12 susceptible 9 sick 23 immune 8 
+day 14 susceptible 4 sick 19 immune 17 
+day 16 susceptible 4 sick 7 immune 29 
+day 18 susceptible 3 sick 4 immune 33 
+day 20 susceptible 3 sick 0 immune 37 
+never infected: 3 

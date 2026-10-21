@@ -176,7 +176,7 @@ public sealed partial class SimCompiler
                 else { Err(spec.Pos, $"call by value not allowed for '{spec.Orig}'"); ps.Mode = ParamMode.Default; }
                 break;
             default:
-                if (dialect != Dialect.Simula67)
+                if (dialect != Dialect.Simula67 && !ps.IsClassParam && ps.Pos.File != preludeFile)
                 {
                     // Algol 60: parameters not in the value part are called by name;
                     // for arrays and procedures, name and reference are equivalent

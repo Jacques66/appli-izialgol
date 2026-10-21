@@ -1,0 +1,8 @@
+hospital    :1 2 3 4 5 6 
+emergency   :2 5 
+consultation:1 3 4 6 
+after treating the first emergency patient
+hospital    :1 2 3 4 5 6 
+emergency   :5 
+still in the hospital set: yes
+sizes: 6 1 4 

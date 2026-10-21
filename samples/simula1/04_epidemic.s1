@@ -1,0 +1,59 @@
+comment A small epidemic model: every day each infectious person meets a few
+        people of the population at random. When the person met is still
+        susceptible, the disease is passed on with a given probability (draw). An infected person is sick for a
+        random number of days (randint) and is then immune. A daily reporter
+        process prints the state of the population;
+SIMULA begin
+   integer U, susceptible, sick, immune;
+   set healthy;
+
+   activity person(id); integer id;
+   begin integer k, n, d, days; element other;
+      include(current, healthy);
+      passivate;
+      comment infected;
+      sick := sick + 1; susceptible := susceptible - 1;
+      days := randint(3, 6, U);
+      for d := 1 step 1 until days do
+      begin
+         n := randint(0, 2, U);
+         for k := 1 step 1 until n do
+         begin
+            other := first(healthy);
+            if exist(other) then
+               if draw(susceptible / 40, U) ∧ draw(0.5, U) then
+               begin
+                  remove(other);
+                  activate other delay 0.5
+               end
+         end;
+         hold(1)
+      end;
+      sick := sick - 1; immune := immune + 1
+   end of person;
+
+   activity reporter;
+   begin
+      while true do
+      begin
+         outstring(1, "day "); outinteger(1, entier(time + 0.5));
+         outstring(1, "susceptible "); outinteger(1, susceptible);
+         outstring(1, "sick "); outinteger(1, sick);
+         outstring(1, "immune "); outinteger(1, immune); outstring(1, "\n");
+         if sick = 0 ∧ time > 0 then passivate;
+         hold(2)
+      end
+   end of reporter;
+
+   integer i;
+   element patientzero;
+   U := 2024;
+   susceptible := 40;
+   for i := 1 step 1 until 40 do activate new person(i);
+   patientzero := first(healthy);
+   remove(patientzero);
+   activate patientzero delay 0.25;
+   activate new reporter;
+   hold(200);
+   outstring(1, "never infected: "); outinteger(1, susceptible); outstring(1, "\n")
+end of simulation model

@@ -277,6 +277,8 @@ public sealed class EditorDocument : INotifyPropertyChanged
     {
         "simula" => string.Equals(w, "end", StringComparison.OrdinalIgnoreCase),
         "algol68" => w is "END" or "FI" or "OD" or "ESAC" or "ELSE" or "ELIF" or "THEN" or "OUT" or "OUSE",
+        // Algol 60 / Simula I: also 'END (quote stropping)
+        "algol60" or "simula1" => string.Equals(w.TrimStart('\''), "end", StringComparison.OrdinalIgnoreCase),
         _ => string.Equals(w, "end", StringComparison.OrdinalIgnoreCase),
     };
 
@@ -334,12 +336,13 @@ public sealed class EditorDocument : INotifyPropertyChanged
         var nonEmpty = lines.Where(l => doc.GetText(l).Trim().Length > 0).ToList();
         if (nonEmpty.Count == 0) return;
         bool doComment = comment ?? !nonEmpty.All(l => _language.IsCommentedLine(doc.GetText(l)));
+        var documentText = doc.Text;
         using (doc.RunUpdate())
         {
             foreach (var l in nonEmpty)
             {
                 var t = doc.GetText(l);
-                var nt = doComment ? _language.CommentLine(t) : _language.UncommentLine(t);
+                var nt = doComment ? _language.CommentLine(t, documentText) : _language.UncommentLine(t);
                 if (nt != t) doc.Replace(l.Offset, l.Length, nt);
             }
         }

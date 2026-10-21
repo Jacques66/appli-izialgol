@@ -1,0 +1,22 @@
+cardinal(all) = 3 
+idle(w1) = true
+worker 1 starts at 0.0 
+evtime(s) = 100.0000000000000 
+worker 2 starts at 1.000000000000000 
+cardinal(queue) = 2 
+member(w1, all) = true
+idle(s) after cancel = true
+empty(queue) = true
+at 3 at 3.000000000000000 
+before w1 at 3.000000000000000 
+worker 1 resumed at 3.000000000000000 
+after w1 at 3.000000000000000 
+worker 2 resumed at 3.000000000000000 
+worker 1 ends at 8.000000000000000 
+worker 2 ends at 8.000000000000000 
+terminated(w1) = true
+a worker: 1 
+a worker: 2 
+not a worker
+cardinal(all) after clear = 0 
+random: 6 

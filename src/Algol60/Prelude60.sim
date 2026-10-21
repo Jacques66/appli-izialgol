@@ -1,8 +1,8 @@
 begin
    comment ==================================================================
            Environmental block of Algol 60 (Modified Report, 1976, appendix 2).
-           Written in Simula syntax and compiled with the Algol 60 rules
-           (parameters not in a value part are called by name).
+           Written in Simula syntax: transmission modes follow the Simula rules
+           (the name parts are explicit).
            Identifiers ending in __ are internal.
            ==================================================================;
 
@@ -28,7 +28,7 @@ begin
    procedure fault(str, r); value r; text str; real r; __a60_fault(str, r);
 
    comment --- input/output procedures (every channel is the console);
-   procedure inchar(channel, str, int); value channel; integer channel, int; text str;
+   procedure inchar(channel, str, int); value channel; name int; integer channel, int; text str;
    begin integer c;
       c := __a60_inchar(channel);
       int := if c < 0 then 0 else __a60_index(str, c)
@@ -46,7 +46,7 @@ begin
    procedure outterminator(channel); value channel; integer channel;
       __a60_out(channel, " ");
 
-   procedure ininteger(channel, int); value channel; integer channel, int;
+   procedure ininteger(channel, int); value channel; name int; integer channel, int;
       int := __a60_readint(channel);
 
    procedure outinteger(channel, int); value channel, int; integer channel, int;
@@ -72,13 +72,11 @@ begin
    done__:
    end outinteger;
 
-   procedure inreal(channel, re); value channel; integer channel; real re;
+   procedure inreal(channel, re); value channel; name re; integer channel; real re;
       re := __a60_readreal(channel);
 
    procedure outreal(channel, re); value channel, re; integer channel; real re;
-   begin integer n;
-      comment n gives the number of digits to print;
-      n := entier(1.0 - ln(epsilon) / ln(10.0));
+   begin
       if re < 0.0 then
       begin
          outchar(channel, "-", 1);
@@ -87,66 +85,7 @@ begin
       if re < minreal then
          outstring(channel, "0.0 ")
       else
-      begin
-         integer j, k, m, p;
-         boolean float, nines;
-         comment m will hold the number of places the point must be moved to
-                 standardise the value of re to have one digit before the point;
-         m := 0;
-         for m := m + 1 while re >= 10.0 do
-            re := re / 10.0;
-         for m := m - 1 while re < 1.0 do
-            re := 10.0 * re;
-         if re >= 10.0 then
-         begin
-            comment this can occur only by rounding error;
-            re := 1.0;
-            m := m + 1
-         end;
-         if m >= n or m < -2 then
-         begin
-            comment printing in exponent form;
-            float := true;
-            p := 1
-         end
-         else
-         begin
-            comment printing in non-exponent form: if p = 0 the point is not
-                    printed, otherwise the point is printed after p digits;
-            float := false;
-            p := if m = n - 1 or m < 0 then 0 else m + 1;
-            if m < 0 then
-            begin
-               outstring(channel, "0.");
-               if m = -2 then outchar(channel, "0", 1)
-            end
-         end;
-         nines := false;
-         for j := 1 step 1 until n do
-         begin
-            if nines then k := 9
-            else
-            begin
-               k := entier(re);
-               if k > 9 then
-               begin
-                  k := 9;
-                  nines := true
-               end
-               else
-                  re := 10.0 * (re - k)
-            end;
-            outchar(channel, "0123456789", k + 1);
-            if j = p then outchar(channel, ".", 1)
-         end;
-         if float then
-         begin
-            outchar(channel, "e", 1);
-            outinteger(channel, m)
-         end
-         else
-            outterminator(channel)
-      end
+         outstring(channel, __a60_realtext(re))
    end outreal;
 
    comment --- environmental enquiries;

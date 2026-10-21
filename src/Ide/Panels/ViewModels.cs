@@ -183,11 +183,13 @@ public sealed class FileNode : Observable
     public ObservableCollection<FileNode> Children { get; } = new();
 
     public string Extension => IsDirectory ? "" : System.IO.Path.GetExtension(FullPath).ToLowerInvariant();
-    public string Badge => IsDirectory ? "" : Extension switch { ".sim" => "S", ".a68" => "A", ".echo" => "E", ".md" => "M", _ => "" };
+    public string Badge => IsDirectory ? "" : Extension switch { ".sim" => "S", ".a68" => "A", ".a60" or ".alg" => "A", ".s1" => "S", ".echo" => "E", ".md" => "M", _ => "" };
     public Brush IconBrush => (Brush)Application.Current.Resources[IsDirectory ? "Brush.IconYellow" : Extension switch
     {
         ".sim" => "Brush.IconBlue",
         ".a68" => "Brush.IconGreen",
+        ".a60" or ".alg" => "Brush.IconOrange",
+        ".s1" => "Brush.IconRed",
         ".echo" => "Brush.IconPurple",
         _ => "Brush.IconGray",
     }];

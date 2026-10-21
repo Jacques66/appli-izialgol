@@ -229,7 +229,7 @@ public sealed class UnExpr : Expr { public T Op; public Expr E = null!; }   // P
 
 public sealed class IfExpr : Expr { public Expr Cond = null!, Then = null!, Else = null!; }
 
-public sealed class NewExpr : Expr { public string Class = "", Orig = ""; public List<Expr> Args = new(); }
+public sealed class NewExpr : Expr { public string Class = "", Orig = ""; public List<Expr> Args = new(); public bool ElementWrapped; }
 
 public sealed class ThisExpr : Expr { public string Class = "", Orig = ""; }
 

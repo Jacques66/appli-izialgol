@@ -1,0 +1,55 @@
+comment Simula I features: multi-membership sets, wait, cancel, reactivate,
+        before/after, idle/terminated, evtime, nextev, inspect otherwise;
+SIMULA begin
+   activity worker(id); integer id;
+   begin
+      outstring(1, "worker "); outinteger(1, id); outstring(1, "starts at "); outreal(1, time); outstring(1, "\n");
+      wait(queue);
+      outstring(1, "worker "); outinteger(1, id); outstring(1, "resumed at "); outreal(1, time); outstring(1, "\n");
+      hold(5);
+      outstring(1, "worker "); outinteger(1, id); outstring(1, "ends at "); outreal(1, time); outstring(1, "\n")
+   end of worker;
+
+   activity sleeper;
+   begin hold(100); outstring(1, "sleeper should have been cancelled\n") end;
+
+   activity marker(name); string name;
+   begin outstring(1, name); outstring(1, " at "); outreal(1, time); outstring(1, "\n") end;
+
+   set queue, all;
+   element w1, w2, s, e, m;
+   integer n;
+
+   w1 := new worker(1); w2 := new worker(2); s := new sleeper;
+   include(w1, all); include(w2, all); include(s, all);
+   outstring(1, "cardinal(all) = "); outinteger(1, cardinal(all)); outstring(1, "\n");
+   outstring(1, "idle(w1) = "); outstring(1, if idle(w1) then "true" else "false"); outstring(1, "\n");
+   activate w1; activate w2 delay 1; activate s;
+   outstring(1, "evtime(s) = "); outreal(1, evtime(s)); outstring(1, "\n");
+   hold(2);
+   outstring(1, "cardinal(queue) = "); outinteger(1, cardinal(queue)); outstring(1, "\n");
+   outstring(1, "member(w1, all) = "); outstring(1, if member(w1, all) then "true" else "false"); outstring(1, "\n");
+   cancel(s);
+   outstring(1, "idle(s) after cancel = "); outstring(1, if idle(s) then "true" else "false"); outstring(1, "\n");
+   e := first(queue);
+   while exist(e) do
+   begin m := suc(e); remove(e); activate e delay 1; e := m end;
+   outstring(1, "empty(queue) = "); outstring(1, if empty(queue) then "true" else "false"); outstring(1, "\n");
+   m := new marker("after w1");
+   activate m after w1;
+   activate new marker("before w1") before w1;
+   activate new marker("at 3") at 3 prior;
+   hold(20);
+   outstring(1, "terminated(w1) = "); outstring(1, if terminated(w1) then "true" else "false"); outstring(1, "\n");
+   e := first(all);
+   while exist(e) do
+   begin
+      inspect e when worker do begin outstring(1, "a worker: "); outinteger(1, id); outstring(1, "\n") end
+      otherwise outstring(1, "not a worker\n");
+      e := suc(e)
+   end;
+   clear(all);
+   outstring(1, "cardinal(all) after clear = "); outinteger(1, cardinal(all)); outstring(1, "\n");
+   n := 7;
+   outstring(1, "random: "); outinteger(1, randint(1, 6, n)); outstring(1, "\n")
+end

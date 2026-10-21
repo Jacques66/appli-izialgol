@@ -181,7 +181,13 @@ public sealed partial class SimCompiler
             Convert(from, to, pos);
             return to;
         }
-        if (to.IsRef) { Err(pos, "reference assignment: use ':-', not ':='"); return to; }
+        if (to.IsRef)
+        {
+            // Simula I has only one assignment operator for element pointers
+            if (dialect == Dialect.SimulaI) { Convert(from, to, pos); return to; }
+            Err(pos, "reference assignment: use ':-', not ':='");
+            return to;
+        }
         if (to.B == BaseType.Text)
         {
             if (from.B != BaseType.Text) Err(pos, $"text assignment: text expected (found {from})");
@@ -305,7 +311,14 @@ public sealed partial class SimCompiler
             case UnExpr ue: return EmitUnary(ue);
             case BinExpr be: return EmitBinary(be);
             case IfExpr ie: return EmitIfExpr(ie);
-            case NewExpr ne: return EmitNew(ne);
+            case NewExpr ne:
+                if (dialect == Dialect.SimulaI && !ne.ElementWrapped && ne.Pos.File != preludeFile && IsActivityClass(ne.Class))
+                {
+                    // Simula I: a generator yields an element pointer to the new process
+                    ne.ElementWrapped = true;
+                    return EmitExpr(SimulaICall("selfelem__", ne));
+                }
+                return EmitNew(ne);
             case ThisExpr te: return EmitThis(te);
             case QuaExpr qe:
                 {
@@ -438,7 +451,13 @@ public sealed partial class SimCompiler
                     else if (l.B == BaseType.Boolean && r.B == BaseType.Boolean && be.Op is T.Eq or T.Ne) E(Op.CmpI, rel);
                     else if (l.IsRef && r.IsRef && be.Op is T.Eq or T.Ne)
                     {
-                        Err(be.Pos, "object comparison: use '==' or '=/='");
+                        if (dialect == Dialect.SimulaI)
+                        {
+                            // Simula I: two elements are equal when they represent the same process
+                            E(Op.Native, Natives.Id("__s1_same"), 2);
+                            if (be.Op == T.Ne) E(Op.Not);
+                        }
+                        else Err(be.Pos, "object comparison: use '==' or '=/='");
                     }
                     else Err(be.Pos, $"cannot compare {l} and {r}");
                     return SType.Bool;
@@ -567,4 +586,20 @@ public sealed partial class SimCompiler
         }
         for (int i = 0; i < args.Count; i++) EmitDirectArg(ps[i], args[i]);
     }
+
+    // ================================================================ Simula I
+
+    bool IsActivityClass(string name)
+    {
+        if (!env.Syms.TryGetValue("activity__", out var a) || a is not ClassSym act) return false;
+        var f = Lookup(name, g.Scope, SrcPos.None, quiet: true);
+        return f?.Sym is ClassSym c && c.IsSubclassOf(act);
+    }
+
+    static CallExpr SimulaICall(string proc, Expr arg) =>
+        new() { Fn = new Ident { Name = proc, Orig = proc, Pos = arg.Pos }, Args = { arg }, Pos = arg.Pos };
+
+    /// <summary>Simula I: the process designated by an element pointer (none for none).</summary>
+    Expr SimulaIProcess(Expr element) =>
+        element is CallExpr { Fn: Ident { Name: "proc__" } } ? element : SimulaICall("proc__", element);
 }

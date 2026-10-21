@@ -1,0 +1,41 @@
+comment In Simula I a process may belong to several sets at the same time: each
+        include creates a new element that refers to the same process. Here
+        patients are registered in the hospital set and also queue in the
+        waiting room of their doctor. Leaving one set does not affect the other;
+SIMULA begin
+   activity patient(id, urgent); integer id; Boolean urgent;
+   begin
+      include(current, hospital);
+      include(current, if urgent then emergency else consultation);
+      passivate
+   end of patient;
+
+   procedure list(S, name); set S; string name;
+   begin element E;
+      outstring(1, name); outstring(1, ":");
+      E := first(S);
+      while exist(E) do
+      begin
+         inspect E when patient do outinteger(1, id);
+         E := suc(E)
+      end;
+      outstring(1, "\n")
+   end list;
+
+   set hospital, emergency, consultation;
+   element E;
+   integer i;
+
+   for i := 1 step 1 until 6 do activate new patient(i, i = 2 ∨ i = 5);
+   list(hospital, "hospital    "); list(emergency, "emergency   "); list(consultation, "consultation");
+
+   comment the first emergency patient is treated: leaves the emergency queue only;
+   E := first(emergency);
+   remove(E);
+   outstring(1, "after treating the first emergency patient\n");
+   list(hospital, "hospital    "); list(emergency, "emergency   ");
+   outstring(1, "still in the hospital set: ");
+   outstring(1, if member(E, hospital) then "yes\n" else "no\n");
+   outstring(1, "sizes: "); outinteger(1, cardinal(hospital)); outinteger(1, cardinal(emergency));
+   outinteger(1, cardinal(consultation)); outstring(1, "\n")
+end of simulation model

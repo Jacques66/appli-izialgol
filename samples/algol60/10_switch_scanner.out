@@ -1,0 +1,8 @@
+12 is a number
+3.75 is a number
+1.5e3 is a number
+7. is not a number
+e5 is not a number
+2e is not a number
+0.5e12 is a number
+done

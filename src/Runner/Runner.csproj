@@ -1,9 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\Simula\Simula.csproj" />
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
+    <ProjectReference Include="..\Algol60\Algol60.csproj" />
+    <ProjectReference Include="..\SimulaI\SimulaI.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

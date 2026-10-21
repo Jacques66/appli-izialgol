@@ -15,12 +15,13 @@
         <TextBlock TextWrapping="Wrap" Margin="0,18,0,0">
             Integrated development environment for Simula 67 (Dahl and Nygaard, 1967 — the first object-oriented
             language: classes, inheritance, coroutines, simulation) and Algol 68 (van Wijngaarden et al., 1968 — modes,
-            operators, orthogonality).
+            operators, orthogonality), with their ancestors Algol 60 (Revised Report, 1963) and Simula I (Dahl and
+            Nygaard, 1965 — discrete event simulation).
         </TextBlock>
         <TextBlock TextWrapping="Wrap" Margin="0,10,0,0">
             Editor with syntax highlighting, folding and completion; compilation, error list, integrated console,
             debugger (breakpoints, stepping, call stack, variables) and generation of standalone Windows executables.
-            Command-line tools: simc (Simula 67) and a68c (Algol 68).
+            Command-line tools: simc (Simula 67), a68c (Algol 68), a60c (Algol 60) and s1c (Simula I).
         </TextBlock>
         <TextBlock x:Name="RuntimeText" TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{DynamicResource Brush.TextDim}"/>
         <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{DynamicResource Brush.TextDim}">

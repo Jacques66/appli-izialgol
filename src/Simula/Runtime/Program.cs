@@ -5,7 +5,7 @@ public enum Op
     Nop,
     // constants and stack
     PushI,          // v
-    PushR,          // idx (constante reelle)
+    PushR,          // idx (real constant)
     PushNone,
     PushText,       // idx (text constant)
     Pop,
@@ -28,9 +28,9 @@ public enum Op
     RetThunkSet,            // end of a thunk in assignment mode
     // conversions
     I2R, I2RU, R2I, I2S, R2S, CloneT, CopyT, CopyArr,
-    ChkQual,                // classId : verifie l'appartenance (none permis)
+    ChkQual,                // classId: checks the membership (none allowed)
     ChkArr,                 // elemType dims
-    // arithmetique
+    // arithmetic
     AddI, SubI, MulI, DivI, NegI, PowII,
     AddR, SubR, MulR, DivR, NegR, PowRR, PowRI,
     CmpI,                   // rel
@@ -42,7 +42,7 @@ public enum Op
     Concat,                 // n
     TAssign, TAssignK,      // text value assignment
     StepTest,               // isReal : [delta c limit] -> bool
-    // controle
+    // control
     Jmp, Jf, Jt,            // pc
     JmpSlot,                // slot: jump to the address held in the variable
     Stmt,                   // line col
@@ -59,7 +59,7 @@ public enum Op
     SwitchSel,              // index on the stack, SwitchValue below -> LabelValue
     SwitchSelL,             // unit hops; index on the stack
     RetSwitch,
-    // appels
+    // calls
     Call,                   // proc hops argc flags  (hops -1 : environnement)
     CallR,                  // proc argc flags (object below the arguments)
     CallV,                  // vidx argc flags generic (object below the arguments)
@@ -69,7 +69,7 @@ public enum Op
     MkProcV,                // vidx  (object on the stack)
     Ret,
     Native,                 // id argc
-    // objets
+    // objects
     New,                    // class hops argc
     NewS,                   // class argc (static frame below the arguments)
     NewBlk,                 // class hops argc
@@ -129,7 +129,7 @@ public sealed class ProcInfo
     public string Name = "";
     public CodeUnit Unit = null!;
     public int NParams;
-    public byte ResultType;      // BaseType ; 0 = procedure propre
+    public byte ResultType;      // BaseType; 0 = proper procedure
     public int ResultSlot = -1;
     public ClassInfo? ResultQual;
 }
@@ -154,6 +154,7 @@ public sealed class ClassInfo
     public bool IsPrefixedBlock;
     public ClassInfo[] Chain = Array.Empty<ClassInfo>();   // Chain[k] = prefix of level k
     public List<VarDebug> Attrs = new();
+    public List<VarDebug> AllAttrs = new();   // including internal attributes
 
     public bool IsSubclassOf(ClassInfo c) => c.Level <= Level && Chain[c.Level] == c;
 }

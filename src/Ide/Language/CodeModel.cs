@@ -82,6 +82,8 @@ public abstract class LanguageDefinition
     public abstract string Id { get; }
     public abstract string DisplayName { get; }
     public abstract string DefaultExtension { get; }
+    /// <summary>All the file extensions of the language (lower case, with the dot).</summary>
+    public virtual IReadOnlyList<string> Extensions => new[] { DefaultExtension };
     public abstract bool CaseSensitive { get; }
     /// <summary>Words offered by auto-completion (keywords, standard procedures).</summary>
     public abstract IReadOnlyList<string> CompletionWords { get; }
@@ -161,6 +163,8 @@ public abstract class LanguageDefinition
     // ---- Line comments ----
 
     public abstract string CommentLine(string line);
+    /// <summary>Comments a line of the given document (for languages whose comment syntax depends on the whole text).</summary>
+    public virtual string CommentLine(string line, string documentText) => CommentLine(line);
     public abstract bool IsCommentedLine(string line);
     public abstract string UncommentLine(string line);
 
@@ -196,9 +200,11 @@ public static class LanguageDefinitions
 {
     public static readonly SimulaDefinition Simula = new();
     public static readonly Algol68Definition Algol68 = new();
+    public static readonly Algol60Definition Algol60 = new();
+    public static readonly SimulaIDefinition SimulaI = new();
     public static readonly EchoDefinition Echo = new();
 
-    public static IReadOnlyList<LanguageDefinition> All { get; } = new LanguageDefinition[] { Simula, Algol68, Echo };
+    public static IReadOnlyList<LanguageDefinition> All { get; } = new LanguageDefinition[] { Simula, Algol68, Algol60, SimulaI, Echo };
 
     public static LanguageDefinition? ById(string id) =>
         All.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.OrdinalIgnoreCase));
@@ -207,6 +213,6 @@ public static class LanguageDefinitions
     {
         if (string.IsNullOrEmpty(path)) return null;
         var ext = Path.GetExtension(path).ToLowerInvariant();
-        return All.FirstOrDefault(l => l.DefaultExtension == ext);
+        return All.FirstOrDefault(l => l.Extensions.Contains(ext));
     }
 }

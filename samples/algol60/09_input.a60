@@ -1,0 +1,17 @@
+comment Reading numbers with ininteger and inreal: mean and maximum of a series
+        (the input comes from 09_input.in, or from the console in the IDE);
+begin
+   integer n, i;
+   real x, s, max;
+   ininteger(0, n);
+   s := 0; max := -maxreal;
+   for i := 1 step 1 until n do
+   begin
+      inreal(0, x);
+      s := s + x;
+      if x > max then max := x
+   end;
+   outstring(1, "count:   "); outinteger(1, n); outstring(1, "\n");
+   outstring(1, "mean:    "); outreal(1, s / n); outstring(1, "\n");
+   outstring(1, "maximum: "); outreal(1, max); outstring(1, "\n")
+end

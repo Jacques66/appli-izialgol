@@ -1,7 +1,8 @@
 // End-to-end tests of the tooling (without the real compilers):
 // "echo" test language, debugger, standalone exe through Runner, CLI, editor analysis.
 // Usage: dotnet run --project tests/IdeTests [-- --samples]
-//   --samples: also compiles and runs samples/simula and samples/algol68 with the real compilers.
+//   --samples: also compiles and runs samples/simula, samples/algol68, samples/algol60 and samples/simula1
+//   with the real compilers (the Algol 60 and Simula I samples are always checked against their .out files).
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -40,13 +41,19 @@ static class Program
         Test("standalone exe: generation + execution + standard input", ExeEndToEnd);
         Test("standalone exe: runtime error on stderr, exit code", ExeRuntimeError);
         Test("standalone exe: program exit code", ExeExitCode);
-        Test("simc / a68c: usage, file not found, diagnostics", CliBasics);
+        Test("simc / a68c / a60c / s1c: usage, file not found, diagnostics", CliBasics);
         Test("Simula editor: tokens and comments", SimulaLexer);
         Test("Simula editor: folding, matching, outline", SimulaStructure);
         Test("Algol 68 editor: UPPER/QUOTE stropping, comments", AlgolLexer);
         Test("Algol 68 editor: folding, matching, outline", AlgolStructure);
+        Test("Algol 60 editor: reserved words, quote stropping, comments, strings", Algol60Lexer);
+        Test("Algol 60 editor: folding, matching, outline", Algol60Structure);
+        Test("Simula I editor: keywords, end comments, folding, outline", SimulaILexerAndStructure);
+        Test("editor: languages by file extension", LanguagesByExtension);
         Test("editor: automatic indentation", Indentation);
         Test("editor: comment / uncomment", CommentToggle);
+        Test("Algol 60 samples: compile, run, compare with .out", () => CheckSamples("algol60", ".a60"));
+        Test("Simula I samples: compile, run, compare with .out", () => CheckSamples("simula1", ".s1"));
 
         if (args.Contains("--samples")) Samples();
 
@@ -461,7 +468,7 @@ static class Program
 
     static void CliBasics()
     {
-        foreach (var (proj, exe, ext) in new[] { ("SimC", "simc.exe", ".sim"), ("A68C", "a68c.exe", ".a68") })
+        foreach (var (proj, exe, ext) in new[] { ("SimC", "simc.exe", ".sim"), ("A68C", "a68c.exe", ".a68"), ("A60C", "a60c.exe", ".a60"), ("S1C", "s1c.exe", ".s1") })
         {
             var tool = FindTool(proj, exe);
             Check(tool != null, exe + " not found");
@@ -593,6 +600,131 @@ static class Program
         Check(m.PairOf.TryGetValue(ifIdx, out var fi) && m.Tokens[fi].Norm == "FI", "IF/FI matching");
     }
 
+    static void Algol60Lexer()
+    {
+        var d = LanguageDefinitions.Algol60;
+        var t = Toks(d, "Begin Integer i; Boolean b; comment ignored text; i := 3 × 2 ↑ 2; x := 1.5⏨-3 + 2.0e4 + 3&2; " +
+                        "outstring(1, \"a\\\"b\\n\"); outstring(1, `outer `inner' text'); b := i ≤ 2 ∧ ¬ b; end main block");
+        Check(t.Contains((TokenKind.Keyword, "Begin")), "Begin keyword (case-insensitive)");
+        Check(t.Contains((TokenKind.Type, "Integer")) && t.Contains((TokenKind.Type, "Boolean")), "types");
+        Check(t.Contains((TokenKind.Comment, "comment ignored text;")), "comment ... ;");
+        Check(t.Contains((TokenKind.Number, "1.5⏨-3")) && t.Contains((TokenKind.Number, "2.0e4")) && t.Contains((TokenKind.Number, "3&2")), "reals with ⏨, e, &");
+        Check(t.Contains((TokenKind.String, "\"a\\\"b\\n\"")), "string with backslash escapes");
+        Check(t.Contains((TokenKind.String, "`outer `inner' text'")), "nested `...' string");
+        Check(t.Contains((TokenKind.Builtin, "outstring")), "standard outstring");
+        Check(t.Contains((TokenKind.Operator, "×")) && t.Contains((TokenKind.Operator, "↑")) && t.Contains((TokenKind.Operator, "≤")), "publication symbols");
+        Check(t.Contains((TokenKind.Comment, "main block")), "comment after end");
+        var t2 = Toks(d, "if a then begin x := 1 end remark else y := ‘text’;");
+        Check(t2.Contains((TokenKind.Comment, "remark")), "end comment up to else");
+        Check(t2.Contains((TokenKind.Keyword, "else")), "else stays a keyword");
+        Check(t2.Contains((TokenKind.String, "‘text’")), "‘...’ string");
+        Check(!d.Tokenize("if a then begin x := 1 end when y").Any(k => k.Norm == "when"), "when is not a stop word in Algol 60");
+        // Quote stropping: bare words are identifiers, quoted words keywords
+        var q = Toks(d, "'BEGIN' 'INTEGER' loop count; 'COMMENT' ignored; begin := 1.5'10'3; 'END' end of program");
+        Check(q.Contains((TokenKind.Keyword, "'BEGIN'")), "'BEGIN' keyword");
+        Check(q.Contains((TokenKind.Type, "'INTEGER'")), "'INTEGER' type");
+        Check(q.Contains((TokenKind.Comment, "'COMMENT' ignored;")), "'COMMENT' ... ;");
+        Check(q.Contains((TokenKind.Identifier, "begin")), "bare word is an identifier with quote stropping");
+        Check(q.Contains((TokenKind.Number, "1.5'10'3")), "'10' ten symbol");
+        Check(q.Contains((TokenKind.Comment, "end of program")), "end comment after 'END' (bare words do not stop it)");
+        Check(d.Tokenize("'BEGIN'")[0].Norm == "begin", "quoted keyword normalization");
+        Check(d.Tokenize("'GO TO' L")[0].Norm == "goto", "spaces inside a quoted keyword");
+    }
+
+    static void Algol60Structure()
+    {
+        var d = LanguageDefinitions.Algol60;
+        var src = string.Join("\n",
+            "comment structure;",
+            "begin",
+            "   real procedure sum(i, lo, hi, term); value lo, hi; integer i, lo, hi; real term;",
+            "   begin real s;",
+            "      s := 0;",
+            "      for i := lo step 1 until hi do s := s + term;",
+            "      sum := s",
+            "   end sum;",
+            "   Boolean procedure even(n); value n; integer n; even := n ÷ 2 × 2 = n;",
+            "   procedure apply(p, x); procedure p; real x;",
+            "   begin",
+            "      p(x)",
+            "   end;",
+            "   for i := 1 step 1 until 3 do",
+            "   begin",
+            "      outinteger(1, i)",
+            "   end",
+            "end");
+        var m = d.Analyze(src);
+        Eq("sum,even,apply", string.Join(",", m.Outline.Select(o => o.Name)), "outline");
+        Eq("real procedure", m.Outline[0].Detail, "typed procedure");
+        Eq("Boolean procedure", m.Outline[1].Detail, "Boolean procedure");
+        Eq(1, m.Outline[0].Depth, "sum depth");
+        Eq(4, m.Folds.Count, "number of folds");
+        Check(m.Folds.Any(f => f.Title == "procedure sum …"), "fold of sum");
+        Check(m.Folds.Any(f => f.Title == "procedure apply …"), "fold of apply");
+        Check(m.Folds.Count(f => f.Title == "begin … end") == 2, "the for body is not attributed to even: " + string.Join(" | ", m.Folds.Select(f => f.Title)));
+        int beginIdx = m.Tokens.ToList().FindIndex(t => t.Norm == "begin");
+        Check(m.PairOf.TryGetValue(beginIdx, out var endIdx) && m.Tokens[endIdx].Start == src.LastIndexOf("end"), "begin/end matching");
+        var q = d.Analyze("'BEGIN'\n   'REAL' 'PROCEDURE' A(k); 'VALUE' k; 'INTEGER' k;\n   'BEGIN'\n      A := k\n   'END';\n   outreal(1, A(2))\n'END'");
+        Eq("A", string.Join(",", q.Outline.Select(o => o.Name)), "quote stropping outline");
+        Eq(2, q.Folds.Count, "quote stropping folds");
+    }
+
+    static void SimulaILexerAndStructure()
+    {
+        var d = LanguageDefinitions.SimulaI;
+        var t = Toks(d, "SIMULA begin element E; set S; activate new car(1) delay 5; inspect E when car do x := 1 otherwise y := 2; hold(10); end");
+        Check(t.Contains((TokenKind.Keyword, "SIMULA")), "SIMULA keyword");
+        Check(t.Contains((TokenKind.Type, "element")) && t.Contains((TokenKind.Type, "set")), "element and set types");
+        Check(new[] { "activate", "new", "delay", "inspect", "when", "otherwise" }.All(w => t.Contains((TokenKind.Keyword, w))), "sequencing and connection keywords");
+        Check(t.Contains((TokenKind.Builtin, "hold")), "standard hold");
+        var t2 = Toks(d, "inspect E when A do begin x := 1 end of A when B do y := 2");
+        Check(t2.Contains((TokenKind.Comment, "of A")), "end comment stops at when");
+        Check(t2.Count(k => k == (TokenKind.Keyword, "when")) == 2, "when stays a keyword");
+        Check(Toks(LanguageDefinitions.Algol60, "hold(1)").Contains((TokenKind.Identifier, "hold")), "hold is not standard in Algol 60");
+        var src = string.Join("\n",
+            "SIMULA begin",
+            "   activity car(number, speed); integer number; real speed;",
+            "   begin real X0;",
+            "      real procedure X; X := X0 + speed × time;",
+            "      procedure newV(v); real v;",
+            "      begin X0 := X end;",
+            "      hold(10)",
+            "   end of car;",
+            "   element procedure find(P); element P;",
+            "   begin find := P end;",
+            "   activate new car(1, 50);",
+            "   hold(30)",
+            "end of simulation model");
+        var m = d.Analyze(src);
+        Eq("car,X,newV,find", string.Join(",", m.Outline.Select(o => o.Name)), "outline");
+        Eq(OutlineKind.Class, m.Outline[0].Kind, "activity");
+        Eq("activity", m.Outline[0].Detail, "activity detail");
+        Eq("element procedure", m.Outline[3].Detail, "element procedure");
+        Check(m.Folds.Any(f => f.Title == "SIMULA begin … end"), "SIMULA block fold");
+        Check(m.Folds.Any(f => f.Title == "activity car …"), "activity fold");
+        Check(!m.Folds.Any(f => f.Title == "procedure X …"), "X has no begin body");
+        Check(m.Tokens.Any(k => k.Kind == TokenKind.Comment && src.Substring(k.Start, k.Length) == "of simulation model"), "final end comment");
+    }
+
+    static void LanguagesByExtension()
+    {
+        Eq("algol60", LanguageDefinitions.ByExtension("C:\\x\\prog.a60")?.Id, ".a60");
+        Eq("algol60", LanguageDefinitions.ByExtension("C:\\x\\PROG.ALG")?.Id, ".alg");
+        Eq("simula1", LanguageDefinitions.ByExtension("C:\\x\\model.s1")?.Id, ".s1");
+        Eq("simula", LanguageDefinitions.ByExtension("C:\\x\\a.sim")?.Id, ".sim");
+        Eq("algol68", LanguageDefinitions.ByExtension("C:\\x\\a.a68")?.Id, ".a68");
+        foreach (var def in LanguageDefinitions.All.Where(l => l.Id != "echo"))
+        {
+            var service = LanguageRegistry.FindById(def.Id);
+            Check(service != null, "compiler for " + def.Id);
+            Eq(def.DisplayName, service!.DisplayName, "display name of " + def.Id);
+            Check(def.Extensions.All(e => service.FileExtensions.Contains(e)), "extensions of " + def.Id);
+            // The template of a new program compiles
+            var r = service.Compile(new SourceFile("C:\\test\\new" + def.DefaultExtension, def.NewFileTemplate), new CompileOptions());
+            Check(r.Success, $"template of {def.DisplayName} compiles: " + string.Join("; ", r.Diagnostics));
+        }
+    }
+
     static void Indentation()
     {
         var s = LanguageDefinitions.Simula;
@@ -607,6 +739,57 @@ static class Program
         Eq("", a.ComputeIndent("THEN print(x)", "ELSE"), "ELSE aligned");
         Eq("   ", a.ComputeIndent("FOR i TO 10 DO", ""), "after DO");
         Eq("", a.ComputeIndent("   x +:= 1", "OD"), "OD unindented");
+        foreach (var d in new LanguageDefinition[] { LanguageDefinitions.Algol60, LanguageDefinitions.SimulaI })
+        {
+            Eq("      ", d.ComputeIndent("   begin", ""), d.DisplayName + ": after begin");
+            Eq("   ", d.ComputeIndent("      x := 1", "end of p;"), d.DisplayName + ": end unindented");
+            Eq("   ", d.ComputeIndent("'BEGIN'", ""), d.DisplayName + ": after 'BEGIN'");
+            Eq("", d.ComputeIndent("   x := 1", "'END'"), d.DisplayName + ": 'END' unindented");
+            Eq("   ", d.ComputeIndent("   comment begin;", ""), d.DisplayName + ": begin inside a comment");
+        }
+        Eq("   ", LanguageDefinitions.SimulaI.ComputeIndent("SIMULA begin", ""), "after SIMULA begin");
+    }
+
+    /// <summary>Compiles and runs every sample of samples/&lt;sub&gt; with the real compiler and compares the
+    /// output with the .out file (the .in file, when present, is the standard input).</summary>
+    static void CheckSamples(string sub, string ext)
+    {
+        var root = FindUp("samples");
+        Check(root != null, "samples folder not found");
+        var dir = Path.Combine(root!, sub);
+        var files = Directory.GetFiles(dir, "*" + ext, SearchOption.AllDirectories)
+            .Where(f => !IsSkippedSample(Path.GetRelativePath(dir, f)))
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        Check(files.Count > 0, "no sample in " + dir);
+        var lang = LanguageRegistry.FindByExtension(ext)!;
+        var problems = new List<string>();
+        foreach (var f in files)
+        {
+            var name = Path.GetFileName(f);
+            var r = lang.Compile(new SourceFile(f, File.ReadAllText(f)), new CompileOptions());
+            if (!r.Success)
+            {
+                problems.Add($"{name}: " + string.Join(" | ", r.Diagnostics.Where(x => x.Severity == Severity.Error).Take(2)));
+                continue;
+            }
+            var program = lang.Deserialize(r.Program!.Serialize());
+            var input = Path.ChangeExtension(f, ".in");
+            var io = new FakeIO(File.Exists(input) ? File.ReadAllLines(input).Cast<string?>().Append(null).ToArray() : new string?[] { null });
+            var res = ProgramHost.RunOnLargeStack(program.CreateExecution(io), new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
+            if (res.Error != null) { problems.Add($"{name}: runtime error {res.Error}"); continue; }
+            var expected = Path.ChangeExtension(f, ".out");
+            if (!File.Exists(expected)) { problems.Add($"{name}: {Path.GetFileName(expected)} missing"); continue; }
+            var want = File.ReadAllText(expected).Replace("\r\n", "\n").TrimEnd();
+            var got = io.Output.Replace("\r\n", "\n").TrimEnd();
+            if (want != got)
+            {
+                var w = want.Split('\n'); var g = got.Split('\n');
+                int line = 0;
+                while (line < w.Length && line < g.Length && w[line] == g[line]) line++;
+                problems.Add($"{name}: output differs at line {line + 1}: expected \"{(line < w.Length ? w[line] : "<end>")}\", got \"{(line < g.Length ? g[line] : "<end>")}\"");
+            }
+        }
+        Check(problems.Count == 0, $"{problems.Count} of {files.Count} samples failed:\n" + string.Join("\n", problems));
     }
 
     static void CommentToggle()
@@ -628,6 +811,25 @@ static class Program
         Check(a.IsCommentedLine(c2), "Algol commented");
         Eq(1, a.Tokenize(c2).Count, "a single comment");
         Eq(l2, a.UncommentLine(c2), "Algol round trip");
+        // Algol 60 / Simula I: "comment ... ;" (reserved words) or "'COMMENT' ... ;" (quote stropping)
+        foreach (var d in new LanguageDefinition[] { LanguageDefinitions.Algol60, LanguageDefinitions.SimulaI })
+        {
+            foreach (var (doc, word) in new[] { ("begin\nend", "comment"), ("'BEGIN'\n'END'", "'COMMENT'") })
+            {
+                foreach (var line in new[] { "   x := 1;", "   if a then", "end of p", "   outstring(1, \"x;y\"); b := 2", "'IF' a 'THEN' x := 1; y := 2" })
+                {
+                    var c = d.CommentLine(line, doc);
+                    Check(c.TrimStart().StartsWith(word, StringComparison.Ordinal), $"{d.DisplayName}: {word} used: {c}");
+                    Check(d.IsCommentedLine(c), $"{d.DisplayName}: commented: {c}");
+                    Eq(line, d.UncommentLine(c), $"{d.DisplayName} round trip");
+                    var text = doc.Split('\n')[0] + "\n" + c + "\nx := 2;\n" + doc.Split('\n')[1];
+                    var toks = d.Tokenize(text);
+                    int lineStart = text.IndexOf(c, StringComparison.Ordinal), lineEnd = lineStart + c.Length;
+                    Check(toks.Where(t => t.Start >= lineStart && t.Start < lineEnd).All(t => t.Kind == TokenKind.Comment), $"{d.DisplayName}: line fully commented: {c}");
+                    Check(toks.Any(t => t.Kind == TokenKind.Identifier && t.Start > lineEnd && text.Substring(t.Start, t.Length) == "x"), $"{d.DisplayName}: next line not commented: {c}");
+                }
+            }
+        }
     }
 
     // ------------------------------------------------------------------ real compilers
@@ -650,7 +852,7 @@ static class Program
         Console.WriteLine("Samples with the real compilers:");
         var root = FindUp("samples");
         if (root == null) { Console.WriteLine("  (samples folder not found)"); return; }
-        foreach (var (sub, ext) in new[] { ("simula", ".sim"), ("algol68", ".a68") })
+        foreach (var (sub, ext) in new[] { ("simula", ".sim"), ("algol68", ".a68"), ("algol60", ".a60"), ("simula1", ".s1") })
         {
             var dir = Path.Combine(root, sub);
             if (!Directory.Exists(dir)) continue;

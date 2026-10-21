@@ -15,7 +15,7 @@ namespace Studio.Algol60;
 /// </summary>
 public sealed class Algol60Lexer
 {
-    /// <summary>Keywords of Algol 60, and of Simula I when <see cref="SimulaI"/> is set.</summary>
+    /// <summary>Keywords of Algol 60.</summary>
     static readonly Dictionary<string, T> Words = new(StringComparer.OrdinalIgnoreCase)
     {
         ["begin"] = T.KBegin, ["end"] = T.KEnd, ["if"] = T.KIf, ["then"] = T.KThen, ["else"] = T.KElse,
@@ -29,9 +29,6 @@ public sealed class Algol60Lexer
         ["lt"] = T.Lt, ["le"] = T.Le, ["eq"] = T.Eq, ["ge"] = T.Ge, ["gt"] = T.Gt, ["ne"] = T.Ne,
         ["less"] = T.Lt, ["notgreater"] = T.Le, ["equal"] = T.Eq, ["notless"] = T.Ge, ["greater"] = T.Gt, ["notequal"] = T.Ne,
     };
-
-    /// <summary>Additional keywords of Simula I (activity, element, set...).</summary>
-    public static readonly Dictionary<string, T> SimulaIWords = new(StringComparer.OrdinalIgnoreCase);
 
     readonly string src;
     readonly int file;
@@ -50,6 +47,14 @@ public sealed class Algol60Lexer
     }
 
     public bool QuoteStropping => quoteStropping;
+
+    /// <summary>Words, besides end and else, that terminate the comment following an end
+    /// (Simula I adds when and otherwise).</summary>
+    public string[] EndCommentStops { get; init; } = Array.Empty<string>();
+
+    bool StopsEndComment(string w) =>
+        w.Equals("END", StringComparison.OrdinalIgnoreCase) || w.Equals("ELSE", StringComparison.OrdinalIgnoreCase)
+        || EndCommentStops.Any(s => w.Equals(s, StringComparison.OrdinalIgnoreCase));
 
     public static bool DetectQuoteStropping(string s) =>
         s.Contains("'BEGIN'", StringComparison.OrdinalIgnoreCase) || s.Contains("'COMMENT'", StringComparison.OrdinalIgnoreCase);
@@ -85,7 +90,7 @@ public sealed class Algol60Lexer
             list.Add(t);
         }
         list.Add(new Token { Kind = T.EOF, Pos = Here });
-        return FatCommas(list);
+        return IntegerLabels(FatCommas(list));
     }
 
     void SkipBlanks()
@@ -116,7 +121,7 @@ public sealed class Algol60Lexer
                 if (j < src.Length && src[j] == '\'')
                 {
                     var w = src.Substring(i + 1, j - i - 1);
-                    if (w.Equals("END", StringComparison.OrdinalIgnoreCase) || w.Equals("ELSE", StringComparison.OrdinalIgnoreCase)) return;
+                    if (StopsEndComment(w)) return;
                 }
             }
             if (!quoteStropping && char.IsLetter(c) && (i == 0 || !char.IsLetterOrDigit(src[i - 1])))
@@ -124,7 +129,7 @@ public sealed class Algol60Lexer
                 int s = i;
                 while (i < src.Length && char.IsLetterOrDigit(src[i])) i++;
                 var w = src.Substring(s, i - s);
-                if (w.Equals("end", StringComparison.OrdinalIgnoreCase) || w.Equals("else", StringComparison.OrdinalIgnoreCase)) { i = s; return; }
+                if (StopsEndComment(w)) { i = s; return; }
                 continue;
             }
             Advance();
@@ -350,6 +355,31 @@ public sealed class Algol60Lexer
         }
         var s = sb.ToString();
         return new Token { Kind = T.TextLit, Pos = pos, Text = s, Original = s };
+    }
+
+    /// <summary>
+    /// Unsigned integer labels of the Revised Report (1963), such as "10: x := 1" and "goto 10",
+    /// become identifiers (which cannot otherwise start with a digit). Recognised in label
+    /// definitions, after goto and in switch lists; leading zeros are not significant.
+    /// </summary>
+    static List<Token> IntegerLabels(List<Token> l)
+    {
+        bool inSwitch = false;
+        for (int k = 0; k < l.Count; k++)
+        {
+            var t = l[k];
+            if (t.Kind == T.KSwitch) inSwitch = true;
+            else if (t.Kind == T.Semi) inSwitch = false;
+            if (t.Kind != T.IntLit) continue;
+            var prev = k > 0 ? l[k - 1].Kind : T.Semi;
+            var next = k + 1 < l.Count ? l[k + 1].Kind : T.EOF;
+            bool label = next == T.Colon && prev is T.Semi or T.KBegin or T.Colon or T.KThen or T.KElse or T.KDo;
+            bool target = prev is T.KGoto or T.KTo;
+            bool switchItem = inSwitch && prev is T.Assign or T.Comma && next is T.Comma or T.Semi;
+            if (label || target || switchItem)
+                l[k] = new Token { Kind = T.Ident, Pos = t.Pos, Text = t.IntValue.ToString(CultureInfo.InvariantCulture), Original = t.Original };
+        }
+        return l;
     }
 
     /// <summary>The parameter delimiter ") letter string : (" is equivalent to a comma.</summary>

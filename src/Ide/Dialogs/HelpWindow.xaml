@@ -17,6 +17,8 @@
                 <ListBox x:Name="TopicList" SelectionChanged="OnTopicChanged" FontSize="13">
                     <ListBoxItem Tag="simula" Content="Simula 67"/>
                     <ListBoxItem Tag="algol68" Content="Algol 68"/>
+                    <ListBoxItem Tag="algol60" Content="Algol 60"/>
+                    <ListBoxItem Tag="simula1" Content="Simula I"/>
                     <ListBoxItem Tag="shortcuts" Content="Keyboard shortcuts"/>
                     <ListBoxItem Tag="ide" Content="Using the environment"/>
                 </ListBox>

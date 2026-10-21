@@ -14,10 +14,10 @@ public static class PathLocator
     }
 
     public static string? SamplesDirectory =>
-        FindDirectory("samples", p => Directory.Exists(Path.Combine(p, "simula")) || Directory.Exists(Path.Combine(p, "algol68")));
+        FindDirectory("samples", p => new[] { "simula", "algol68", "algol60", "simula1" }.Any(d => Directory.Exists(Path.Combine(p, d))));
 
     public static string? DocsDirectory =>
-        FindDirectory("docs", p => File.Exists(Path.Combine(p, "simula.md")) || File.Exists(Path.Combine(p, "algol68.md")));
+        FindDirectory("docs", p => new[] { "simula.md", "algol68.md", "algol60.md", "simula1.md" }.Any(d => File.Exists(Path.Combine(p, d))));
 
     public static string TempDirectory
     {

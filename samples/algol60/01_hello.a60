@@ -1,0 +1,5 @@
+comment Hello world in Algol 60, with the I/O procedures of the Modified Report (1976);
+begin
+   outstring(1, "Hello, world!\n");
+   outstring(1, "Algol 60 says hello from 1960.\n")
+end

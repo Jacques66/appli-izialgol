@@ -1,0 +1,21 @@
+comment Parameters of every kind (value arrays, procedures, labels, switches), for lists and integer labels;
+begin
+   real array a[1:3];
+   integer i;
+   switch sw := L1, L2;
+   procedure modify(b); value b; real array b; begin b[1] := 99; outreal(1, b[1]) end;
+   real procedure apply(f, x); real procedure f; real x; apply := f(x);
+   real procedure sq(x); value x; real x; sq := x × x;
+   procedure jump(l); label l; goto l;
+   procedure jumpsw(s, k); switch s; integer k; goto s[k];
+   for i := 1 step 1 until 3 do a[i] := i;
+   modify(a); outreal(1, a[1]); outstring(1, "\n");
+   outreal(1, apply(sq, 3)); outstring(1, "\n");
+   jump(L2);
+L1: outstring(1, "L1\n"); goto L3;
+L2: outstring(1, "L2\n"); jumpsw(sw, 1);
+L3: outstring(1, "end\n");
+   for i := 1, 5, 7 step 2 until 11, 20 do outinteger(1, i);
+   outstring(1, "\n");
+   outinteger(1, maxint); outreal(1, epsilon); outreal(1, 1.0e300 × 10)
+end

@@ -1,0 +1,48 @@
+comment The car and police example of the Simula I manual (1965), as quoted by
+        Dahl: cars move along a road, a police process inspects them and slows
+        down the speeders;
+SIMULA begin
+   activity car(number, speed); integer number; real speed;
+   begin real X0, T0, V;
+      real procedure X; X := X0 + V * (time - T0);
+      procedure newV(Vnew); real Vnew;
+      begin X0 := X; T0 := time; V := Vnew end;
+      V := speed; T0 := time;
+      include(current, road);
+      hold(10);
+      remove(findelem(current, road));
+      outstring(1, "car "); outinteger(1, number); outstring(1, "leaves at x = "); outreal(1, X); outstring(1, "\n")
+   end of car;
+
+   activity police;
+   begin element X;
+      while true do
+      begin
+         hold(2);
+         X := head(road);
+         for X := suc(X) while exist(X) do
+            inspect X when car do
+               if V > 50 then
+               begin
+                  outstring(1, "fine for car "); outinteger(1, number);
+                  outstring(1, "at speed "); outreal(1, V); outstring(1, "\n");
+                  newV(50)
+               end
+      end
+   end of police;
+
+   element procedure findelem(P, S); element P; set S;
+   begin element E;
+      E := head(S);
+      for E := suc(E) while exist(E) do
+         if E = P then begin findelem := E; goto done end;
+   done:
+   end;
+
+   set road;
+   integer i;
+   for i := 1 step 1 until 4 do activate new car(i, 40 + 10 * i) delay i;
+   activate new police;
+   hold(30);
+   outstring(1, "cars still on the road: "); outinteger(1, cardinal(road)); outstring(1, "\n")
+end of simulation model

@@ -1,0 +1,41 @@
+comment Solving a linear system by Gaussian elimination with partial pivoting.
+        Arrays are passed without copy, the order n by value;
+begin
+   real array a[1:3, 1:3], b[1:3], x[1:3];
+   integer i;
+
+   procedure gauss(n, a, b, x); value n; integer n; real array a, b, x;
+   begin integer i, j, k, p; real t, f;
+      for k := 1 step 1 until n do
+      begin
+         p := k;
+         for i := k + 1 step 1 until n do
+            if abs(a[i, k]) > abs(a[p, k]) then p := i;
+         if p ≠ k then
+         begin
+            for j := k step 1 until n do begin t := a[k, j]; a[k, j] := a[p, j]; a[p, j] := t end;
+            t := b[k]; b[k] := b[p]; b[p] := t
+         end;
+         for i := k + 1 step 1 until n do
+         begin
+            f := a[i, k] / a[k, k];
+            for j := k step 1 until n do a[i, j] := a[i, j] - f × a[k, j];
+            b[i] := b[i] - f × b[k]
+         end
+      end;
+      for i := n step -1 until 1 do
+      begin
+         t := b[i];
+         for j := i + 1 step 1 until n do t := t - a[i, j] × x[j];
+         x[i] := t / a[i, i]
+      end
+   end gauss;
+
+   comment the system 2x + y - z = 8, -3x - y + 2z = -11, -2x + y + 2z = -3;
+   a[1,1] := 2;  a[1,2] := 1;  a[1,3] := -1; b[1] := 8;
+   a[2,1] := -3; a[2,2] := -1; a[2,3] := 2;  b[2] := -11;
+   a[3,1] := -2; a[3,2] := 1;  a[3,3] := 2;  b[3] := -3;
+   gauss(3, a, b, x);
+   for i := 1 step 1 until 3 do
+   begin outstring(1, "x"); outinteger(1, i); outstring(1, "= "); outreal(1, x[i]); outstring(1, "\n") end
+end

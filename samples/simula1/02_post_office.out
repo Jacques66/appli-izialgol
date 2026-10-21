@@ -1,0 +1,10 @@
+time 4.170818557962775 customer 1 leaves after 4.170818557962775 time units
+time 18.50593894920630 customer 2 leaves after 2.020620768889785 time units
+time 25.58786005501309 customer 3 leaves after 5.214147588238120 time units
+time 29.49186680045163 customer 4 leaves after 3.666526770219207 time units
+time 34.02515770935636 customer 5 leaves after 3.294556906446811 time units
+time 46.12159545067621 customer 6 leaves after 5.066329007968307 time units
+time 51.86531463172210 customer 7 leaves after 5.960546665361946 time units
+time 55.17134827840997 customer 8 leaves after 7.061832636742714 time units
+customers served: 8 
+mean time in the post office: 4.556922362728708 

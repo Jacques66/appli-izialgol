@@ -1,0 +1,22 @@
+comment Sieve of Eratosthenes with a Boolean array whose bound is computed
+        at block entry (dynamic arrays);
+begin
+   integer n, i, j, count;
+   n := 100;
+   begin
+      Boolean array composite[2:n];
+      for i := 2 step 1 until n do composite[i] := false;
+      for i := 2 step 1 until n do
+         if ¬ composite[i] then
+            for j := i × i step i until n do composite[j] := true;
+      count := 0;
+      outstring(1, "primes up to 100:\n");
+      for i := 2 step 1 until n do
+         if ¬ composite[i] then
+         begin
+            outinteger(1, i); count := count + 1;
+            if count ÷ 10 × 10 = count then outstring(1, "\n")
+         end;
+      outstring(1, "\n"); outinteger(1, count); outstring(1, "primes\n")
+   end
+end

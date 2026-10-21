@@ -1,0 +1,33 @@
+comment A scanner written as a state machine with a switch: it reads characters
+        with inchar and recognises unsigned numbers such as 12, 3.75 and 1.5e3.
+        The candidates are separated by semicolons and the input ends with a hash sign;
+begin
+   switch state := start, digits, point, fraction, exponent, expdigits;
+   integer s, c;
+   Boolean ok;
+
+   comment classes: 1-10 digit, 11 point, 12 letter e, 13 separator, 14 end of input;
+   procedure read; inchar(0, "0123456789.e;#", c);
+
+   s := 1; ok := true;
+next:
+   read;
+   if c = 14 then goto finish;
+   if c = 13 then
+   begin
+      outstring(1, if ok ∧ (s = 2 ∨ s = 4 ∨ s = 6) then " is a number\n" else " is not a number\n");
+      s := 1; ok := true;
+      goto next
+   end;
+   outchar(1, "0123456789.e", c);
+   if ¬ ok then goto next;
+   go to state[s];
+start:     if c <= 10 then s := 2 else ok := false; goto next;
+digits:    if c <= 10 then else if c = 11 then s := 3 else s := 5; goto next;
+point:     if c <= 10 then s := 4 else ok := false; goto next;
+fraction:  if c <= 10 then else if c = 12 then s := 5 else ok := false; goto next;
+exponent:  if c <= 10 then s := 6 else ok := false; goto next;
+expdigits: if c > 10 then ok := false; goto next;
+finish:
+   outstring(1, "done\n")
+end

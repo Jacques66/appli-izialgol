@@ -1,0 +1,8 @@
+move disk 1 from 1 to 3 
+move disk 2 from 1 to 2 
+move disk 1 from 3 to 2 
+move disk 3 from 1 to 3 
+move disk 1 from 2 to 1 
+move disk 2 from 2 to 3 
+move disk 1 from 1 to 3 
+total: 7 moves

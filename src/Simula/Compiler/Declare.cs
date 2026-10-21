@@ -430,6 +430,7 @@ public sealed partial class SimCompiler
             }
         }
         c.Info.VTable = vt;
+        c.Info.AllAttrs = pre.Info.AllAttrs.Concat(fs.Syms.Values.Select(DebugVar).Where(v => v != null).Select(v => v!)).ToList();
         c.Info.Attrs = pre.Info.Attrs.Concat(fs.Syms.Values.Select(DebugVar).Where(v => v != null).Select(v => v!))
             .Where(v => !v.Name.EndsWith("__")).ToList();
         c.Laying = false;

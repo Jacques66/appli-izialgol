@@ -1,0 +1,23 @@
+comment Jensen's device: with call by name, one procedure computes any sum,
+        because sum(i, lo, hi, term) evaluates term again for each value of i;
+begin
+   integer i, j;
+   real array a[1:5], m[1:3, 1:3];
+
+   real procedure sum(i, lo, hi, term); value lo, hi; integer i, lo, hi; real term;
+   begin real s;
+      s := 0;
+      for i := lo step 1 until hi do s := s + term;
+      sum := s
+   end sum;
+
+   for i := 1 step 1 until 5 do a[i] := i;
+   for i := 1 step 1 until 3 do
+      for j := 1 step 1 until 3 do m[i, j] := i × 10 + j;
+
+   outstring(1, "sum of a[i]           = "); outreal(1, sum(i, 1, 5, a[i])); outstring(1, "\n");
+   outstring(1, "sum of a[i]^2         = "); outreal(1, sum(i, 1, 5, a[i] ↑ 2)); outstring(1, "\n");
+   outstring(1, "harmonic number H(10) = "); outreal(1, sum(i, 1, 10, 1 / i)); outstring(1, "\n");
+   outstring(1, "trace of m            = "); outreal(1, sum(i, 1, 3, m[i, i])); outstring(1, "\n");
+   outstring(1, "sum of all m[i, j]    = "); outreal(1, sum(i, 1, 3, sum(j, 1, 3, m[i, j]))); outstring(1, "\n")
+end

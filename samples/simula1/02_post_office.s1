@@ -1,0 +1,55 @@
+comment A post office with one clerk: customers arrive at random (negative
+        exponential inter-arrival times), wait in a queue, and are served one
+        at a time. A customer waits with wait(queue), the clerk takes the first
+        element of the queue and activates the customer again when the service
+        is over. The model reports the mean time spent in the post office;
+SIMULA begin
+   integer U, served;
+   real totalstay;
+   set queue;
+   element theclerk;
+
+   activity customer(id); integer id;
+   begin real arrival;
+      arrival := time;
+      comment the clerk is woken up after this customer has joined the queue;
+      if idle(theclerk) then activate theclerk delay 0;
+      wait(queue);
+      totalstay := totalstay + (time - arrival);
+      served := served + 1;
+      outstring(1, "time "); outreal(1, time);
+      outstring(1, "customer "); outinteger(1, id); outstring(1, "leaves after ");
+      outreal(1, time - arrival); outstring(1, "time units\n")
+   end of customer;
+
+   activity clerk;
+   begin element C;
+      while true do
+      begin
+         while ¬ empty(queue) do
+         begin
+            C := first(queue);
+            remove(C);
+            hold(uniform(2, 6, U));
+            activate C
+         end;
+         passivate
+      end
+   end of clerk;
+
+   activity generator(n); integer n;
+   begin integer i;
+      for i := 1 step 1 until n do
+      begin
+         activate new customer(i);
+         hold(negexp(1 / 4, U))
+      end
+   end of generator;
+
+   U := 1234;
+   theclerk := new clerk;
+   activate new generator(8);
+   hold(1000);
+   outstring(1, "customers served: "); outinteger(1, served); outstring(1, "\n");
+   outstring(1, "mean time in the post office: "); outreal(1, totalstay / served); outstring(1, "\n")
+end of simulation model

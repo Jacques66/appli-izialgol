@@ -1,0 +1,8 @@
+comment Runtime error: evtime of an idle process;
+SIMULA begin
+   activity p; begin end;
+   element x;
+   x := new p;
+   outstring(1, "before\n");
+   outreal(1, evtime(x))
+end

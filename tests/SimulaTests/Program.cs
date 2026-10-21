@@ -3,15 +3,17 @@ using System.Text;
 using Studio.Common;
 using Studio.Algol60;
 using Studio.Simula;
+using Studio.SimulaI;
 
-// Test bench of the Simula engine languages (Simula 67 .sim, Algol 60 .a60/.alg): compiles and runs
-// samples/simula, samples/algol60 and tests/SimulaTests/cases,
+// Test bench of the Simula engine languages (Simula 67 .sim, Algol 60 .a60/.alg, Simula I .s1): compiles and runs
+// samples/simula, samples/algol60, samples/simula1 and tests/SimulaTests/cases,
 // compares with <name>.out (optional input <name>.in). Usage: SimulaTests [file.sim | filter | --debugtest]
 var root = FindRoot();
 var simula = new SimulaLanguage();
 var algol60 = new Algol60Language();
-EngineLanguage LangFor(string path) => Path.GetExtension(path).ToLowerInvariant() is ".a60" or ".alg" ? algol60 : simula;
-static bool IsSource(string f) => Path.GetExtension(f).ToLowerInvariant() is ".sim" or ".a60" or ".alg";
+var simula1 = new SimulaILanguage();
+EngineLanguage LangFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch { ".a60" or ".alg" => algol60, ".s1" => simula1, _ => simula };
+static bool IsSource(string f) => Path.GetExtension(f).ToLowerInvariant() is ".sim" or ".a60" or ".alg" or ".s1";
 if (args.Length == 1 && IsSource(args[0]) && File.Exists(args[0]))
 {
     var r = RunFile(args[0], File.Exists(Path.ChangeExtension(args[0], ".in")) ? File.ReadAllText(Path.ChangeExtension(args[0], ".in")) : "", true);
@@ -22,7 +24,7 @@ if (args.Length == 1 && IsSource(args[0]) && File.Exists(args[0]))
 if (args.Length == 1 && args[0] == "--debugtest") return DebugTest();
 var filter = args.Length > 0 ? args[0] : "";
 var filesToTest = new List<string>();
-foreach (var dir in new[] { Path.Combine(root, "samples", "simula"), Path.Combine(root, "samples", "algol60"), Path.Combine(root, "tests", "SimulaTests", "cases") })
+foreach (var dir in new[] { Path.Combine(root, "samples", "simula"), Path.Combine(root, "samples", "algol60"), Path.Combine(root, "samples", "simula1"), Path.Combine(root, "tests", "SimulaTests", "cases") })
     if (Directory.Exists(dir)) filesToTest.AddRange(Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories).Where(IsSource));
 int pass = 0, fail = 0;
 foreach (var f in filesToTest.OrderBy(x => x))

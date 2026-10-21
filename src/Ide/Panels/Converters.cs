@@ -18,25 +18,31 @@ public sealed class FileNameConverter : IValueConverter
 }
 
 /// <summary>Display name of a sample: "Algol 68 — classics/primes.a68" (path relative to
-/// samples/simula or samples/algol68, which may contain subfolders).</summary>
+/// samples/simula, samples/algol68, samples/algol60 or samples/simula1, which may contain subfolders).</summary>
 public sealed class SampleNameConverter : IValueConverter
 {
     public static readonly SampleNameConverter Instance = new();
+
+    /// <summary>Sample folder → language name.</summary>
+    static readonly Dictionary<string, string> Folders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["simula"] = "Simula 67", ["algol68"] = "Algol 68", ["algol60"] = "Algol 60", ["simula1"] = "Simula I",
+    };
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         var s = value as string ?? "";
         var parts = s.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
-        // Last "simula" / "algol68" folder segment (excluding the file name itself)
+        // Last language folder segment (excluding the file name itself)
         int idx = -1;
         for (int i = parts.Length - 2; i >= 0; i--)
-            if (parts[i].Equals("simula", StringComparison.OrdinalIgnoreCase) || parts[i].Equals("algol68", StringComparison.OrdinalIgnoreCase))
+            if (Folders.ContainsKey(parts[i]))
             {
                 idx = i;
                 break;
             }
         if (idx < 0) return System.IO.Path.GetFileName(s);
-        var lang = parts[idx].Equals("simula", StringComparison.OrdinalIgnoreCase) ? "Simula 67" : "Algol 68";
+        var lang = Folders[parts[idx]];
         var relative = string.Join("/", parts.Skip(idx + 1));
         return $"{lang} — {relative}";
     }

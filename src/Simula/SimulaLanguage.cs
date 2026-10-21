@@ -19,6 +19,8 @@ public abstract class EngineLanguage : ILanguageService
     protected abstract Dialect Dialect { get; }
     /// <summary>Lexer for the user program; null means the Simula 67 lexer.</summary>
     protected virtual Func<string, int, Action<SrcPos, string>, Func<string, List<Token>?>, List<Token>>? UserLexer => null;
+    /// <summary>Rewrites a compiler message in the vocabulary of the language (internal names).</summary>
+    protected virtual string Vocabulary(string message) => message;
 
     protected static string ReadResource(Type owner, string name)
     {
@@ -45,13 +47,15 @@ public abstract class EngineLanguage : ILanguageService
         }
         catch (Exception e)
         {
-            var diags = c.Diagnostics.ToList();
+            var diags = Polish(c.Diagnostics);
             diags.Add(new Diagnostic(Severity.Error, main.Path, 0, 0, "internal compiler error: " + e.Message));
             return new CompilationResult(diags, null);
         }
-        if (prog == null) return new CompilationResult(c.Diagnostics, null);
-        return new CompilationResult(c.Diagnostics, new SimulaProgram(prog, used, Id));
+        if (prog == null) return new CompilationResult(Polish(c.Diagnostics), null);
+        return new CompilationResult(Polish(c.Diagnostics), new SimulaProgram(prog, used, Id));
     }
+
+    List<Diagnostic> Polish(IEnumerable<Diagnostic> diags) => diags.Select(d => d with { Message = Vocabulary(d.Message) }).ToList();
 
     static SourceFile? DefaultResolve(string name, string from)
     {

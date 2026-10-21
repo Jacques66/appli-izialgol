@@ -39,7 +39,7 @@ public sealed class CompilationResult
 
 public interface ILanguageService
 {
-    /// <summary>Stable identifier: "simula" or "algol68".</summary>
+    /// <summary>Stable identifier: "simula", "algol68", "algol60" or "simula1".</summary>
     string Id { get; }
     string DisplayName { get; }
     /// <summary>Lower-case extensions including the dot, e.g. ".sim".</summary>

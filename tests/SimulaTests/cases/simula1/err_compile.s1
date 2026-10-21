@@ -1,0 +1,6 @@
+comment Compile error: an element cannot be assigned to an integer;
+SIMULA begin
+   activity p; begin end;
+   integer i;
+   i := new p
+end

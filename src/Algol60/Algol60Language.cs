@@ -15,7 +15,9 @@ public sealed class Algol60Language : EngineLanguage
     protected override Dialect Dialect => Dialect.Algol60;
 
     static string? prelude;
-    protected override string PreludeText => prelude ??= ReadResource(typeof(Algol60Language), "Studio.Algol60.Prelude60.sim");
+    /// <summary>The Algol 60 environmental block (also the base of the Simula I environment).</summary>
+    public static string EnvironmentSource => prelude ??= ReadResource(typeof(Algol60Language), "Studio.Algol60.Prelude60.sim");
+    protected override string PreludeText => EnvironmentSource;
 
     protected override Func<string, int, Action<SrcPos, string>, Func<string, List<Token>?>, List<Token>>? UserLexer =>
         (text, file, err, includes) => new Algol60Lexer(text, file, err).Tokenize();

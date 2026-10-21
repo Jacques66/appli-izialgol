@@ -11,7 +11,8 @@ namespace Studio.Ide;
 public partial class MainWindow
 {
     const string FileFilter =
-        "Simula 67 and Algol 68 programs (*.sim;*.a68)|*.sim;*.a68|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|All files (*.*)|*.*";
+        "All programs (*.sim;*.a68;*.a60;*.alg;*.s1)|*.sim;*.a68;*.a60;*.alg;*.s1|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|" +
+        "Algol 60 (*.a60;*.alg)|*.a60;*.alg|Simula I (*.s1)|*.s1|All files (*.*)|*.*";
 
     string FileFilterWithEcho => LanguageRegistry.TestLanguageEnabled
         ? FileFilter + "|Echo, test language (*.echo)|*.echo"
@@ -89,10 +90,17 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Unknown extension: Algol 68 when upper-case bold words are found, otherwise Simula.</summary>
+    /// <summary>Unknown extension: Simula I for a "SIMULA begin" block, Algol 60 when its standard
+    /// procedures or quoted keywords are found, Algol 68 when upper-case bold words are found, otherwise Simula 67.</summary>
     static LanguageDefinition GuessLanguage(string text)
     {
         var t = text.Length > 4000 ? text[..4000] : text;
+        const System.Text.RegularExpressions.RegexOptions ic = System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+        if (System.Text.RegularExpressions.Regex.IsMatch(t, @"\bSIMULA\s*(\bbegin\b|'BEGIN')", ic)) return LanguageDefinitions.SimulaI;
+        int algol60 = System.Text.RegularExpressions.Regex.Matches(t,
+            @"\b(outstring|outinteger|outreal|ininteger|inreal|outchar|inchar|outterminator)\b|'(PROCEDURE|INTEGER|BOOLEAN|ARRAY|STEP|UNTIL|SWITCH)'", ic).Count;
+        int simula67 = System.Text.RegularExpressions.Regex.Matches(t, @"\b(OutText|OutImage|OutInt|OutReal|InInt|InImage|class|ref)\b", ic).Count;
+        if (algol60 > 0 && algol60 >= simula67) return LanguageDefinitions.Algol60;
         int algol = System.Text.RegularExpressions.Regex.Matches(t, @"\b(BEGIN|END|PROC|INT|REAL|MODE|FI|OD|ESAC)\b").Count;
         int simula = System.Text.RegularExpressions.Regex.Matches(t, @"\b(begin|end|procedure|integer|class|OutText|OutImage)\b", System.Text.RegularExpressions.RegexOptions.None).Count;
         return algol > simula ? LanguageDefinitions.Algol68 : LanguageDefinitions.Simula;
@@ -122,7 +130,7 @@ public partial class MainWindow
             var dlg = new SaveFileDialog
             {
                 Filter = FileFilterWithEcho,
-                FilterIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "echo" => 5, _ => 1 },
+                FilterIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "echo" => 7, _ => 1 },
                 FileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
                 DefaultExt = doc.Language.DefaultExtension,
                 AddExtension = true,
@@ -245,7 +253,7 @@ public partial class MainWindow
         var root = PathLocator.SamplesDirectory;
         var list = new List<string>();
         if (root == null) return list;
-        foreach (var (sub, ext) in new[] { ("simula", "*.sim"), ("algol68", "*.a68") })
+        foreach (var (sub, ext) in new[] { ("simula", "*.sim"), ("algol68", "*.a68"), ("algol60", "*.a60"), ("simula1", "*.s1") })
         {
             var dir = System.IO.Path.Combine(root, sub);
             if (System.IO.Directory.Exists(dir))
@@ -301,7 +309,7 @@ public partial class MainWindow
             ExamplesMenu.Items.Add(new MenuItem { Header = "(samples folder not found)", IsEnabled = false });
             return;
         }
-        foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68") })
+        foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68"), ("algol60", "*.a60", "Algol 60"), ("simula1", "*.s1", "Simula I") })
         {
             var group = new MenuItem { Header = title };
             var dir = System.IO.Path.Combine(root, sub);
@@ -323,7 +331,8 @@ public partial class MainWindow
             foreach (var line in System.IO.File.ReadLines(path).Take(6))
             {
                 var t = line.Trim();
-                if (t.StartsWith("comment", StringComparison.OrdinalIgnoreCase) || t.StartsWith('!') || t.StartsWith('#') || t.StartsWith("CO"))
+                if (t.StartsWith("comment", StringComparison.OrdinalIgnoreCase) || t.StartsWith("'COMMENT'", StringComparison.OrdinalIgnoreCase)
+                    || t.StartsWith('!') || t.StartsWith('#') || t.StartsWith("CO"))
                     return t.Length > 120 ? t[..120] + "…" : t;
             }
         }
