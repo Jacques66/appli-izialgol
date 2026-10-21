@@ -51,7 +51,7 @@ Contents of `dist\`:
 
 ```
 dist\AlgolStudio.exe   dist\Runner.exe   dist\simc.exe   dist\a68c.exe   dist\a60c.exe   dist\s1c.exe   dist\pasc.exe
-dist\samples\simula\*.sim dist\samples\algol68\...\*.a68 dist\samples\algol60\*.a60 dist\samples\simula1\*.s1 dist\samples\pascal\*.pas
+dist\samples\simula67\*.sim dist\samples\algol68\...\*.a68 dist\samples\algol60\*.a60 dist\samples\simula1\*.s1 dist\samples\pascal\*.pas
 dist\docs\simula.md       dist\docs\algol68.md       dist\docs\algol60.md   dist\docs\simula1.md   dist\docs\pascal.md   dist\README.md
 ```
 

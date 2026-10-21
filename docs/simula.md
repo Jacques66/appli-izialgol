@@ -245,7 +245,7 @@ end
 
 ### Simulation examples
 
-The `samples/simula` folder contains discrete event simulations modelled on the
+The `samples/simula67` folder contains discrete event simulations modelled on the
 classic examples of the Simula literature:
 
 | File | Model | Source of inspiration |

@@ -6,7 +6,7 @@ using Studio.Simula;
 using Studio.SimulaI;
 
 // Test bench of the Simula engine languages (Simula 67 .sim, Algol 60 .a60/.alg, Simula I .s1): compiles and runs
-// samples/simula, samples/algol60, samples/simula1 and tests/SimulaTests/cases,
+// samples/simula67, samples/algol60, samples/simula1 and tests/SimulaTests/cases,
 // compares with <name>.out (optional input <name>.in). Usage: SimulaTests [file.sim | filter | --debugtest]
 var root = FindRoot();
 var simula = new SimulaLanguage();
@@ -24,7 +24,7 @@ if (args.Length == 1 && IsSource(args[0]) && File.Exists(args[0]))
 if (args.Length == 1 && args[0] == "--debugtest") return DebugTest();
 var filter = args.Length > 0 ? args[0] : "";
 var filesToTest = new List<string>();
-foreach (var dir in new[] { Path.Combine(root, "samples", "simula"), Path.Combine(root, "samples", "algol60"), Path.Combine(root, "samples", "simula1"), Path.Combine(root, "tests", "SimulaTests", "cases") })
+foreach (var dir in new[] { Path.Combine(root, "samples", "simula67"), Path.Combine(root, "samples", "algol60"), Path.Combine(root, "samples", "simula1"), Path.Combine(root, "tests", "SimulaTests", "cases") })
     if (Directory.Exists(dir)) filesToTest.AddRange(Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories).Where(IsSource));
 int pass = 0, fail = 0;
 foreach (var f in filesToTest.OrderBy(x => x))
@@ -57,7 +57,7 @@ string Rel(string p) => Path.GetRelativePath(root, p);
 
 int DebugTest()
 {
-    var path = Path.Combine(root, "samples", "simula", "02_factorial.sim");
+    var path = Path.Combine(root, "samples", "simula67", "02_factorial.sim");
     var res = simula.Compile(new SourceFile(path, File.ReadAllText(path)), new CompileOptions());
     var io = new MemIO("", root);
     var exec = res.Program!.CreateExecution(io);

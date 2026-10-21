@@ -1,7 +1,7 @@
 // End-to-end tests of the tooling (without the real compilers):
 // "echo" test language, debugger, standalone exe through Runner, CLI, editor analysis.
 // Usage: dotnet run --project tests/IdeTests [-- --samples]
-//   --samples: also compiles and runs samples/simula, samples/algol68, samples/algol60, samples/simula1 and samples/pascal
+//   --samples: also compiles and runs samples/simula67, samples/algol68, samples/algol60, samples/simula1 and samples/pascal
 //   with the real compilers (the Algol 60, Simula I and Pascal samples are always checked against their .out files).
 
 using System.Collections.Concurrent;
@@ -954,7 +954,7 @@ static class Program
         Console.WriteLine("Samples with the real compilers:");
         var root = FindUp("samples");
         if (root == null) { Console.WriteLine("  (samples folder not found)"); return; }
-        foreach (var (sub, ext) in new[] { ("simula", ".sim"), ("algol68", ".a68"), ("algol60", ".a60"), ("simula1", ".s1"), ("pascal", ".pas") })
+        foreach (var (sub, ext) in new[] { ("simula67", ".sim"), ("algol68", ".a68"), ("algol60", ".a60"), ("simula1", ".s1"), ("pascal", ".pas") })
         {
             var dir = Path.Combine(root, sub);
             if (!Directory.Exists(dir)) continue;

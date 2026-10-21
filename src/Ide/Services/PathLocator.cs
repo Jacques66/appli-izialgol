@@ -14,7 +14,7 @@ public static class PathLocator
     }
 
     public static string? SamplesDirectory =>
-        FindDirectory("samples", p => new[] { "simula", "algol68", "algol60", "simula1", "pascal" }.Any(d => Directory.Exists(Path.Combine(p, d))));
+        FindDirectory("samples", p => new[] { "simula67", "algol68", "algol60", "simula1", "pascal" }.Any(d => Directory.Exists(Path.Combine(p, d))));
 
     public static string? DocsDirectory =>
         FindDirectory("docs", p => new[] { "simula.md", "algol68.md", "algol60.md", "simula1.md", "pascal.md" }.Any(d => File.Exists(Path.Combine(p, d))));

@@ -9,7 +9,7 @@ begin
    integer maxint = 2147483647, minint = -2147483647 - 1, maxrank = 255;
    real maxreal = 1.7976931348623157&308, minreal = -1.7976931348623157&308;
    long real maxlongreal = 1.7976931348623157&&308, minlongreal = -1.7976931348623157&&308;
-   text simulaid = "Simula 67 Studio 1.0!!!Studio!!!Windows!!!x64!!!user!!!0!!!0!!!program";
+   text simulaid = "AlgolStudio 1.0!!!AlgolStudio!!!Windows!!!x64!!!user!!!0!!!0!!!program";
 
    ref(infile) sysin_;
    ref(printfile) sysout_;

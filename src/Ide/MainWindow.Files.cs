@@ -255,7 +255,7 @@ public partial class MainWindow
         var root = PathLocator.SamplesDirectory;
         var list = new List<string>();
         if (root == null) return list;
-        foreach (var (sub, ext) in new[] { ("simula", "*.sim"), ("algol68", "*.a68"), ("algol60", "*.a60"), ("simula1", "*.s1"), ("pascal", "*.pas") })
+        foreach (var (sub, ext) in new[] { ("simula67", "*.sim"), ("algol68", "*.a68"), ("algol60", "*.a60"), ("simula1", "*.s1"), ("pascal", "*.pas") })
         {
             var dir = System.IO.Path.Combine(root, sub);
             if (System.IO.Directory.Exists(dir))
@@ -311,7 +311,7 @@ public partial class MainWindow
             ExamplesMenu.Items.Add(new MenuItem { Header = "(samples folder not found)", IsEnabled = false });
             return;
         }
-        foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68"), ("algol60", "*.a60", "Algol 60"), ("simula1", "*.s1", "Simula I"), ("pascal", "*.pas", "Pascal") })
+        foreach (var (sub, ext, title) in new[] { ("simula67", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68"), ("algol60", "*.a60", "Algol 60"), ("simula1", "*.s1", "Simula I"), ("pascal", "*.pas", "Pascal") })
         {
             var group = new MenuItem { Header = title };
             var dir = System.IO.Path.Combine(root, sub);
