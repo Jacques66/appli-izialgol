@@ -147,8 +147,6 @@ public sealed partial class Vm
         var procs = prog.Procs;
         var units = prog.Units;
 
-        // frame switching
-        void Save(Frame fr) { }
         while (true)
         {
             try
