@@ -1,6 +1,6 @@
 # Algol 68 — reference guide
 
-This document describes the **Algol 68** compiler and runtime of Simula67 Studio.
+This document describes the **Algol 68** compiler and runtime of AlgolStudio.
 The implemented language is that of the *Revised Report on the Algorithmic Language Algol 68*
 (Van Wijngaarden et al., 1975), with the syntax and behaviour of **Algol 68 Genie** (a68g)
 as the practical reference: a program written for a68g usually compiles unchanged, and the

@@ -110,7 +110,7 @@ static class Program
     }
 
     static readonly EchoLanguage Echo = new();
-    static string TempDir = Path.Combine(Path.GetTempPath(), "Simula67StudioTests", Guid.NewGuid().ToString("N")[..8]);
+    static string TempDir = Path.Combine(Path.GetTempPath(), "AlgolStudioTests", Guid.NewGuid().ToString("N")[..8]);
 
     static ICompiledProgram CompileEcho(string text, string path = "C:\\test\\prog.echo", Func<string, string, SourceFile?>? resolver = null)
     {

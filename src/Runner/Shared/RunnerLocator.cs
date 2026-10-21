@@ -7,13 +7,13 @@ public static class RunnerLocator
     public const string RunnerFileName = "Runner.exe";
 
     /// <summary>
-    /// Looks for Runner.exe: SIMULA67_RUNNER variable, next to the tool, then walking up
+    /// Looks for Runner.exe: ALGOLSTUDIO_RUNNER variable, next to the tool, then walking up
     /// the directory tree (development mode) in src/Runner/bin/{Release,Debug}/single.
     /// Returns null if not found.
     /// </summary>
     public static string? Find(string? startDirectory = null)
     {
-        var env = Environment.GetEnvironmentVariable("SIMULA67_RUNNER");
+        var env = Environment.GetEnvironmentVariable("ALGOLSTUDIO_RUNNER");
         if (!string.IsNullOrWhiteSpace(env) && File.Exists(env)) return Path.GetFullPath(env);
 
         var baseDir = startDirectory ?? AppContext.BaseDirectory;

@@ -24,7 +24,7 @@
     <RootNamespace>Studio.SimC</RootNamespace>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <Product>Simula 67 &amp; Algol 68 Studio</Product>
+    <Product>AlgolStudio</Product>
     <!-- Runner is referenced only for build ordering (no assembly reference). -->
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>

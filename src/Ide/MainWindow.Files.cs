@@ -174,7 +174,7 @@ public partial class MainWindow
         if (modified.Count == 0) return true;
         var names = string.Join("\n", modified.Select(d => "  • " + d.DisplayName));
         var r = MessageBox.Show(this, $"Save changes to the following files?\n\n{names}",
-            "Simula 67 & Algol 68 Studio", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            "AlgolStudio", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
         if (r == MessageBoxResult.Cancel) return false;
         if (r == MessageBoxResult.Yes)
             foreach (var d in modified)

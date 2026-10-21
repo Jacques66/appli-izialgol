@@ -157,7 +157,7 @@ static class Program
     static string FindRoot()
     {
         var d = AppContext.BaseDirectory;
-        while (d != null && !File.Exists(Path.Combine(d, "Simula67Studio.sln"))) d = Path.GetDirectoryName(d);
+        while (d != null && !File.Exists(Path.Combine(d, "AlgolStudio.sln"))) d = Path.GetDirectoryName(d);
         return d ?? Environment.CurrentDirectory;
     }
 }

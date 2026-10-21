@@ -63,6 +63,6 @@ static class Program
         Console.WriteLine("produced by the compilers:");
         Console.WriteLine("  simc program.sim -o program.exe");
         Console.WriteLine("  a68c program.a68 -o program.exe");
-        Console.WriteLine("or by the 'Generate standalone .exe' command of Simula 67 & Algol 68 Studio.");
+        Console.WriteLine("or by the 'Generate standalone .exe' command of AlgolStudio.");
     }
 }

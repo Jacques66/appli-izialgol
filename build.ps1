@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-  Builds the Simula 67 & Algol 68 Studio distribution in the dist\ folder.
+  Builds the AlgolStudio distribution in the dist\ folder.
 
 .DESCRIPTION
   Publishes as framework-dependent single files (.NET 8, win-x64):
-    dist\Simula67Studio.exe   the integrated development environment (IDE)
+    dist\AlgolStudio.exe   the integrated development environment (IDE)
     dist\Runner.exe           the launcher used as the base of standalone .exe files
     dist\simc.exe             command-line Simula 67 compiler
     dist\a68c.exe             command-line Algol 68 compiler
@@ -64,7 +64,7 @@ Publish "src\A68C\A68C.csproj" "a68c"
 Publish "src\A60C\A60C.csproj" "a60c"
 Publish "src\S1C\S1C.csproj" "s1c"
 Publish "src\PasC\PasC.csproj" "pasc"
-Publish "src\Ide\Ide.csproj" "Simula67Studio"
+Publish "src\Ide\Ide.csproj" "AlgolStudio"
 
 Step "Copying samples and documentation"
 foreach ($dir in "samples", "docs") {
@@ -103,7 +103,7 @@ if ($Test) {
 
     Step "IDE startup test"
     $shot = Join-Path $stage "smoke.png"
-    $p = Start-Process -FilePath (Join-Path $dist "Simula67Studio.exe") -ArgumentList "--smoke-test", "--screenshot", "`"$shot`"", "--self-test-dir", "`"$stage`"" -PassThru -Wait
+    $p = Start-Process -FilePath (Join-Path $dist "AlgolStudio.exe") -ArgumentList "--smoke-test", "--screenshot", "`"$shot`"", "--self-test-dir", "`"$stage`"" -PassThru -Wait
     if ($p.ExitCode -ne 0) { throw "the IDE startup test failed (see $stage\smoke-test.log)" }
     Write-Host "IDE started and closed without error (screenshot: $shot)"
 }

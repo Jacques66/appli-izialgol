@@ -38,7 +38,7 @@ static class Program
     static string RepoRoot()
     {
         var d = new DirectoryInfo(AppContext.BaseDirectory);
-        while (d != null && !File.Exists(Path.Combine(d.FullName, "Simula67Studio.sln"))) d = d.Parent;
+        while (d != null && !File.Exists(Path.Combine(d.FullName, "AlgolStudio.sln"))) d = d.Parent;
         return d?.FullName ?? Directory.GetCurrentDirectory();
     }
 

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Studio.Ide.Services;
 
-/// <summary>Persistent settings (%APPDATA%\Simula67Studio\settings.json).</summary>
+/// <summary>Persistent settings (%APPDATA%\AlgolStudio\settings.json).</summary>
 public sealed class IdeSettings
 {
     public List<string> RecentFiles { get; set; } = new();
@@ -47,7 +47,7 @@ public sealed class IdeSettings
 
     /// <summary>Settings directory (can be overridden with --settings-dir).</summary>
     public static string Directory { get; set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Simula67Studio");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AlgolStudio");
 
     static string FilePath => Path.Combine(Directory, "settings.json");
 
@@ -57,10 +57,25 @@ public sealed class IdeSettings
         NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
     };
 
+    static readonly string DefaultDirectory = Directory;
+
+    /// <summary>The IDE was called "Simula 67 &amp; Algol 68 Studio" (%APPDATA%\Simula67Studio):
+    /// its settings and log are copied once to the new folder.</summary>
+    static void MigrateOldSettings()
+    {
+        if (Directory != DefaultDirectory || System.IO.Directory.Exists(Directory)) return;
+        var old = Path.Combine(Path.GetDirectoryName(Directory)!, "Simula67Studio");
+        if (!System.IO.Directory.Exists(old)) return;
+        System.IO.Directory.CreateDirectory(Directory);
+        foreach (var f in System.IO.Directory.GetFiles(old))
+            File.Copy(f, Path.Combine(Directory, Path.GetFileName(f)), overwrite: false);
+    }
+
     public static IdeSettings Load()
     {
         try
         {
+            MigrateOldSettings();
             if (File.Exists(FilePath))
             {
                 var s = JsonSerializer.Deserialize<IdeSettings>(File.ReadAllText(FilePath), Json);
@@ -118,7 +133,7 @@ public sealed class IdeSettings
     }
 }
 
-/// <summary>Technical log (%APPDATA%\Simula67Studio\ide.log).</summary>
+/// <summary>Technical log (%APPDATA%\AlgolStudio\ide.log).</summary>
 public static class Log
 {
     static readonly object Gate = new();

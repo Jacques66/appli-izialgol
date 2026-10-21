@@ -8,7 +8,7 @@
         <StackPanel Orientation="Horizontal">
             <Image Source="/Assets/app256.png" Width="72" Height="72"/>
             <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="Simula 67 &amp; Algol 68 Studio" FontSize="22" FontWeight="Light"/>
+                <TextBlock Text="AlgolStudio" FontSize="22" FontWeight="Light"/>
                 <TextBlock x:Name="VersionText" Foreground="{DynamicResource Brush.TextDim}"/>
             </StackPanel>
         </StackPanel>

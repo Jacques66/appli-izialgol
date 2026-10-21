@@ -23,7 +23,7 @@ public static class PathLocator
     {
         get
         {
-            var p = Path.Combine(Path.GetTempPath(), "Simula67Studio");
+            var p = Path.Combine(Path.GetTempPath(), "AlgolStudio");
             Directory.CreateDirectory(p);
             return p;
         }

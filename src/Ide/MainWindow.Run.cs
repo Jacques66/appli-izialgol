@@ -296,7 +296,7 @@ public partial class MainWindow
             ExePackage.Write(runner, exe, outcome.Service.Id, outcome.Result.Program.Serialize());
             var workDir = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var psi = new ProcessStartInfo("cmd.exe",
-                $"/v:on /c \"title {baseName} — Simula 67 & Algol 68 Studio & \"{exe}\" & echo. & echo [Program finished with exit code !errorlevel!] & pause\"")
+                $"/v:on /c \"title {baseName} — AlgolStudio & \"{exe}\" & echo. & echo [Program finished with exit code !errorlevel!] & pause\"")
             {
                 UseShellExecute = false,
                 CreateNoWindow = false,

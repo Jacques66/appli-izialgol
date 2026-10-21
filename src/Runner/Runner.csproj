@@ -19,7 +19,7 @@
     <!-- Required for the win-x64 single-file publish (standalone executables). -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <Product>Simula 67 &amp; Algol 68 Studio</Product>
+    <Product>AlgolStudio</Product>
   </PropertyGroup>
 
   <!--

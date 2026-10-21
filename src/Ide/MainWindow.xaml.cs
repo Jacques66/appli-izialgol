@@ -187,7 +187,7 @@ public partial class MainWindow : Window
             else if (File.Exists(f)) OpenFile(Path.GetFullPath(f));
         }
 
-        AppendOutput("Simula 67 & Algol 68 Studio — " + DateTime.Now.ToString("dddd, MMMM d, yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+        AppendOutput("AlgolStudio — " + DateTime.Now.ToString("dddd, MMMM d, yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
         var runner = RunnerLocator.Find();
         AppendOutput(runner != null ? $"Standalone executable launcher: {runner}" : "Warning: " + RunnerLocator.NotFoundMessage);
         AppendOutput("Languages: " + string.Join(", ", LanguageRegistry.Languages.Select(l => $"{l.DisplayName} ({string.Join(", ", l.FileExtensions)})")));
@@ -297,7 +297,7 @@ public partial class MainWindow : Window
     void UpdateTitle()
     {
         var doc = ActiveDocument;
-        Title = doc == null ? "Simula 67 & Algol 68 Studio" : $"{doc.DisplayName} — Simula 67 & Algol 68 Studio";
+        Title = doc == null ? "AlgolStudio" : $"{doc.DisplayName} — AlgolStudio";
     }
 
     void UpdateWelcome()
@@ -937,7 +937,7 @@ public partial class MainWindow : Window
         if (_closingConfirmed) return;
         if (_state is IdeState.Running or IdeState.Debugging or IdeState.Paused or IdeState.External && !App.Options.Automated)
         {
-            var r = MessageBox.Show(this, "A program is running. Stop it and exit?", "Simula 67 & Algol 68 Studio",
+            var r = MessageBox.Show(this, "A program is running. Stop it and exit?", "AlgolStudio",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (r != MessageBoxResult.Yes) { e.Cancel = true; return; }
         }

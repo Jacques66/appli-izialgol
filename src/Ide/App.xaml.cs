@@ -59,9 +59,9 @@ public partial class App : Application
         Options = AppOptions.Parse(e.Args);
         if (Options.SettingsDir != null) IdeSettings.Directory = Path.GetFullPath(Options.SettingsDir);
         else if (Options.Automated)
-            IdeSettings.Directory = Path.Combine(Path.GetTempPath(), "Simula67Studio-test-" + Environment.ProcessId);
+            IdeSettings.Directory = Path.Combine(Path.GetTempPath(), "AlgolStudio-test-" + Environment.ProcessId);
         LanguageRegistry.TestLanguageEnabled = Options.TestLanguage ||
-            Environment.GetEnvironmentVariable("SIMULA67STUDIO_TEST_LANGUAGE") == "1";
+            Environment.GetEnvironmentVariable("ALGOLSTUDIO_TEST_LANGUAGE") == "1";
 
         DispatcherUnhandledException += OnDispatcherException;
         AppDomain.CurrentDomain.UnhandledException += (_, ev) =>
@@ -86,7 +86,7 @@ public partial class App : Application
         if (!Options.Automated)
             MessageBox.Show(MainWindow!, "An unexpected error occurred:\n\n" + e.Exception.Message +
                 "\n\nDetails were written to " + Path.Combine(IdeSettings.Directory, "ide.log"),
-                "Simula 67 & Algol 68 Studio", MessageBoxButton.OK, MessageBoxImage.Error);
+                "AlgolStudio", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     public static bool IsDarkTheme { get; private set; }

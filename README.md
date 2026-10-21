@@ -1,4 +1,4 @@
-# Simula 67 & Algol 68 Studio
+# AlgolStudio
 
 A complete Windows development environment for five historic languages:
 
@@ -18,7 +18,7 @@ The project contains:
 
 | Component | File | Role |
 |---|---|---|
-| IDE | `Simula67Studio.exe` | editor, build, console, debugger, help |
+| IDE | `AlgolStudio.exe` | editor, build, console, debugger, help |
 | Simula 67 compiler | `simc.exe` | command-line compilation, standalone executables |
 | Algol 68 compiler | `a68c.exe` | the same for Algol 68 |
 | Algol 60 compiler | `a60c.exe` | the same for Algol 60 |
@@ -50,19 +50,19 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1 -Test
 Contents of `dist\`:
 
 ```
-dist\Simula67Studio.exe   dist\Runner.exe   dist\simc.exe   dist\a68c.exe   dist\a60c.exe   dist\s1c.exe   dist\pasc.exe
+dist\AlgolStudio.exe   dist\Runner.exe   dist\simc.exe   dist\a68c.exe   dist\a60c.exe   dist\s1c.exe   dist\pasc.exe
 dist\samples\simula\*.sim dist\samples\algol68\...\*.a68 dist\samples\algol60\*.a60 dist\samples\simula1\*.s1 dist\samples\pascal\*.pas
 dist\docs\simula.md       dist\docs\algol68.md       dist\docs\algol60.md   dist\docs\simula1.md   dist\docs\pascal.md   dist\README.md
 ```
 
-For development, `dotnet build Simula67Studio.sln` is enough: every build of `src\Runner` also
+For development, `dotnet build AlgolStudio.sln` is enough: every build of `src\Runner` also
 publishes `src\Runner\bin\<Configuration>\single\Runner.exe` (single file), which the IDE and the
-compilers find automatically by walking up the folder tree. The `SIMULA67_RUNNER` environment
+compilers find automatically by walking up the folder tree. The `ALGOLSTUDIO_RUNNER` environment
 variable forces another `Runner.exe`.
 
 ## Using the IDE
 
-Start `Simula67Studio.exe` (optionally with files or a folder as arguments).
+Start `AlgolStudio.exe` (optionally with files or a folder as arguments).
 
 ### Editor
 
@@ -94,7 +94,7 @@ Start `Simula67Studio.exe` (optionally with files or a folder as arguments).
 * Drag and drop of files or folders; recent files and folders; **Examples** menu (`samples`
   folder); **light** and **dark** themes.
 * The session (tabs, caret position, breakpoints, layout, options) is restored at start-up.
-  Settings: `%APPDATA%\Simula67Studio\settings.json` (theme `light` or `dark`; technical log:
+  Settings: `%APPDATA%\AlgolStudio\settings.json` (theme `light` or `dark`; technical log:
   `ide.log` in the same folder).
 
 ### Build and run
@@ -177,8 +177,8 @@ dotnet run --project tests\Algol68Tests          # Algol 68 compiler
 dotnet run --project tests\PascalTests           # Pascal compiler: samples, cases, debugger
 dotnet run --project tests\IdeTests              # tooling, debugger, standalone exe, CLI, editor
 dotnet run --project tests\IdeTests -- --samples # + compile/run the samples
-Simula67Studio.exe --smoke-test --screenshot capture.png   # start-up + screenshot + shutdown
-Simula67Studio.exe --self-test --self-test-dir folder      # full IDE scenario
+AlgolStudio.exe --smoke-test --screenshot capture.png   # start-up + screenshot + shutdown
+AlgolStudio.exe --self-test --self-test-dir folder      # full IDE scenario
 ```
 
 `tests\IdeTests` uses a small test language ("echo") to check the IDE, the debugger and the

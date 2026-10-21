@@ -27,7 +27,7 @@ public static class CliMain
                     PrintUsage(toolName, language, ext);
                     return 0;
                 case "--version":
-                    Console.WriteLine($"{toolName} ({language.DisplayName}) — Simula 67 & Algol 68 Studio {typeof(CliMain).Assembly.GetName().Version}");
+                    Console.WriteLine($"{toolName} ({language.DisplayName}) — AlgolStudio {typeof(CliMain).Assembly.GetName().Version}");
                     return 0;
                 case "-o":
                 case "--output":
@@ -166,7 +166,7 @@ public static class CliMain
     {
         Console.WriteLine($"Usage: {toolName} file{ext} [-o output.exe] [--run] [--no-debug]");
         Console.WriteLine();
-        Console.WriteLine($"{toolName} — {language.DisplayName} compiler (Simula 67 & Algol 68 Studio)");
+        Console.WriteLine($"{toolName} — {language.DisplayName} compiler (AlgolStudio)");
         Console.WriteLine();
         Console.WriteLine("  -o, --output FILE      produce a standalone executable (.exe)");
         Console.WriteLine("  -r, --run              run the program in the console after compiling");
