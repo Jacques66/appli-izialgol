@@ -1,0 +1,11 @@
+comment A label called by value (Modified Report 4.7.6) is evaluated once, at the call;
+begin integer k;
+   procedure jump(l, m); value l; label l, m;
+   begin k := 2; goto l end;
+   switch s := one, two;
+   k := 1;
+   jump(s[k], s[k]);
+one: outstring(1, "one\n"); goto done;
+two: outstring(1, "two\n");
+done: outinteger(1, k)
+end

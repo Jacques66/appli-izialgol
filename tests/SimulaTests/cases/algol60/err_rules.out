@@ -1,0 +1,7 @@
+err_rules.a60(5,18): error: a conditional statement cannot follow 'then' (enclose it in begin ... end)
+err_rules.a60(6,54): error: 'else' cannot follow a for or while statement after 'then' (enclose it in begin ... end)
+err_rules.a60(7,11): error: empty parameter list '()': omit the parentheses
+err_rules.a60(4,16): error: the procedure identifier 'p' cannot be one of its formal parameters
+err_rules.a60(8,11): error: Boolean values cannot be compared with a relational operator (use eqv)
+err_rules.a60(9,30): error: the bounds of an own array must be integer constants
+

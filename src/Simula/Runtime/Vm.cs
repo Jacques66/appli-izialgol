@@ -127,7 +127,7 @@ public sealed partial class Vm
         return new RuntimeFault(new RuntimeErrorInfo(msg, file, line, col, StackInfo(f, pc)));
     }
 
-    // ------------------------------------------------------------ boucle d'execution
+    // ------------------------------------------------------------ execution loop
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Frame Up(Frame f, int hops)
@@ -334,39 +334,37 @@ public sealed partial class Vm
                             }
                         case Op.ChkArr: pc += 2; break;
 
-                        // ---------------------------------------- arithmetique entiere (32 bits)
-                        case Op.AddI: sp--; s[sp - 1] = new Value { I = (int)(s[sp - 1].I + s[sp].I) }; break;
-                        case Op.SubI: sp--; s[sp - 1] = new Value { I = (int)(s[sp - 1].I - s[sp].I) }; break;
-                        case Op.MulI: sp--; s[sp - 1] = new Value { I = (int)(s[sp - 1].I * s[sp].I) }; break;
+                        // ---------------------------------------- integer arithmetic (32 bits, overflow is a runtime error)
+                        case Op.AddI: sp--; s[sp - 1] = new Value { I = CheckInt(s[sp - 1].I + s[sp].I) }; break;
+                        case Op.SubI: sp--; s[sp - 1] = new Value { I = CheckInt(s[sp - 1].I - s[sp].I) }; break;
+                        case Op.MulI: sp--; s[sp - 1] = new Value { I = CheckInt(s[sp - 1].I * s[sp].I) }; break;
                         case Op.DivI:
                             {
                                 sp--;
                                 long d = s[sp].I;
-                                if (d == 0) throw new SimulaError("integer division (//) by zero");
-                                s[sp - 1] = new Value { I = (int)(s[sp - 1].I / d) };
+                                if (d == 0) throw new SimulaError("integer division by zero");
+                                s[sp - 1] = new Value { I = CheckInt(s[sp - 1].I / d) };
                                 break;
                             }
-                        case Op.NegI: s[sp - 1] = new Value { I = (int)-s[sp - 1].I }; break;
+                        case Op.NegI: s[sp - 1] = new Value { I = CheckInt(-s[sp - 1].I) }; break;
                         case Op.PowII:
                             {
                                 sp--;
                                 long i = s[sp - 1].I, j = s[sp].I;
                                 if (j < 0 || (i == 0 && j == 0)) throw new SimulaError($"undefined integer exponentiation ({i}**{j})");
-                                long r = 1, bb = i;
-                                while (j > 0) { if ((j & 1) != 0) r = (int)(r * bb); bb = (int)(bb * bb); j >>= 1; }
-                                s[sp - 1] = new Value { I = r };
+                                s[sp - 1] = new Value { I = PowInt(i, j) };
                                 break;
                             }
-                        // ---------------------------------------- reels
-                        case Op.AddR: sp--; s[sp - 1] = Value.Real(s[sp - 1].R + s[sp].R); break;
-                        case Op.SubR: sp--; s[sp - 1] = Value.Real(s[sp - 1].R - s[sp].R); break;
-                        case Op.MulR: sp--; s[sp - 1] = Value.Real(s[sp - 1].R * s[sp].R); break;
+                        // ---------------------------------------- reals
+                        case Op.AddR: sp--; s[sp - 1] = Value.Real(CheckReal(s[sp - 1].R + s[sp].R)); break;
+                        case Op.SubR: sp--; s[sp - 1] = Value.Real(CheckReal(s[sp - 1].R - s[sp].R)); break;
+                        case Op.MulR: sp--; s[sp - 1] = Value.Real(CheckReal(s[sp - 1].R * s[sp].R)); break;
                         case Op.DivR:
                             {
                                 sp--;
                                 double d = s[sp].R;
                                 if (d == 0) throw new SimulaError("division by zero");
-                                s[sp - 1] = Value.Real(s[sp - 1].R / d);
+                                s[sp - 1] = Value.Real(CheckReal(s[sp - 1].R / d));
                                 break;
                             }
                         case Op.NegR: s[sp - 1] = Value.Real(-s[sp - 1].R); break;
@@ -374,8 +372,8 @@ public sealed partial class Vm
                             {
                                 sp--;
                                 double x = s[sp - 1].R, r = s[sp].R;
-                                if (x < 0 || (x == 0 && r <= 0)) throw new SimulaError($"undefined exponentiation ({x}**{r})");
-                                s[sp - 1] = Value.Real(x > 0 ? Math.Pow(x, r) : 0.0);
+                                if (x < 0 || (x == 0 && r <= 0)) throw new SimulaError(FormattableString.Invariant($"undefined exponentiation ({x}**{r})"));
+                                s[sp - 1] = Value.Real(CheckReal(x > 0 ? Math.Pow(x, r) : 0.0));
                                 break;
                             }
                         case Op.PowRI:
@@ -384,7 +382,7 @@ public sealed partial class Vm
                                 double x = s[sp - 1].R; long i = s[sp].I;
                                 if (i == 0 && x == 0) throw new SimulaError("undefined exponentiation (0.0**0)");
                                 if (x == 0 && i < 0) throw new SimulaError("division by zero (0.0 ** negative exponent)");
-                                s[sp - 1] = Value.Real(Math.Pow(x, i));
+                                s[sp - 1] = Value.Real(CheckReal(Math.Pow(x, i)));
                                 break;
                             }
                         case Op.CmpI:
@@ -433,7 +431,7 @@ public sealed partial class Vm
                         case Op.Qua:
                             {
                                 var ci = classes[code[pc++]];
-                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError($"qua {ci.Name} applique a none");
+                                var o = s[sp - 1].O as SimObject ?? throw new SimulaError($"qua {ci.Name} applied to none");
                                 if (!o.Class.IsSubclassOf(ci)) throw new SimulaError($"qua: the object of class {o.Class.Name} does not belong to class {ci.Name}");
                                 break;
                             }
@@ -470,7 +468,7 @@ public sealed partial class Vm
                                 break;
                             }
 
-                        // ---------------------------------------- controle
+                        // ---------------------------------------- control
                         case Op.Jmp:
                             {
                                 int t = code[pc];
@@ -515,7 +513,7 @@ public sealed partial class Vm
                             }
                         case Op.GotoV:
                             {
-                                var lv = s[--sp].O as LabelValue ?? throw new SimulaError("goto : designation invalide");
+                                var lv = s[--sp].O as LabelValue ?? throw new SimulaError("goto: invalid designational expression");
                                 f.Pc = pc; f.Sp = sp;
                                 f = DoGoto(f, lv.Frame, lv.LabelId, out pc);
                                 code = f.Unit.Code; s = f.S; sp = f.Sp;
@@ -582,7 +580,7 @@ public sealed partial class Vm
                                 break;
                             }
 
-                        // ---------------------------------------- appels
+                        // ---------------------------------------- calls
                         case Op.Call:
                             {
                                 var pi = procs[code[pc]]; int hops = code[pc + 1]; int argc = code[pc + 2]; int flags = code[pc + 3];
@@ -871,6 +869,37 @@ public sealed partial class Vm
         if (dbg.PauseRequested) { }
     }
 
+    /// <summary>Checks that the result of an integer operation is representable (32 bits).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static long CheckInt(long r)
+    {
+        if (r < int.MinValue || r > int.MaxValue) throw new SimulaError("integer overflow");
+        return r;
+    }
+
+    /// <summary>Checks that the result of a real operation is finite (real overflow is a runtime error).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static double CheckReal(double r)
+    {
+        if (!double.IsFinite(r)) throw new SimulaError("real overflow");
+        return r;
+    }
+
+    /// <summary>i ** j for j &gt;= 0 by repeated multiplication (1 for j = 0), with overflow detection.</summary>
+    internal static long PowInt(long i, long j)
+    {
+        if (j == 0) return 1;
+        if (i == 0 || i == 1) return i;
+        if (i == -1) return (j & 1) == 0 ? 1 : -1;
+        long r = 1;
+        for (long k = 0; k < j; k++)
+        {
+            r *= i;
+            if (r < int.MinValue || r > int.MaxValue) throw new SimulaError("integer overflow");
+        }
+        return r;
+    }
+
     static bool Rel(int rel, int c) => (Compiler.T)rel switch
     {
         Compiler.T.Lt => c < 0, Compiler.T.Le => c <= 0, Compiler.T.Eq => c == 0,
@@ -928,6 +957,11 @@ public sealed partial class Vm
         {
             // procedure actual, simple formal: call the procedure
             if (th.AltEntry < 0) throw new SimulaError("parameter: a value is expected but the actual parameter is a procedure");
+            entry = th.AltEntry;
+        }
+        else if (kind == (int)Compiler.ParamKind.Label && th.ActualKind == 0 && th.AltEntry >= 0)
+        {
+            // Algol 60: unsigned integer actual parameter used as a label (generic call)
             entry = th.AltEntry;
         }
         else if (kind != 0 && th.ActualKind != kind && !(th.ActualKind == 0 && kind == 2))

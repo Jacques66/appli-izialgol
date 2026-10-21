@@ -18,7 +18,10 @@ public sealed partial class SimCompiler
     void MarkIntrinsics()
     {
         foreach (var s in env.Syms.Values)
-            if (s is ProcSym p && IntrinsicNames.Contains(p.Name)) p.Intrinsic = p.Name;
+            if (s is ProcSym p && IntrinsicNames.Contains(p.Name)
+                // Algol 60: sqrt, ln and exp call fault as in the environmental block of the Modified Report
+                && !(dialect != Dialect.Simula67 && p.Name is "sqrt" or "ln" or "exp"))
+                p.Intrinsic = p.Name;
     }
 
     // ------------------------------------------------------------ protection context
@@ -173,6 +176,8 @@ public sealed partial class SimCompiler
             case ParamMode.Value:
                 if (ps.Kind == ParamKind.Simple && (valueType || t.B == BaseType.Text)) ps.Mode = ParamMode.Value;
                 else if (ps.Kind == ParamKind.Array && valueType) ps.Mode = ParamMode.Value;
+                else if (ps.Kind == ParamKind.Label && dialect != Dialect.Simula67 && !ps.IsClassParam)
+                    ps.Mode = ParamMode.Default;   // Algol 60 (4.7.6): a label called by value is evaluated once, at the call
                 else { Err(spec.Pos, $"call by value not allowed for '{spec.Orig}'"); ps.Mode = ParamMode.Default; }
                 break;
             default:

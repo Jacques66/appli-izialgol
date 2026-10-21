@@ -1,0 +1,13 @@
+main is current
+a scheduled   0.0
+b last
+p1 at 0.0
+p1 after hold(-3) at 0.0
+p3 at 2.0
+p2 at 2.0
+p3 after hold(-3) at 2.0
+p2 after hold(-3) at 2.0
+a terminated
+terminated a stays idle
+  11.0
+  11.0

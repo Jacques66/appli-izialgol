@@ -1,0 +1,20 @@
+! Compile-time rules of chapter 5 (declarations) of the SIMULA Standard;
+begin
+   ref(nosuchclass) r;
+   integer m = n;
+   integer n = 3;
+   procedure p(p); integer p; ;
+   class a; protected y; begin integer x; end;
+   class b; protected x, x; begin integer x; end;
+   class c; hidden x; begin integer x; end;
+   class d; protected x; begin integer x; end;
+   d class e; hidden x; begin end;
+   e class f; hidden x; begin end;
+   d class g; protected x; begin end;
+   class v; virtual: integer procedure q is integer procedure q(i); integer i;;
+            procedure w; procedure w;
+   begin end;
+   v class v1; begin real procedure q(i); integer i; ; end;
+   v class v2; begin integer procedure q(i); real i; ; end;
+   v class v3; protected q; begin integer procedure q(i); integer i; q := i; end;
+end

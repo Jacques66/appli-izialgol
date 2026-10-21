@@ -1,0 +1,22 @@
+! Integer arithmetic at the limits of the representation: no overflow here;
+begin
+   integer i, j;
+   i := maxint; outint(i, 0); outimage;
+   i := minint; outint(i, 0); outimage;
+   i := maxint - 1 + 1; outint(i, 0); outimage;
+   i := minint + 1 - 1; outint(i, 0); outimage;
+   i := -maxint; outint(i, 0); outimage;
+   i := minint // 1; outint(i, 0); outimage;
+   i := minint // 2; outint(i, 0); outimage;
+   i := mod(minint, -1); outint(i, 0); outimage;
+   i := rem(minint, -1); outint(i, 0); outimage;
+   i := 2 ** 30; outint(i, 0); outimage;
+   i := (-2) ** 31; outint(i, 0); outimage;
+   i := 46340 * 46340; outint(i, 0); outimage;
+   i := (-1) ** 2147483647; outint(i, 0); outimage;
+   j := 0;
+   for i := maxint - 2 step 1 until maxint - 1 do j := j + 1;
+   outint(j, 0); outimage;
+   j := randint(minint, maxint, i);
+   outtext("randint over the full range: ok"); outimage
+end

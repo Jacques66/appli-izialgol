@@ -1,0 +1,2 @@
+before
+runtime error (ovf_mul.s1:3): integer overflow

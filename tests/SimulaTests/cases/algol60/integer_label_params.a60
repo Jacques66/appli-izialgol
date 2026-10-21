@@ -1,0 +1,28 @@
+comment Unsigned integer labels as actual parameters (Revised Report 1963, 4.7.5.6)
+        and in conditional designational expressions;
+begin integer n;
+   procedure jump(l); label l; goto l;
+   procedure via(p); procedure p; p(020);
+   procedure choose(b, l1, l2); value b; Boolean b; label l1, l2;
+      goto if b then l1 else l2;
+   switch s := 40, if n > 5 then 50 else 60;
+
+   n := 0;
+   jump(10);
+   outstring(1, "not reached\n");
+10: outstring(1, "at 10\n");
+   via(jump);
+   outstring(1, "not reached\n");
+20: outstring(1, "at 20\n");
+   n := 1;
+   choose(n = 1, 30, 40);
+   outstring(1, "not reached\n");
+30: outstring(1, "at 30\n");
+   goto if n > 10 then 10 else s[2];
+40: outstring(1, "not reached (40)\n");
+50: outstring(1, "not reached (50)\n");
+60: outstring(1, "at 60\n");
+   goto 70;
+   outstring(1, "not reached\n");
+70: outstring(1, "at 70\n")
+end

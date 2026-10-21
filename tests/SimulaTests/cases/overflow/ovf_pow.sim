@@ -1,0 +1,6 @@
+begin
+   integer i, j;
+   outtext("before"); outimage;
+   i := 2; i := i ** 31;
+   outtext("not reached"); outimage
+end

@@ -1,0 +1,6 @@
+begin
+   integer i, j;
+   outtext("before"); outimage;
+   i := 65536; i := i * i;
+   outtext("not reached"); outimage
+end

@@ -64,7 +64,7 @@ end
 
 | Type | Representation |
 |---|---|
-| `integer` | 32-bit signed (`maxint` = 2147483647, `minint` = −2147483648); overflow wraps modulo 2³² |
+| `integer` | 32-bit signed (`maxint` = 2147483647, `minint` = −2147483648); overflow is a runtime error |
 | `short integer` | 16-bit, range checked on assignment |
 | `real`, `long real` | IEEE 754 double precision (same representation for both) |
 | `boolean` | `true`, `false` |
@@ -107,6 +107,10 @@ external class stack;  external integer procedure square;
 * A **formal procedure** (`real procedure f;`) accepts any compatible procedure,
   including a standard procedure (`sqrt`, `sin`…).
 * As the standard requires, the controlled variable of a `for` statement cannot be a name parameter.
+* A formal parameter list cannot contain the identifier of the procedure itself.
+* The expression of a constant may only use the constants declared before it in the same
+  block head; the qualification of every `ref` variable must be a visible class, even
+  when the variable is never used.
 
 ### Classes
 
@@ -127,6 +131,13 @@ end stack;
   virtual labels and virtual switches. The innermost match is used.
 * **Protection**: `protected` (visible in the class, its subclasses and the blocks
   prefixed by it, including through remote access); `hidden protected` (invisible in subclasses).
+* The protection part is checked: a `protected` identifier must be an attribute
+  defined in that class (a virtual quantity only in the class where it is specified
+  virtual), and only a protected attribute that is not already hidden may be specified
+  `hidden`.
+* A virtual procedure specified with `is` is matched only by a procedure of the same
+  type and the same heading (kinds, types and modes of the parameters); a virtual
+  procedure specified with a type is matched only by a procedure of that type.
 * Every class has the attribute `detach`.
 * A class that refers to itself with `this` cannot be used as a block prefix.
 
@@ -152,6 +163,11 @@ activate x delay 5;  reactivate y at 10 prior;  activate z before current;
 Blocks (`begin` with declarations) may be nested. A label is placed in front of
 a statement: `done: outimage`.
 
+As the standard requires, the statement after `then` is unconditional: a conditional
+statement there must be enclosed in `begin … end`, and a `for` or `while` statement
+after `then` cannot be followed by `else`. A procedure without parameters is called
+without parentheses (`f`, not `f()`), and the same holds for `new C`.
+
 ---
 
 ## 6. Expressions
@@ -175,7 +191,9 @@ Precedence (strongest first):
 * `and then`, `or else`: short-circuit evaluation.
 * Conditional expression: `if b then e1 else e2`.
 * Objects: `new C(args)`, `this C`, `x qua C`, `x is C`, `x in C`, `none`.
-* `==` / `=/=` compare references (objects or texts); `=` / `<>` compare values.
+* `==` / `=/=` compare references (objects or texts); `=` / `<>` compare values. The value
+  relations apply to arithmetic, character and text values only: Boolean values are
+  compared with `eqv` (`b = true` is a compile-time error).
 
 ---
 
@@ -303,8 +321,24 @@ embedded in the generated `.exe` files.
 * `lock`/`unlock` on direct files always succeed (no operating system lock).
 * The random generator is multiplicative (U ← U·5¹³ mod 2³¹); a negative seed
   gives the antithetic drawings 1 − u.
-* Integer overflow is not reported (arithmetic modulo 2³²); `short integer` overflow
-  and out-of-range real → integer conversions are reported.
+* Integer overflow is a runtime error (`integer overflow`, with the source position):
+  `+`, `-`, `*`, `//` (`minint // (-1)`), unary minus, `**`, `abs`, and the increment
+  of a `for ... step ... until` loop, which is `C := C + B` as in the standard (so
+  `for i := 1 step 1 until maxint` fails on its last increment). `short integer` values
+  are range checked on assignment, and out-of-range real → integer conversions
+  (assignment, `entier`) are reported too.
+* Real overflow is a runtime error too (`real overflow`): a result of `+`, `-`, `*`,
+  `/`, `**`, `exp`, `sinh`, `cosh`, `tan`, `addepsilon` or `subepsilon` that is not a
+  finite IEEE value stops the program, as does a `getreal`/`inreal` value beyond
+  `maxreal`. A real constant beyond `maxreal` is a compile-time error.
+* `printfile`: `spacing(0)` means overprinting, so the line counter is not advanced;
+  as a text file cannot overprint, the image is still written on a new line.
+  `close` does not fill the last page with blank lines, and `eject` writes a form
+  feed for a new page (the physical layout of a print file is implementation-defined).
+* The value of `simulaid` is
+  `AlgolStudio 1.0!!!AlgolStudio!!!Windows!!!x64!!!user!!!job!!!account!!!program`.
+* The random drawing procedures do not check that the actual parameter for `U` is an
+  integer variable: any variable is accepted (with conversion), as for any name parameter.
 * Standalone executables (`.exe`) contain the sources, which are recompiled in memory
   at startup (a few milliseconds).
 

@@ -1,0 +1,31 @@
+begin
+   integer i; real x; long real lx; short integer si; character c; boolean b; text t;
+   outint(7 // 2, 4); outint(-7 // 2, 4); outint(7 // (-2), 4); outimage;
+   outfix(7 / 2, 3, 8); outfix(1 / 3, 6, 10); outimage;
+   x := 2 ** 3; outfix(x, 2, 8);
+   outfix(2.0 ** 3, 2, 8); outfix(2.0 ** (-1), 3, 8); outimage;
+   outint(mod(-7, 3), 4); outint(rem(-7, 3), 4); outint(mod(7, -3), 4); outint(rem(7, -3), 4); outimage;
+   outint(entier(-2.5), 4); outint(entier(2.5), 4); outint(sign(-3), 3); outint(sign(0), 3); outimage;
+   i := 2.5; outint(i, 3); i := -2.5; outint(i, 3); i := 3.5; outint(i, 3); outimage;
+   outint(abs(-5), 3); outfix(abs(-5.5), 1, 6); outimage;
+   outfix(max(1, 2.5), 1, 6); outint(max(3, 4), 3); outimage;
+   c := 'A'; outint(rank(c), 4); outint(isorank(c), 4); outchar(char(66)); outchar(isochar(67)); outimage;
+   b := digit('5') and letter('z') and not letter('5'); outtext(if b then "T" else "F"); outimage;
+   outint(maxrank, 4); outimage;
+   x := 1.5&3; outfix(x, 1, 10); x := &-2; outfix(x, 3, 8); outimage;
+   outint(2R1010, 4); outint(8R777, 5); outint(16RFF, 5); outimage;
+   outtext("a""b"); outtext("!65!!66!"); outimage;
+   outtext("abc" "def"); outimage;
+   si := 32767; outint(si, 7); outimage;
+   outint(if true then 1 else 2, 2); outfix(if false then 1 else 2.5, 1, 5); outimage;
+   t :- "hello"; outtext(t.sub(2,3)); outint(t.length, 3); outimage;
+   outint(sourceline, 3); outimage;
+   lx := 1.0&&-3; outreal(lx, 5, 12); outimage;
+   outreal(1234.56, 4, 0); outimage;
+   outreal(0.0, 3, 12); outreal(-1.0, 1, 8); outimage;
+   outfrac(1234567, 2, 14); outfrac(-12, 3, 10); outimage;
+   outint(123, -6); outtext("|"); outimage;
+   outint(12345, 3); outimage;
+   x := 3; outfix(x ** 0.5, 4, 8); outimage;
+   outfix(addepsilon(1.0) - 1.0, 20, 25); outimage;
+end

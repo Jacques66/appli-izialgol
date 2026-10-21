@@ -1,0 +1,22 @@
+open
+endfile before open
+  12  -7
+abc       |
+   1   2  3.50
+ x  32
+lastitem
+endfile
+partial  5  12
+whole  3
+12abc|
+  2  3
+  2
+  4
+directfile: nocreate by default
+  3  2
+third
+   0
+endfile
+  0  65 200  90   0 end  8
+ 200  3  3  0
+NUL characters in simulaid: 0

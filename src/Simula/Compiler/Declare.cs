@@ -273,6 +273,8 @@ public sealed partial class SimCompiler
         foreach (var spec in pd.Params)
         {
             var ps = new ParamSym { Name = spec.Name, Orig = spec.Orig, Pos = spec.Pos, Spec = spec, Kind = spec.Kind };
+            if (spec.Name == pd.Name && spec.Pos.File != preludeFile)
+                Err(spec.Pos, $"the procedure identifier '{pd.Orig}' cannot be one of its formal parameters");
             ps.Slot = fs.AllocSlot();
             Define(fs, ps);
             p.Params.Add(ps);
@@ -385,7 +387,7 @@ public sealed partial class SimCompiler
             foreach (var vs in cd.Virtuals)
             {
                 var inherited = c.AllVirtuals.FirstOrDefault(v => v.Name == vs.Name);
-                if (inherited != null) { Err(vs.Pos, $"'{vs.Orig}' is already virtual in a prefix"); continue; }
+                if (inherited != null) { Err(vs.Pos, inherited.OwnerClass == c ? $"'{vs.Orig}' occurs more than once in the virtual part" : $"'{vs.Orig}' is already virtual in a prefix"); continue; }
                 var v = new VirtualSym { Name = vs.Name, Orig = vs.Orig, Pos = vs.Pos, Spec = vs, Kind = vs.Kind, OwnerClass = c, Index = c.AllVirtuals.Count, Scope = fs };
                 c.AllVirtuals.Add(v);
             }
@@ -410,6 +412,7 @@ public sealed partial class SimCompiler
             if (inh != null && kv.Value is not VirtualSym) SetMatch(kv.Value, inh);
         }
         c.Attrs = fs.Syms;
+        if (cd != null) CheckProtection(c, cd);
         c.SlotEnd = fs.NSlots;
         // runtime information
         c.Info.NSlots = c.SlotEnd;
@@ -443,11 +446,70 @@ public sealed partial class SimCompiler
     {
         switch (m)
         {
-            case ProcSym p when v.Kind == ParamKind.Procedure: p.Matches = v; break;
+            case ProcSym p when v.Kind == ParamKind.Procedure: p.Matches = v; CheckVirtualMatch(p, v); break;
             case LabelSym l when v.Kind == ParamKind.Label: l.Matches = v; break;
             case SwitchSym s when v.Kind == ParamKind.Switch: s.Matches = v; break;
             default: Err(m.Pos, $"'{m.Orig}' does not match the kind of the virtual quantity ({KindOfVirtual(v)})"); break;
         }
+    }
+
+    /// <summary>Legality of the protection part (5.5.2): a protected identifier must be an attribute
+    /// defined at this prefix level (a virtual one only where it is specified virtual), and a hidden
+    /// identifier must name a protected attribute of this level or of a prefix that is not already hidden.</summary>
+    void CheckProtection(ClassSym c, ClassDecl cd)
+    {
+        var seen = new HashSet<string>();
+        foreach (var (name, pos) in cd.Protected)
+        {
+            if (!seen.Add(name)) { Err(pos, $"'{name}' is specified protected more than once"); continue; }
+            c.Attrs.TryGetValue(name, out var a);
+            var virt = a as VirtualSym ?? (a as ProcSym)?.Matches ?? (a as LabelSym)?.Matches ?? (a as SwitchSym)?.Matches;
+            if (virt != null && virt.OwnerClass != c)
+                Err(pos, $"the virtual quantity '{name}' can only be protected in the class where it is specified virtual");
+            else if (a == null)
+                Err(pos, $"'{name}' is not an attribute defined in class {c.Orig}");
+        }
+        seen.Clear();
+        foreach (var (name, pos) in cd.Hidden)
+        {
+            if (!seen.Add(name)) { Err(pos, $"'{name}' is specified hidden more than once"); continue; }
+            int hides = 0;
+            bool ok = false;
+            for (var k = c; k != null && !ok; k = k.Prefix)
+            {
+                if (k != c && k.HiddenHere.Contains(name)) hides++;
+                if (k.ProtectedHere.Contains(name) && k.Attrs.ContainsKey(name))
+                {
+                    if (hides == 0) ok = true; else hides--;
+                }
+            }
+            if (!ok) Err(pos, $"'{name}' cannot be specified hidden: only a protected attribute (not already hidden) may be hidden");
+        }
+    }
+
+    /// <summary>5.5.3: a virtual procedure with a procedure specification is matched only by a procedure
+    /// of the same type and the same heading (kinds, types and modes of the parameters); otherwise the
+    /// type of the match must be that of the virtual specification, when it has one.</summary>
+    void CheckVirtualMatch(ProcSym p, VirtualSym v)
+    {
+        var spec = v.Spec;
+        if (spec == null || p.Decl == null) return;
+        static string TypeKey(TypeSpec? t) => t == null ? "" : t.Base == BaseType.Ref ? "ref" : t.ToString();
+        if (spec.Heading == null && spec.Type == null) return;
+        if (TypeKey(p.Decl.Type) != TypeKey(spec.Type))
+        {
+            Err(p.Pos, $"'{p.Orig}' does not match the type of the virtual specification ({(spec.Type == null ? "no type" : spec.Type.ToString())})");
+            return;
+        }
+        var h = spec.Heading;
+        if (h == null) return;
+        bool same = h.Params.Count == p.Decl.Params.Count;
+        for (int i = 0; same && i < h.Params.Count; i++)
+        {
+            var a = h.Params[i]; var b = p.Decl.Params[i];
+            if (a.Kind != b.Kind || a.Mode != b.Mode || TypeKey(a.Type) != TypeKey(b.Type)) same = false;
+        }
+        if (!same) Err(p.Pos, $"the heading of '{p.Orig}' differs from the procedure specification of the virtual quantity");
     }
 
     static string KindOfVirtual(VirtualSym v) => v.Kind switch

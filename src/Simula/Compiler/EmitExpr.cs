@@ -421,7 +421,7 @@ public sealed partial class SimCompiler
                     return l.B == BaseType.LongReal || r.B == BaseType.LongReal ? SType.LReal : SType.Real;
                 }
             case T.IntDiv:
-                if (!l.IsIntLike || !r.IsIntLike) { Err(be.Pos, "'//' only accepts integers"); return SType.Err; }
+                if (!l.IsIntLike || !r.IsIntLike) { Err(be.Pos, dialect == Dialect.Simula67 ? "'//' only accepts integers" : "integer division (div) only accepts integers"); return SType.Err; }
                 E(Op.DivI);
                 return SType.Int;
             case T.Power:
@@ -448,7 +448,7 @@ public sealed partial class SimCompiler
                     }
                     else if (l.B == BaseType.Character && r.B == BaseType.Character) E(Op.CmpI, rel);
                     else if (l.B == BaseType.Text && r.B == BaseType.Text) E(Op.CmpT, rel);
-                    else if (l.B == BaseType.Boolean && r.B == BaseType.Boolean && be.Op is T.Eq or T.Ne) E(Op.CmpI, rel);
+                    else if (l.B == BaseType.Boolean && r.B == BaseType.Boolean) { Err(be.Pos, "Boolean values cannot be compared with a relational operator (use eqv)"); E(Op.CmpI, rel); }
                     else if (l.IsRef && r.IsRef && be.Op is T.Eq or T.Ne)
                     {
                         if (dialect == Dialect.SimulaI)

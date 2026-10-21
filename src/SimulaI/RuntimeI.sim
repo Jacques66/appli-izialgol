@@ -217,7 +217,7 @@ exit:
    begin
       if b < a then error("randint: upper bound lower than the lower bound");
       U := __rnext(U);
-      randint := entier(__rfrac(U) * (b - a + 1.0)) + a
+      randint := entier(__rfrac(U) * (b * 1.0 - a + 1.0) + a)
    end;
 
    real procedure uniform(a, b, U); name U; real a, b; integer U;

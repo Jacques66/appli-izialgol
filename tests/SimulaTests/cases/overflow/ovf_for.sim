@@ -1,0 +1,6 @@
+begin
+   integer i, j;
+   outtext("before"); outimage;
+   for i := maxint - 1 step 1 until maxint do j := j + 1;
+   outtext("not reached"); outimage
+end

@@ -200,6 +200,7 @@ public sealed partial class SimCompiler
 
     void EmitDeclInit(List<Decl> decls, Scope scope)
     {
+        var constsSeen = new HashSet<string>();
         foreach (var d in decls)
         {
             switch (d)
@@ -216,10 +217,14 @@ public sealed partial class SimCompiler
                             AssignConvert(st, setPlan, it.Pos);
                             setPlan.Store(this, false);
                         }
+                        // the qualification of a reference must be a visible class even if the variable is never used
+                        if (it.Const == null && scope.Syms.TryGetValue(it.Name, out var s0) && s0 is VarSym v0) TypeOf(v0);
                         if (it.Const == null) continue;
                         if (scope.Syms.TryGetValue(it.Name, out var s) && s is VarSym v)
                         {
                             var t = TypeOf(v);
+                            CheckConstRefs(it.Const, scope, constsSeen);
+                            constsSeen.Add(it.Name);
                             var et = EmitExpr(it.Const);
                             if (t.B == BaseType.Text) { if (et.B != BaseType.Text) Err(it.Pos, "text constant expected"); E(Op.StT, v.Slot); }
                             else { Convert(et, t, it.Pos); E(Op.St, v.Slot); }
@@ -238,6 +243,10 @@ public sealed partial class SimCompiler
                         }
                         foreach (var bp in seg.Bounds)
                         {
+                            // Modified Report 5.2.4.2: the bounds of an own array are integer constants
+                            static bool IntConst(Expr x) => x is IntLit || x is UnExpr { Op: T.Minus or T.Plus, E: IntLit };
+                            if (ad.IsOwn && !(IntConst(bp.Lower) && IntConst(bp.Upper)))
+                                Err(bp.Lower.Pos, "the bounds of an own array must be integer constants");
                             CheckNoLocalRef(bp.Lower, scope);
                             CheckNoLocalRef(bp.Upper, scope);
                             ConvertToInt(EmitExpr(bp.Lower), bp.Lower.Pos);
@@ -268,6 +277,25 @@ public sealed partial class SimCompiler
                     if (scope.Syms.TryGetValue(cd.Name, out var cs) && cs is ClassSym c) QueueClass(c);
                     break;
             }
+        }
+    }
+
+    /// <summary>5.1: the expression of a constant may reference, in the same block head, only the constants
+    /// declared textually before it.</summary>
+    void CheckConstRefs(Expr e, Scope scope, HashSet<string> before)
+    {
+        switch (e)
+        {
+            case Ident id:
+                if (scope.Syms.TryGetValue(id.Name, out var s) && !(s is VarSym { IsConst: true } && before.Contains(id.Name)))
+                    Err(id.Pos, s is VarSym { IsConst: true }
+                        ? $"the constant '{id.Orig}' is declared after this constant"
+                        : $"a constant may not reference '{id.Orig}' declared in the same block");
+                break;
+            case BinExpr b: CheckConstRefs(b.L, scope, before); CheckConstRefs(b.R, scope, before); break;
+            case UnExpr u: CheckConstRefs(u.E, scope, before); break;
+            case CallExpr c: CheckConstRefs(c.Fn, scope, before); foreach (var a in c.Args) CheckConstRefs(a, scope, before); break;
+            case IfExpr ie: CheckConstRefs(ie.Cond, scope, before); CheckConstRefs(ie.Then, scope, before); CheckConstRefs(ie.Else, scope, before); break;
         }
     }
 
@@ -822,6 +850,18 @@ public sealed partial class SimCompiler
         return false;
     }
 
+    /// <summary>The identifier of the unsigned integer label written as the integer il (leading zeros are not significant).</summary>
+    static Ident IntegerLabel(IntLit il)
+    {
+        var name = il.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return new Ident { Name = name, Orig = name, Pos = il.Pos };
+    }
+
+    /// <summary>Is the unsigned integer il the name of a visible label (Algol 60 and Simula I)?</summary>
+    bool IsVisibleIntegerLabel(Expr e) =>
+        dialect != Dialect.Simula67 && e is IntLit il
+        && Lookup(IntegerLabel(il).Name, g.Scope, il.Pos, quiet: true)?.Sym is LabelSym or ParamSym { Kind: ParamKind.Label };
+
     void EmitDesignational(Expr e)
     {
         switch (e)
@@ -881,6 +921,14 @@ public sealed partial class SimCompiler
                             E(Op.PushNone);
                             return;
                     }
+                }
+            case IntLit il when dialect != Dialect.Simula67:
+                {
+                    // Algol 60 (Revised Report): an unsigned integer is a label in a designational expression
+                    var lid = IntegerLabel(il);
+                    if (Lookup(lid.Name, g.Scope, il.Pos, quiet: true) == null) { Err(il.Pos, $"label {lid.Name} is not declared"); E(Op.PushNone); return; }
+                    EmitDesignational(lid);
+                    return;
                 }
             case IfExpr ie:
                 {

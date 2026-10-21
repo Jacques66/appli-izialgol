@@ -1,0 +1,56 @@
+! BASICIO details (chapter 10): files of every kind, printfile line counting
+  (spacing 0 does not advance the line), directfile and byte files, simulaid;
+begin
+   ref(outfile) o; ref(infile) f; ref(printfile) p; ref(directfile) d;
+   ref(outbytefile) ob; ref(inbytefile) ib; ref(directbytefile) db;
+   integer i; text t;
+   o :- new outfile("bio2_a.txt");
+   outtext(if o.open(blanks(20)) then "open" else "fail"); outimage;
+   o.outint(12, 4); o.outint(-7, 0); o.outimage;
+   o.outtext("abc   "); o.outimage;
+   o.outtext("1 2"); o.outimage; o.outtext("   3.5 x"); o.outrecord;
+   o.close;
+   f :- new infile("bio2_a.txt");
+   outtext(if f.endfile then "endfile before open" else "?"); outimage;
+   f.open(blanks(10));
+   outint(f.inint, 4); outint(f.inint, 4); outimage;
+   f.inimage; outtext(f.image); outtext("|"); outimage; f.setpos(11);
+   outint(f.inint, 4); outint(f.inint, 4); outfix(f.inreal, 2, 6); outimage;
+   outchar(f.inchar); outchar(f.inchar); outint(rank(f.inchar), 4); outimage;
+   outtext(if f.lastitem then "lastitem" else "more"); outimage;
+   outtext(if f.endfile then "endfile" else "not end"); outimage;
+   f.close;
+   f :- new infile("bio2_a.txt"); f.open(blanks(4));
+   outtext(if f.inrecord then "partial" else "whole"); outint(f.pos, 3); outtext(f.image); outimage;
+   outtext(if f.inrecord then "partial" else "whole"); outint(f.pos, 3); outimage;
+   t :- f.intext(5); outtext(t); outtext("|"); outimage;
+   f.close;
+   p :- new printfile("bio2_p.txt"); p.open(blanks(10)); p.linesperpage(3);
+   for i := 1 step 1 until 7 do begin p.outint(i, 3); p.outimage end;
+   outint(p.line, 3); outint(p.page, 3); outimage;
+   p.spacing(0); p.outtext("ov"); p.outimage; outint(p.line, 3); outimage;
+   p.spacing(2); p.outtext("two"); p.outimage; outint(p.line, 3); outimage;
+   p.close;
+   d :- new directfile("bio2_d.txt");
+   outtext(if d.open(blanks(5)) then "?" else "directfile: nocreate by default"); outimage;
+   d.setaccess("anycreate"); d.setaccess("purge"); d.open(blanks(5));
+   d.locate(3); d.outtext("third"); d.outimage; d.locate(1); d.outtext("one"); d.outimage;
+   outint(d.lastloc, 3); outint(d.location, 3); outimage;
+   d.locate(3); d.inimage; outtext(d.image); outimage;
+   d.locate(2); d.inimage; outint(rank(d.image.sub(1,1).getchar), 4); outimage;
+   d.locate(9); d.inimage; outtext(if d.endfile then "endfile" else "no"); outimage;
+   d.close;
+   ob :- new outbytefile("bio2_b.bin"); outint(ob.bytesize, 3);
+   ob.open; ob.outbyte(65); ob.outbyte(200); ob.outtext("Z"); ob.close;
+   ib :- new inbytefile("bio2_b.bin"); ib.open;
+   outint(ib.inbyte, 4); outint(ib.inbyte, 4); outint(ib.inbyte, 4); outint(ib.inbyte, 4);
+   outtext(if ib.endfile then " end" else " noend"); outint(ib.bytesize, 3); outimage;
+   ib.close;
+   db :- new directbytefile("bio2_b.bin"); db.open;
+   db.locate(2); outint(db.inbyte, 4); outint(db.location, 3); outint(db.lastloc, 3);
+   db.close; outint(db.location, 3); outimage;
+   t :- copy(simulaid);
+   i := 0;
+   while t.more do if rank(t.getchar) = 0 then i := i + 1;
+   outtext("NUL characters in simulaid:"); outint(i, 2); outimage
+end

@@ -1,0 +1,7 @@
+statements.sim(8,18): error: a conditional statement cannot follow 'then' (enclose it in begin ... end)
+statements.sim(9,54): error: 'else' cannot follow a for or while statement after 'then' (enclose it in begin ... end)
+statements.sim(10,11): error: empty parameter list '()': omit the parentheses
+statements.sim(11,15): error: empty parameter list '()': omit the parentheses
+statements.sim(12,11): error: Boolean values cannot be compared with a relational operator (use eqv)
+statements.sim(13,22): error: Boolean values cannot be compared with a relational operator (use eqv)
+

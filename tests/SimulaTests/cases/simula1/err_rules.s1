@@ -1,0 +1,5 @@
+comment The statement after then is unconditional in Simula I as in Algol 60;
+SIMULA begin integer i;
+   if i = 0 then if time = 0 then i := 1;
+   i := 1 ÷ 0.5
+end

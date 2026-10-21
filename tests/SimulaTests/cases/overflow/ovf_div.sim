@@ -1,0 +1,6 @@
+begin
+   integer i, j;
+   outtext("before"); outimage;
+   i := -1; i := minint // i;
+   outtext("not reached"); outimage
+end

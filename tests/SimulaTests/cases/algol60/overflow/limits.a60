@@ -1,0 +1,12 @@
+comment integer arithmetic at the limits of the representation, no overflow;
+begin integer i, k;
+   i := maxint; outinteger(1, i);
+   i := -maxint - 1; outinteger(1, i);
+   outinteger(1, i ÷ 2);
+   outinteger(1, iabs(-maxint));
+   outinteger(1, 2 ↑ 30);
+   outinteger(1, (-2) ↑ 31);
+   k := 0;
+   for i := maxint - 2 step 1 until maxint - 1 do k := k + 1;
+   outinteger(1, k)
+end

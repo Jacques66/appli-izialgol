@@ -14,14 +14,14 @@ begin
 
    comment --- mathematical functions;
    real procedure sqrt(E); value E; real E;
-      if E < 0.0 then __a60_fault("negative sqrt", E) else sqrt := sqrt(E);
+      if E < 0.0 then __a60_fault("negative sqrt", E) else sqrt := __a60_sqrt(E);
    real procedure sin(E); value E; real E; sin := sin(E);
    real procedure cos(E); value E; real E; cos := cos(E);
    real procedure arctan(E); value E; real E; arctan := arctan(E);
    real procedure ln(E); value E; real E;
-      if E <= 0.0 then __a60_fault("ln not positive", E) else ln := ln(E);
+      if E <= 0.0 then __a60_fault("ln not positive", E) else ln := __a60_ln(E);
    real procedure exp(E); value E; real E;
-      if E > 709.782712893384 then __a60_fault("overflow on exp", E) else exp := exp(E);
+      if E > 709.782712893384 then __a60_fault("overflow on exp", E) else exp := __a60_exp(E);
 
    comment --- terminating procedures;
    procedure stop; goto stop_;

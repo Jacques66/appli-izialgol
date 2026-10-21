@@ -9,7 +9,7 @@ begin
    integer maxint = 2147483647, minint = -2147483647 - 1, maxrank = 255;
    real maxreal = 1.7976931348623157&308, minreal = -1.7976931348623157&308;
    long real maxlongreal = 1.7976931348623157&&308, minlongreal = -1.7976931348623157&&308;
-   text simulaid = "AlgolStudio 1.0!!!AlgolStudio!!!Windows!!!x64!!!user!!!0!!!0!!!program";
+   text simulaid = "AlgolStudio 1.0!!!AlgolStudio!!!Windows!!!x64!!!user!!!job!!!account!!!program";
 
    ref(infile) sysin_;
    ref(printfile) sysout_;
@@ -77,7 +77,7 @@ begin
    begin
       if b < a then error("randint: upper bound lower than the lower bound");
       U := __rnext(U);
-      randint := entier(__rfrac(U) * (b - a + 1.0)) + a
+      randint := entier(__rfrac(U) * (b * 1.0 - a + 1.0) + a)
    end;
 
    long real procedure uniform(a, b, U); name U; long real a, b; integer U;
@@ -581,7 +581,7 @@ exit:
          if line__ > lines_per_page__ then eject(1);
          __foutimage(handle__, image);
          if spacing__ > 1 then __fblank(handle__, spacing__ - 1);
-         line__ := line__ + (if spacing__ = 0 then 1 else spacing__);
+         line__ := line__ + spacing__;
          __blankimage(image)
       end outimage;
       procedure outrecord;
@@ -591,7 +591,7 @@ exit:
          if line__ > lines_per_page__ then eject(1);
          __foutrecord(handle__, image.sub(1, pos - 1));
          if spacing__ > 1 then __fblank(handle__, spacing__ - 1);
-         line__ := line__ + (if spacing__ = 0 then 1 else spacing__);
+         line__ := line__ + spacing__;
          setpos(1)
       end outrecord;
       spacing__ := 1;
@@ -818,7 +818,7 @@ exit:
          if handle__ <> 0 then begin loc__ := 1; maxloc__ := maxint - 1; bytesize__ := 8; open := open__ := true end
       end open;
       boolean procedure close;
-      if open__ then begin maxloc__ := 0; __fclose(handle__); open__ := false; close := true end;
+      if open__ then begin loc__ := maxloc__ := 0; __fclose(handle__); open__ := false; close := true end;
       integer procedure lastloc;
          if not open__ then error("lastloc: file closed") else lastloc := __blastloc(handle__);
       procedure locate(p); integer p;

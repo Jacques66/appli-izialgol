@@ -1,0 +1,33 @@
+begin
+   text t, u, v; integer i; character c;
+   t :- copy("Hello world");
+   outint(t.pos, 3); outint(t.start, 3); outtext(if t.constant then "C" else "V"); outimage;
+   u :- t.sub(7, 5); outtext(u); outint(u.start, 3); outint(u.main.length, 3); outimage;
+   u.setpos(3); outchar(u.getchar); outint(u.pos, 3); outimage;
+   u.setpos(0); outint(u.pos, 3); u.setpos(7); outint(u.pos, 3); outimage;
+   v :- "  12  -34 5.5&2 1 234,5"; 
+   outint(v.getint, 5); outint(v.pos, 4); outimage;
+   v :- v.sub(v.pos, v.length - v.pos + 1); outint(v.getint, 5); outint(v.pos, 4); outimage;
+   v :- v.sub(v.pos, v.length - v.pos + 1); outfix(v.getreal, 2, 8); outint(v.pos, 4); outimage;
+   v :- v.sub(v.pos, v.length - v.pos + 1); outint(v.getfrac, 8); outint(v.pos, 4); outimage;
+   t :- blanks(10); t.putint(-42); outtext(t); outtext("|"); outimage;
+   t.putfix(3.14159, 2); outtext(t); outimage;
+   t.putreal(3.14159, 3); outtext(t); outimage;
+   t.putfrac(1234567, 3); outtext(t); outimage;
+   t :- copy("abc  "); outtext(t.strip); outtext("|"); outint(t.strip.length, 3); outimage;
+   outtext(upcase(copy("abcXyz"))); outtext(lowcase(copy("ABCxYZ"))); outimage;
+   t :- "abc"; u :- "abd"; outtext(if t < u then "lt" else "ge"); outtext(if "abc" = "abc  " then " eq" else " ne"); outimage;
+   outtext(if notext = "" then "empty eq" else "neq"); outimage;
+   outtext(if t == t then "same" else "diff"); outimage;
+   t :- copy("abc"); u :- t; outtext(if t == u then "same" else "diff"); outimage;
+   u :- copy("abc"); outtext(if t == u then "same" else "diff"); outimage;
+   t :- copy("xyz"); t := "ab"; outtext(t); outtext("|"); outimage;
+   t :- notext; outint(t.length, 3); outint(t.pos, 3); outtext(if t.more then "M" else "-"); outimage;
+   outtext(if t.constant then "C" else "V"); outimage;
+   c := 'a'; outtext(if c < 'b' then "c<b" else "c>=b"); outimage;
+   t :- copy("x") & "y" & copy("z"); outtext(t); outint(t.length, 3); outimage;
+   t :- copy("hello"); t.sub(2,3) := "ip"; outtext(t); outimage;
+   outtext(t.sub(1,0)); outint(t.sub(6,0).length, 3); outimage;
+   t :- "constant"; outtext(if t.constant then "C" else "V"); outimage;
+   outint(blanks(3).length, 3); outtext(copy(notext)); outimage;
+end

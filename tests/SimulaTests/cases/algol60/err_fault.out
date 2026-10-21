@@ -1,3 +1,3 @@
 computing
-runtime error (err_fault.a60:5): sqrt: negative argument
+runtime error (err_fault.a60:5): fault negative sqrt -4
 

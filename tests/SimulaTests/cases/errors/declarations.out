@@ -1,0 +1,13 @@
+declarations.sim(7,23): error: 'y' is not an attribute defined in class a
+declarations.sim(8,26): error: 'x' is specified protected more than once
+declarations.sim(9,20): error: 'x' cannot be specified hidden: only a protected attribute (not already hidden) may be hidden
+declarations.sim(12,22): error: 'x' cannot be specified hidden: only a protected attribute (not already hidden) may be hidden
+declarations.sim(13,25): error: 'x' is not an attribute defined in class g
+declarations.sim(15,36): error: 'w' occurs more than once in the virtual part
+declarations.sim(17,22): error: 'q' does not match the type of the virtual specification (integer)
+declarations.sim(18,22): error: the heading of 'q' differs from the procedure specification of the virtual quantity
+declarations.sim(19,26): error: the virtual quantity 'q' can only be protected in the class where it is specified virtual
+declarations.sim(6,16): error: the procedure identifier 'p' cannot be one of its formal parameters
+declarations.sim(3,4): error: undeclared identifier 'nosuchclass'
+declarations.sim(4,16): error: the constant 'n' is declared after this constant
+

@@ -1,0 +1,24 @@
+simulation begin
+   process class p(n); integer n;
+   begin
+      outtext("p"); outint(n, 0); outtext(" at "); outfix(time, 1, 0); outimage;
+      hold(-3);
+      outtext("p"); outint(n, 0); outtext(" after hold(-3) at "); outfix(time, 1, 0); outimage
+   end;
+   ref(p) a, b, c;
+   outtext(if current == main then "main is current" else "?"); outimage;
+   a :- new p(1); b :- new p(2); c :- new p(3);
+   activate a at -5;
+   activate b delay 2;
+   activate c at 2 prior;
+   activate a delay 100;
+   outtext(if a.idle then "a idle" else "a scheduled"); outfix(a.evtime, 1, 6); outimage;
+   reactivate b after c;
+   outtext(if b.nextev == none then "b last" else "b not last"); outimage;
+   hold(10);
+   outtext(if a.terminated then "a terminated" else "a alive"); outimage;
+   activate a; outtext(if a.idle then "terminated a stays idle" else "?"); outimage;
+   reactivate main delay 1; outfix(time, 1, 6); outimage;
+   cancel(b);
+   outfix(time, 1, 6); outimage
+end

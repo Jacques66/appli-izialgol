@@ -112,7 +112,7 @@ static class FileNatives
             l[loc - 1] = null; f.Dirty = true;
             return B(true);
         });
-        // octets
+        // bytes
         def("__binbyte", "I>I", (vm, s, b) => { var f = vm.GetFile((int)s[b].I); return I(f.Bytes!.ReadByte()); });
         def("__boutbyte", "II>V", (vm, s, b) =>
         {

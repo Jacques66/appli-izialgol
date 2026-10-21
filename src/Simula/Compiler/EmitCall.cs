@@ -609,6 +609,14 @@ public sealed partial class SimCompiler
                     }
                     arith = t.Arith; atype = (byte)t.B; qual = t.Q?.Info.Id ?? -1;
                     E(Op.RetThunk);
+                    if (formalType == null && IsVisibleIntegerLabel(actual))
+                    {
+                        // generic call (formal procedure) of Algol 60: an unsigned integer that names a
+                        // visible label is also usable as a label if the formal turns out to be one
+                        altEntry = Here;
+                        EmitDesignational(actual);
+                        E(Op.RetThunk);
+                    }
                     // assignment entry
                     if (IsAssignable(actual))
                     {

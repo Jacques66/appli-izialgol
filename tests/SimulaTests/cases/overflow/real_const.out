@@ -1,0 +1,3 @@
+real_const.sim(3,9): error: real constant out of range (maxreal = 1.7976931348623157&308)
+real_const.sim(4,9): error: real constant out of range (maxreal = 1.7976931348623157&308)
+

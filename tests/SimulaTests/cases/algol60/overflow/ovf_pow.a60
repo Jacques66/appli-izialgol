@@ -1,0 +1,5 @@
+begin integer i;
+   outstring(1, "before\n");
+   i := 10; i := i ↑ 10;
+   outstring(1, "not reached")
+end

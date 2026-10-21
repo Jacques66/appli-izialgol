@@ -81,9 +81,11 @@ Everything of the Revised Report is supported:
   of their block;
 * `switch` declarations and designational expressions (`go to s[i]`,
   `go to if b then L1 else s[2]`);
-* labels, including the unsigned integer labels of the 1963 report (`10:` and
-  `go to 10`, in definitions, `go to` and switch lists; leading zeros are not
-  significant);
+* labels, including the unsigned integer labels of the 1963 report (`10:`,
+  `go to 10`, `go to if b then 10 else 20`, switch lists, and actual parameters
+  such as `p(10)` when the formal is specified `label`, or when a formal
+  procedure is called with an integer that names a visible label and the
+  procedure uses the parameter as a label); leading zeros are not significant;
 * conditional statements and conditional expressions (arithmetic, Boolean and
   designational);
 * `for` statements with list elements of the three forms: expression,
@@ -97,7 +99,16 @@ Everything of the Revised Report is supported:
   typed procedures, `label`, `switch` and `string`.
 
 As required by the Modified Report, every formal parameter must be
-**specified**. Integer and real values are converted on assignment and on
+**specified**, and the formal parameter list cannot contain the identifier of
+the procedure itself. A label may be called by value (Modified Report 4.7.6):
+the designational expression is then evaluated once, at the call. The bounds
+of an `own` array must be integer constants (Modified Report 5.2.4.2).
+
+The statement after `then` is unconditional, as in the report: a conditional
+statement there must be enclosed in `begin … end`, and a `for` statement after
+`then` cannot be followed by `else`. A procedure without parameters is called
+without parentheses (`f`, not `f()`). Relations compare arithmetic values
+only: Boolean values are compared with `≡` (`equiv`). Integer and real values are converted on assignment and on
 parameter transmission; `real` to `integer` rounds (`entier(x + 0.5)`).
 
 ```algol
@@ -113,9 +124,14 @@ outreal(1, sum(i, 1, 10, 1 / i))      comment harmonic number H(10);
 
 ### Arithmetic
 
-* `integer`: 32 bits (`maxint` = 2147483647); integer overflow is not detected
-  (the value wraps around in two's complement).
+* `integer`: 32 bits (`maxint` = 2147483647); integer overflow is a runtime
+  error (`integer overflow`, with the source position), for `+`, `-`, `×`, `÷`
+  (`(-maxint - 1) ÷ (-1)`), unary minus, `↑`, `iabs` and the increment of a
+  `step … until` loop (`V := V + step`, so a loop up to `maxint` fails on its last
+  increment).
 * `real`: IEEE double precision (`epsilon` = 2.220446049250313⏨-16).
+  Real overflow (a result that is not a finite IEEE value) is a runtime error
+  (`real overflow`); a real constant beyond `maxreal` is a compile-time error.
 * `/` always gives a real; `÷` is the integer division truncated towards zero
   (`-17 ÷ 5 = -3`).
 * `↑`: `integer ↑ integer` gives an integer (negative exponent: error),
@@ -131,7 +147,7 @@ outreal(1, sum(i, 1, 10, 1 / i))      comment harmonic number H(10);
 `ln(E)`, `exp(E)`, `entier(E)`, `length(str)`.
 
 `sqrt` of a negative number, `ln` of a non positive number and `exp` overflow
-call `fault`, as in the Modified Report.
+call `fault`, as in the Modified Report (for example `fault negative sqrt -4`).
 
 ### Input and output
 
@@ -197,8 +213,5 @@ The IDE menu **File ▸ Examples ▸ Algol 60** opens the programs of
   the keywords (including `to`, `step`, `until`, `value`…) cannot be used as
   identifiers there. Use quote stropping to write programs whose identifiers
   collide with keywords.
-* Integer labels are recognised where a label is defined, after `go to` and in
-  switch lists; an integer label cannot be passed as an actual parameter
-  (pass a switch or use an identifier label).
 * Side effects of function designators are evaluated from left to right,
   which the report leaves undefined.

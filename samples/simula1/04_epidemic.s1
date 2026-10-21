@@ -21,11 +21,13 @@ SIMULA begin
          begin
             other := first(healthy);
             if exist(other) then
+            begin
                if draw(susceptible / 40, U) ∧ draw(0.5, U) then
                begin
                   remove(other);
                   activate other delay 0.5
                end
+            end
          end;
          hold(1)
       end;

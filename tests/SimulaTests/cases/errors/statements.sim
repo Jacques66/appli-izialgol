@@ -1,0 +1,15 @@
+! Compile-time rules of chapters 3, 4 and 6 of the SIMULA Standard;
+begin
+   class c; begin end;
+   ref(c) x;
+   integer i, j;
+   boolean b;
+   integer procedure f; f := 1;
+   if i = 0 then if j = 0 then i := 1 else i := 2;
+   if i = 0 then for j := 1 step 1 until 2 do i := j else i := 3;
+   i := f();
+   x :- new c();
+   b := b = true;
+   b := 1 <> 2 and b <> false;
+   if i = 0 then begin if j = 0 then i := 1 end else i := 2;
+end

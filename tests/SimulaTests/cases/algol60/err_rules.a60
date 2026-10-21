@@ -1,0 +1,10 @@
+comment Compile-time rules of the Revised and Modified Reports;
+begin integer i, j, n; Boolean b;
+   integer procedure f; f := 1;
+   procedure p(p); integer p; ;
+   if i = 0 then if j = 0 then i := 1 else i := 2;
+   if i = 0 then for j := 1 step 1 until 2 do i := j else i := 3;
+   i := f();
+   b := b = true;
+   begin own integer array a[1:n]; end
+end

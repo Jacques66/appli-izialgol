@@ -24,6 +24,10 @@ static class ClassicNatives
             return I(t.IndexOf((char)s[b + 1].I) + 1);
         });
         def("__a60_realtext", "R>T", (vm, s, b) => new Value { O = TextRef.FromString(RealText(s[b].R)) });
+        // the mathematical functions called by the bodies of sqrt, ln and exp of the environmental block
+        def("__a60_sqrt", "R>R", (vm, s, b) => Value.Real(Math.Sqrt(s[b].R)));
+        def("__a60_ln", "R>R", (vm, s, b) => Value.Real(Math.Log(s[b].R)));
+        def("__a60_exp", "R>R", (vm, s, b) => Value.Real(Math.Exp(s[b].R)));
         def("__a60_lowercase", "T>T", (vm, s, b) => new Value { O = TextRef.FromString(TextRef.Str((TextRef?)s[b].O).ToLowerInvariant()) });
     }
 
@@ -120,7 +124,9 @@ static class ClassicNatives
         }
         if (!digits) throw new SimulaError($"invalid character '{(c < 0 ? ' ' : (char)c)}' in inreal");
         CheckTerminator(vm, c, "inreal");
-        return double.Parse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        var r = double.Parse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        if (double.IsInfinity(r)) throw new SimulaError("inreal: real number out of range");
+        return r;
     }
 }
 

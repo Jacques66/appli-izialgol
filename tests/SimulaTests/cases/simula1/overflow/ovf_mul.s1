@@ -1,0 +1,5 @@
+begin integer i;
+   outstring(1, "before\n");
+   i := 100000; i := i * i;
+   outstring(1, "not reached")
+end

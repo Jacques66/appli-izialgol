@@ -1,0 +1,6 @@
+begin
+   real x;
+   x := maxreal; outtext("before"); outimage;
+   x := x * 2;
+   outtext("not reached"); outimage
+end

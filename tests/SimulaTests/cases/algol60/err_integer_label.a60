@@ -1,0 +1,6 @@
+comment An integer actual parameter for a label formal must name a declared label;
+begin
+   procedure jump(l); label l; goto l;
+   jump(15);
+10: outstring(1, "at 10\n")
+end

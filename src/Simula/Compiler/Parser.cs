@@ -432,8 +432,13 @@ public sealed class Parser
                     Next();
                     var c = ParseExpr();
                     Expect(T.KThen);
+                    var thPos = Cur.Pos;
                     var th = ParseStatement();
+                    // the statement after then is unconditional (a conditional statement must be enclosed
+                    // in begin ... end); a for or while statement there cannot be followed by else
+                    if (th is IfStmt) error(thPos, "a conditional statement cannot follow 'then' (enclose it in begin ... end)");
                     Stmt? el = null;
+                    if (K == T.KElse && th is ForStmt or WhileStmt) error(Cur.Pos, "'else' cannot follow a for or while statement after 'then' (enclose it in begin ... end)");
                     if (Accept(T.KElse)) el = ParseStatement();
                     return new IfStmt { Cond = c, Then = th, Else = el, Pos = pos };
                 }
@@ -768,7 +773,8 @@ public sealed class Parser
             {
                 var pos = Next().Pos;
                 var ce = new CallExpr { Fn = e, Pos = e.Pos };
-                if (K != T.RPar)
+                if (K == T.RPar) error(Cur.Pos, "empty parameter list '()': omit the parentheses");
+                else
                 {
                     do ce.Args.Add(ParseExpr()); while (Accept(T.Comma));
                 }
@@ -813,7 +819,8 @@ public sealed class Parser
                     var ne = new NewExpr { Class = c.Name, Orig = c.Orig, Pos = t.Pos };
                     if (Accept(T.LPar))
                     {
-                        if (K != T.RPar) { do ne.Args.Add(ParseExpr()); while (Accept(T.Comma)); }
+                        if (K == T.RPar) error(Cur.Pos, "empty parameter list '()': omit the parentheses");
+                        else { do ne.Args.Add(ParseExpr()); while (Accept(T.Comma)); }
                         Expect(T.RPar);
                     }
                     return ne;

@@ -270,6 +270,8 @@ public sealed class Lexer
             t.Kind = T.RealLit;
             if (!double.TryParse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out t.RealValue))
                 error(pos, "invalid real number");
+            else if (double.IsInfinity(t.RealValue))
+                error(pos, "real constant out of range (maxreal = 1.7976931348623157&308)");
         }
         else
         {

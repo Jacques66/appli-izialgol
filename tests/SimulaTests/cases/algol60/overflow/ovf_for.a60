@@ -1,0 +1,5 @@
+begin integer i;
+   outstring(1, "before\n");
+   for i := maxint - 1 step 1 until maxint do outinteger(1, i);
+   outstring(1, "not reached")
+end

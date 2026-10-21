@@ -6,7 +6,7 @@ namespace Studio.Simula.Runtime;
 
 public delegate Value NativeFn(Vm vm, Value[] s, int b);
 
-/// <summary>Primitives d'execution : textes, mathematiques, edition, fichiers.</summary>
+/// <summary>Runtime primitives: texts, mathematics, editing, files.</summary>
 public static class Natives
 {
     sealed record Entry(string Name, string Sig, NativeFn Fn, bool Void);
@@ -98,7 +98,7 @@ public static class Natives
         return new TextRef(new TextObj(a, false), 1, total);
     }
 
-    // ------------------------------------------------------------ edition (8.7)
+    // ------------------------------------------------------------ editing (8.7)
 
     public static char LowTen = '&', DecimalMark = '.';
 
@@ -238,8 +238,10 @@ public static class Natives
             else i = save;
         }
         if (!digits) throw new SimulaError("getreal: no real number in the text");
+        var r = double.Parse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        if (double.IsInfinity(r)) throw new SimulaError("getreal: real number out of range");
         t!.Pos = i + 1;
-        return double.Parse(sb.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture);
+        return r;
     }
 
     public static long GetFrac(TextRef? t)
@@ -264,11 +266,11 @@ public static class Natives
         return neg ? -v : v;
     }
 
-    // ------------------------------------------------------------ alea (9.9)
+    // ------------------------------------------------------------ random drawing (9.9)
 
     public static long NextU(long u)
     {
-        // generateur multiplicatif U(i+1) = U(i) * 5**13 mod 2**31 (impair)
+        // multiplicative generator U(i+1) = U(i) * 5**13 mod 2**31 (odd values)
         bool neg = u < 0;
         ulong x = (ulong)Math.Abs(u);
         x |= 1;
@@ -312,8 +314,8 @@ public static class Natives
 
     static Natives()
     {
-        // ---- arithmetique
-        Def("absi", "I>I", (vm, s, b) => I(Math.Abs(s[b].I)));
+        // ---- arithmetic
+        Def("absi", "I>I", (vm, s, b) => I(Vm.CheckInt(Math.Abs(s[b].I))));
         Def("absr", "R>R", (vm, s, b) => R(Math.Abs(s[b].R)));
         Def("signi", "I>I", (vm, s, b) => I(Math.Sign(s[b].I)));
         Def("signr", "R>I", (vm, s, b) => I(Math.Sign(s[b].R)));
@@ -345,20 +347,20 @@ public static class Natives
         Def("sqrt", "R>R", (vm, s, b) => { var x = s[b].R; if (x < 0) throw new SimulaError("sqrt: negative argument"); return R(Math.Sqrt(x)); });
         Def("sin", "R>R", (vm, s, b) => R(Math.Sin(s[b].R)));
         Def("cos", "R>R", (vm, s, b) => R(Math.Cos(s[b].R)));
-        Def("tan", "R>R", (vm, s, b) => R(Math.Tan(s[b].R)));
-        Def("cotan", "R>R", (vm, s, b) => { var t = Math.Tan(s[b].R); if (t == 0) throw new SimulaError("cotan : argument invalide"); return R(1 / t); });
+        Def("tan", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.Tan(s[b].R))));
+        Def("cotan", "R>R", (vm, s, b) => { var t = Math.Tan(s[b].R); if (t == 0) throw new SimulaError("cotan: tan(x) = 0"); return R(1 / t); });
         Def("arcsin", "R>R", (vm, s, b) => { var x = s[b].R; if (x < -1 || x > 1) throw new SimulaError("arcsin: argument outside [-1,1]"); return R(Math.Asin(x)); });
         Def("arccos", "R>R", (vm, s, b) => { var x = s[b].R; if (x < -1 || x > 1) throw new SimulaError("arccos: argument outside [-1,1]"); return R(Math.Acos(x)); });
         Def("arctan", "R>R", (vm, s, b) => R(Math.Atan(s[b].R)));
-        Def("arctan2", "RR>R", (vm, s, b) => { if (s[b].R == 0 && s[b + 1].R == 0) throw new SimulaError("arctan2 : arguments nuls"); return R(Math.Atan2(s[b].R, s[b + 1].R)); });
-        Def("sinh", "R>R", (vm, s, b) => R(Math.Sinh(s[b].R)));
-        Def("cosh", "R>R", (vm, s, b) => R(Math.Cosh(s[b].R)));
+        Def("arctan2", "RR>R", (vm, s, b) => { if (s[b].R == 0 && s[b + 1].R == 0) throw new SimulaError("arctan2: both arguments are zero"); return R(Math.Atan2(s[b].R, s[b + 1].R)); });
+        Def("sinh", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.Sinh(s[b].R))));
+        Def("cosh", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.Cosh(s[b].R))));
         Def("tanh", "R>R", (vm, s, b) => R(Math.Tanh(s[b].R)));
         Def("ln", "R>R", (vm, s, b) => { var x = s[b].R; if (x <= 0) throw new SimulaError("ln: argument not positive"); return R(Math.Log(x)); });
         Def("log10", "R>R", (vm, s, b) => { var x = s[b].R; if (x <= 0) throw new SimulaError("log10: argument not positive"); return R(Math.Log10(x)); });
-        Def("exp", "R>R", (vm, s, b) => R(Math.Exp(s[b].R)));
-        Def("addepsilon", "R>R", (vm, s, b) => R(Math.BitIncrement(s[b].R)));
-        Def("subepsilon", "R>R", (vm, s, b) => R(Math.BitDecrement(s[b].R)));
+        Def("exp", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.Exp(s[b].R))));
+        Def("addepsilon", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.BitIncrement(s[b].R))));
+        Def("subepsilon", "R>R", (vm, s, b) => R(Vm.CheckReal(Math.BitDecrement(s[b].R))));
         // ---- characters and texts
         Def("char", "I>C", (vm, s, b) => { var i = s[b].I; if (i < 0 || i > 255) throw new SimulaError($"char: {i} outside 0..255"); return I(i); });
         Def("isochar", "I>C", (vm, s, b) => { var i = s[b].I; if (i < 0 || i > 255) throw new SimulaError($"isochar: {i} outside 0..255"); return I(i); });
@@ -401,8 +403,8 @@ public static class Natives
         Def("cputime", ">L", (vm, s, b) => R(Process.GetCurrentProcess().TotalProcessorTime.TotalSeconds));
         Def("clocktime", ">L", (vm, s, b) => R(DateTime.Now.TimeOfDay.TotalSeconds));
         Def("error", "T>V", (vm, s, b) => throw new SimulaError(TextRef.Str(T(s[b]))));
-        Def("upperbound", "AI>I", (vm, s, b) => { var a = (SimArray)s[b].O!; var i = s[b + 1].I; if (i < 1 || i > a.Rank) throw new SimulaError("upperbound : dimension invalide"); return I(a.Upper[i - 1]); });
-        Def("lowerbound", "AI>I", (vm, s, b) => { var a = (SimArray)s[b].O!; var i = s[b + 1].I; if (i < 1 || i > a.Rank) throw new SimulaError("lowerbound : dimension invalide"); return I(a.Lower[i - 1]); });
+        Def("upperbound", "AI>I", (vm, s, b) => { var a = (SimArray)s[b].O!; var i = s[b + 1].I; if (i < 1 || i > a.Rank) throw new SimulaError("upperbound: dimension number outside the array dimensions"); return I(a.Upper[i - 1]); });
+        Def("lowerbound", "AI>I", (vm, s, b) => { var a = (SimArray)s[b].O!; var i = s[b + 1].I; if (i < 1 || i > a.Rank) throw new SimulaError("lowerbound: dimension number outside the array dimensions"); return I(a.Lower[i - 1]); });
         Def("__switcherror", "I>V", (vm, s, b) => throw new SimulaError($"switch index {s[b].I} out of range"));
 
         // ---- text attributes (text object first)
@@ -478,7 +480,7 @@ public static class Natives
         {
             var img = T(s[b]); var t = T(s[b + 1]);
             if (t == null || img == null) return Nothing;
-            if (img.Obj.Const) throw new SimulaError("image constante");
+            if (img.Obj.Const) throw new SimulaError("the image is a constant text");
             int n = Math.Min(t.Length - t.Pos + 1, img.Length - img.Pos + 1);
             if (n <= 0) return Nothing;
             Array.Copy(t.Obj.Chars, t.Start - 1 + t.Pos - 1, img.Obj.Chars, img.Start - 1 + img.Pos - 1, n);

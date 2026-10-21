@@ -1,0 +1,5 @@
+begin integer i;
+   outstring(1, "before\n");
+   i := -maxint - 1; i := i ÷ (-1);
+   outstring(1, "not reached")
+end
