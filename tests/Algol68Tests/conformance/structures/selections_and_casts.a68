@@ -1,0 +1,26 @@
+# RR 5.3.2 selections, 5.5.2 casts, 3.3 structure displays, 7.1 mode declarations with actual bounds #
+MODE P = STRUCT(INT x, REAL y, STRING s);
+P p := (1, 2.5, "ab"); print((x OF p, y OF p, s OF p, newline));
+x OF p := 7; s OF p +:= "c"; print((p, newline));
+REF INT rx = x OF p; rx := 8; print((x OF p, newline));
+P q = p; x OF p := 9; print((x OF q, newline));
+print((REAL (1), newline));
+UNION(INT, REAL) u = UNION(INT, REAL)(2.5); print(((u | (REAL r): r | 0.0), newline));
+VOID (1 + 1);
+INT i := 3; REF INT ri = REF INT (i); ri := 4; print((i, newline));
+[2]P ps; ps[1] := (1, 1.0, "x"); ps[2] := p; print((s OF ps, newline));
+MODE V = [1:3] INT; V v := (1, 2, 3); print((v, newline));
+INT n := 4; MODE W = [1:n] INT; n := 2; W w; print((UPB w, newline));
+STRUCT(INT a, STRUCT(INT b, c) d) nest := (1, (2, 3)); print((c OF d OF nest, newline));
+b OF d OF nest := 5; print((nest, newline));
+[3] STRUCT(INT k, [2] INT arr) sa; FOR j TO 3 DO k OF sa[j] := j; arr OF sa[j] := (j, -j) OD; print((k OF sa, arr OF sa[2], newline));
+print(((arr OF sa)[3][2], newline));
+PROC pr = (P z) INT: x OF z; print((pr(p), pr((1, 1.0, "")), newline));
+# casts with FLEX #
+STRING t := "abc"; print((UPB t, newline));
+# operators on structures #
+OP + = (P a, b) P: (x OF a + x OF b, y OF a + y OF b, s OF a + s OF b); print(((p + q), newline));
+# brief brackets #
+[1:3] INT bb := (1, 2, 3); print((bb(2), bb(2:3), newline));
+# comments #
+print(( # c1 # 1 CO c2 CO, 2 COMMENT c3 COMMENT, newline)) ¢ c4 ¢

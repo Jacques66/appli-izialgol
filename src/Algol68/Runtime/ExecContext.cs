@@ -40,8 +40,14 @@ public sealed class ExecContext
     public volatile bool CancelRequested;
     public readonly Transput Transput;
     public readonly CompiledProgram Program;
-    public long RandomSeed = 1;
     public readonly object RandomLock = new();
+    readonly RefV?[] lastRandom = new RefV?[3];
+    /// <summary>The variables L last random of the particular prelude (RR 10.5.1.a), created on first use.</summary>
+    public RefV LastRandomName(int size, System.Numerics.BigInteger initial)
+    {
+        lock (RandomLock)
+            return lastRandom[size] ??= RefV.NewCell(size == 0 ? Value.I((long)initial) : Value.Obj(initial), 0);
+    }
     public readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
 
     // threads and deadlock detection

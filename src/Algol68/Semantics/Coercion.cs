@@ -76,7 +76,7 @@ public sealed partial class Compiler
 
     // ------------------------------------------------------------------ coercion search
 
-    public List<Step>? FindCoercion(Mode from, Mode to, Strength s)
+    public List<Step>? FindCoercion(Mode from, Mode to, Strength s, bool morf = true)
     {
         if (ReferenceEquals(from, to)) return new List<Step>();
         if (from == M.Any || to == M.Any) return new List<Step>();
@@ -93,9 +93,18 @@ public sealed partial class Compiler
         if (to.IsVoid)
         {
             if (s != Strength.Strong) return null;
+            // RR 6.7.1.a: a MORF (identifier, call, slice, selection, formula, routine text) is dereferenced and
+            // deprocedured until its mode is not that of a procedure without parameters (or a name of one);
+            // a COMORF (assignation, cast, generator, identity relation, denoter...) is voided unchanged
             var l = new List<Step>();
-            if (from is ProcMode pm && pm.Params.Length == 0) l.Add(new Step(StepKind.Deproc, from, pm.Result));
-            l.Add(new Step(StepKind.Void, from, to));
+            var vc = from;
+            for (int guard = 0; morf && guard < 64; guard++)
+            {
+                if (vc is ProcMode pm && pm.Params.Length == 0) { l.Add(new Step(StepKind.Deproc, vc, pm.Result)); vc = pm.Result; continue; }
+                if (vc is RefMode && !IsNonProc(vc, 0)) { var v = M.Normalize(((RefMode)vc).Sub); l.Add(new Step(StepKind.Deref, vc, v)); vc = v; continue; }
+                break;
+            }
+            l.Add(new Step(StepKind.Void, vc, to));
             return l;
         }
         var steps = new List<Step>();
@@ -115,6 +124,14 @@ public sealed partial class Compiler
         }
         return null;
     }
+
+    /// <summary>NONPROC (RR 6.7.1.A): neither a procedure without parameters nor a name (of a name...) of one.</summary>
+    bool IsNonProc(Mode m, int depth) => m switch
+    {
+        ProcMode pm => pm.Params.Length > 0,
+        RefMode rm => depth > 32 || IsNonProc(M.Normalize(rm.Sub), depth + 1),
+        _ => true,
+    };
 
     List<Step>? TryFinal(Mode cur, Mode to, Strength s)
     {
@@ -202,7 +219,7 @@ public sealed partial class Compiler
     public Node Coerce(Node n, Mode from, Mode to, Strength s, Ast pos)
     {
         if (ReferenceEquals(from, to)) { n.Mode ??= to; return n; }
-        var steps = FindCoercion(from, to, s);
+        var steps = FindCoercion(from, to, s, IsMorf(pos));
         if (steps == null)
         {
             Error(pos, $"mode {from} cannot be coerced to {to} in a {StrengthName(s)} context");
@@ -213,6 +230,9 @@ public sealed partial class Compiler
         n.Mode = to;
         return n;
     }
+
+    /// <summary>MORF (RR 6.1.1.F): selection, slice, routine text, formula, call or applied identifier.</summary>
+    static bool IsMorf(Ast pos) => pos is IdentAst or ApplyAst or SelectionAst or RoutineTextAst or DyadicAst or MonadicAst or AndThenAst;
 
     Node ApplyStep(Node n, Step st, Ast pos)
     {

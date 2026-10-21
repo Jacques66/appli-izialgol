@@ -28,6 +28,7 @@ public sealed class FileV
     public bool Modified;
     public bool TruncateOnWrite;
     public RefV? AssocRef;
+    public RefV? Assoc3;   // book associated with a REF [][][] CHAR (RR 10.3.1.4.e): pages, lines, characters
     // position (RR): page, line, character
     public int Page = 1, Line = 1, Char = 1;
     // standard input
@@ -36,6 +37,10 @@ public sealed class FileV
     public ProcV? OnLogicalEnd, OnPhysicalEnd, OnLineEnd, OnPageEnd, OnFormatEnd, OnValueError, OnCharError, OnFormatError, OnOpenError, OnTransputError;
     public string Term = "";
     public FormatState? Fmt;
+    // bounds of the book (RR 10.3.1.4.cc, establish with p, l, c): 0 = no bound
+    public int MaxPage, MaxLine, MaxChar;
+    // frame and file name of the transput call in progress (to call the event routines on output)
+    public Frame? EvFrame; public Value EvRef;
     public readonly object Lock = new();
     public override string ToString() => Opened ? $"file '{Idf}'" : "closed file";
 }
@@ -72,6 +77,18 @@ public sealed partial class Transput
                 try { Flush(f); } catch { }
     }
     readonly List<FileV> openFiles = new();
+    // books locked by lock (RR 10.3.1.4.o): they cannot be opened again
+    readonly HashSet<string> lockedBooks = new(StringComparer.OrdinalIgnoreCase);
+    bool IsLocked(FileV f) { lock (lockedBooks) return f.FullPath != null && lockedBooks.Contains(Path.GetFullPath(f.FullPath)); }
+
+    /// <summary>Records the transput call in progress on f (event routines on output); returns the previous one.</summary>
+    internal static (Frame?, Value) EnterEvents(FileV f, Frame fr, Value refFile)
+    {
+        var old = (f.EvFrame, f.EvRef);
+        f.EvFrame = fr; f.EvRef = refFile;
+        return old;
+    }
+    internal static void LeaveEvents(FileV f, (Frame?, Value) old) => (f.EvFrame, f.EvRef) = old;
 
     public static FileV GetFile(Value refFile, Node at)
     {
@@ -112,6 +129,7 @@ public sealed partial class Transput
             return 0;
         }
         var f = NewDiskFile(idf, ch);
+        if (IsLocked(f)) return Unavailable(fr, refFile, f, at);
         try
         {
             if (File.Exists(f.FullPath)) f.Book.Append(File.ReadAllText(f.FullPath!));
@@ -129,11 +147,15 @@ public sealed partial class Transput
         return 0;
     }
 
-    /// <summary>establish: new (empty) book.</summary>
-    public int Establish(Frame fr, Value refFile, string idf, Value channel, Node at)
+    /// <summary>establish: new (empty) book; p, l, c (RR form) bound the number of pages, of lines per page and of characters per line.</summary>
+    public int Establish(Frame fr, Value refFile, string idf, Value channel, Node at, long p = 0, long l = 0, long c = 0)
     {
         var ch = GetChannel(channel, at);
+        if (p < 0 || l < 0 || c < 0 || p > int.MaxValue || l > int.MaxValue || c > int.MaxValue)
+            throw RT.Err($"establish: invalid bounds ({p}, {l}, {c})", at);
         var f = NewDiskFile(idf, ch);
+        f.MaxPage = (int)p; f.MaxLine = (int)l; f.MaxChar = (int)c;
+        if (IsLocked(f)) return Unavailable(fr, refFile, f, at);
         try
         {
             var dir = Path.GetDirectoryName(f.FullPath);
@@ -159,6 +181,114 @@ public sealed partial class Transput
         return Establish(fr, refFile, idf, channel, at);
     }
 
+    /// <summary>reidf (RR 10.3.1.3.s): new identification of the book of a disk file.</summary>
+    public void Reidf(FileV f, string idf, Node at)
+    {
+        lock (f.Lock)
+        {
+            if (f.Kind != FileKind.Disk || f.FullPath == null) { f.Idf = idf; return; }
+            var to = Resolve(idf);
+            try
+            {
+                Flush(f);
+                if (File.Exists(f.FullPath)) File.Move(f.FullPath, to, true);
+            }
+            catch (Exception e) { throw RT.Err($"reidf: cannot rename '{f.Idf}' to '{idf}': {e.Message}", at); }
+            f.FullPath = to; f.Idf = idf;
+        }
+    }
+
+    /// <summary>lock (RR 10.3.1.4.o): closes the file; its book cannot be opened again.</summary>
+    public void Lock(Value refFile, Node at)
+    {
+        var f = GetFile(refFile, at);
+        Close(refFile, at);
+        if (f.FullPath != null) lock (lockedBooks) lockedBooks.Add(Path.GetFullPath(f.FullPath));
+    }
+
+    /// <summary>associate (RR 10.3.1.4.e): the book is the row of pages of lines of characters referred to by r.</summary>
+    public void Associate3(Value refFile, RefV r, Node at)
+    {
+        if (r.A == null) throw RT.Err("associate: NIL row", at);
+        var f = new FileV
+        {
+            Channel = new ChannelV { Name = "associated book", Get = true, Put = true, Reset = true, Set = true, Kind = 4 },
+            Kind = FileKind.Assoc, Idf = "", Opened = true, Assoc3 = r,
+        };
+        LoadAssoc3(f, at);
+        StoreFile(refFile, f, at);
+    }
+
+    static RowV Row1(Value v, Node at) => v.O as RowV ?? throw RT.Err("associate: uninitialised row", at);
+    static Value Elem1(RowV r, int k) => r.GetAt(r.Index1(r.Lwb[0] + k - 1));
+
+    /// <summary>Text image of the associated row: each line ends with a new line, each page with a new page.</summary>
+    static void LoadAssoc3(FileV f, Node at)
+    {
+        var b = f.Book; b.Clear();
+        var pages = Row1(f.Assoc3!.A![f.Assoc3.I], at);
+        for (int p = 1; p <= pages.Length1; p++)
+        {
+            var lines = Row1(Elem1(pages, p), at);
+            for (int l = 1; l <= lines.Length1; l++)
+            {
+                var chars = Row1(Elem1(lines, l), at);
+                for (int c = 1; c <= chars.Length1; c++)
+                {
+                    var v = Elem1(chars, c);
+                    b.Append(ReferenceEquals(v.O, Value.Uninit) ? ' ' : (char)v.N);
+                }
+                b.Append('\n');
+            }
+            b.Append('\f');
+        }
+    }
+
+    /// <summary>Writes one character into an associated row (the position is good: see LineFull).</summary>
+    void WriteAssoc3(FileV f, char c, Node at)
+    {
+        var b = f.Book;
+        switch (c)
+        {
+            case '\n':
+                if (f.Pos < b.Length && b[f.Pos] != '\f')
+                {
+                    while (f.Pos < b.Length && b[f.Pos] != '\n') f.Pos++;
+                    if (f.Pos < b.Length) f.Pos++;
+                }
+                f.Line++; f.Char = 1;
+                return;
+            case '\f':
+                while (f.Pos < b.Length && b[f.Pos] != '\f') f.Pos++;
+                if (f.Pos < b.Length) f.Pos++;
+                f.Page++; f.Line = 1; f.Char = 1;
+                return;
+            case '\b':
+                if (f.Char > 1) { f.Pos--; f.Char--; }
+                return;
+        }
+        if (LineFull(f)) throw RT.Err("the line of the associated book is full", at);
+        b[f.Pos] = c;
+        var chars = Row1(Elem1(Row1(Elem1(Row1(f.Assoc3!.A![f.Assoc3.I], at), f.Page), at), f.Line), at);
+        chars.SetAt(chars.Index1(chars.Lwb[0] + f.Char - 1), Value.I(c));
+        f.Pos++; f.Char++;
+    }
+
+    // RR 10.3.1.5: line ended, page ended, physical file ended (books with bounds)
+    static bool LineFull(FileV f) => f.Assoc3 != null ? f.Pos >= f.Book.Length || f.Book[f.Pos] is '\n' or '\f' : f.MaxChar > 0 && f.Char > f.MaxChar;
+    static bool PageFull(FileV f) => f.Assoc3 != null ? f.Pos >= f.Book.Length || f.Book[f.Pos] == '\f' : f.MaxLine > 0 && f.Line > f.MaxLine;
+    static bool FileFull(FileV f) => f.Assoc3 != null ? f.Pos >= f.Book.Length : f.MaxPage > 0 && f.Page > f.MaxPage;
+    internal static bool Bounded(FileV f) => f.Assoc3 != null || (f.MaxChar | f.MaxLine | f.MaxPage) != 0;
+
+    /// <summary>Characters still available on the current line, and length of the line.</summary>
+    static (int room, int length) LineRoom(FileV f)
+    {
+        if (f.Assoc3 == null) return (f.MaxChar - f.Char + 1, f.MaxChar);
+        int i = f.Pos;
+        while (i < f.Book.Length && f.Book[i] is not ('\n' or '\f')) i++;
+        return (i - f.Pos, f.Char - 1 + i - f.Pos);
+    }
+
     public void Associate(Value refFile, Value refString, Node at)
     {
         var rs = refString.O as RefV ?? throw RT.Err("REF STRING expected", at);
@@ -171,6 +301,15 @@ public sealed partial class Transput
         var cur = rs.A[rs.I];
         if (cur.O is RowV row) f.Book.Append(row.AsString());
         StoreFile(refFile, f, at);
+    }
+
+    /// <summary>The book is not available (locked): the file stays closed and the status is 1 (RR 10.3.1.4).</summary>
+    int Unavailable(Frame fr, Value refFile, FileV f, Node at)
+    {
+        StoreFile(refFile, f, at);
+        f.Opened = false;
+        OpenError(fr, refFile, f, at);
+        return 1;
     }
 
     bool OpenError(Frame fr, Value refFile, FileV f, Node at)
@@ -256,6 +395,89 @@ public sealed partial class Transput
     public void WriteString(FileV f, string s, Node at)
     {
         if (s.Length == 0) return;
+        if (Bounded(f))
+        {
+            // bounded book: each character is written at a good position (RR 10.3.1.6.e-g)
+            foreach (char c in s)
+            {
+                if (c == '\n') GetGoodPage(f, at);
+                else if (c == '\f') GetGoodFile(f, at);
+                else if (c != '\b') GetGoodLine(f, at);
+                RawWrite(f, c.ToString(), at);
+            }
+            return;
+        }
+        RawWrite(f, s, at);
+    }
+
+    /// <summary>Calls an event routine during output, the lock of the file being released.</summary>
+    bool OutputEvent(FileV f, ProcV? p, Node at)
+    {
+        if (p == null || f.EvFrame == null) return false;
+        bool held = Monitor.IsEntered(f.Lock);
+        if (held) Monitor.Exit(f.Lock);
+        try { return CallEvent(f.EvFrame, p, f.EvRef, at); }
+        finally { if (held) Monitor.Enter(f.Lock); }
+    }
+
+    // RR 10.3.1.6.e: get good line (on line end, then newline)
+    void GetGoodLine(FileV f, Node at)
+    {
+        for (int guard = 0; ; guard++)
+        {
+            GetGoodPage(f, at);
+            if (!LineFull(f)) return;
+            int line = f.Line, page = f.Page;
+            bool mended = OutputEvent(f, f.OnLineEnd, at);
+            // default action (or the routine left the position unchanged): newline
+            if (!mended || (LineFull(f) && f.Line == line && f.Page == page)) { GetGoodPage(f, at); RawWrite(f, "\n", at); }
+            if (guard > 1000) throw RT.Err("on line end: the line remains full", at);
+        }
+    }
+
+    // RR 10.3.1.6.f: get good page (on page end, then newpage)
+    void GetGoodPage(FileV f, Node at)
+    {
+        for (int guard = 0; ; guard++)
+        {
+            GetGoodFile(f, at);
+            if (!PageFull(f)) return;
+            int page = f.Page;
+            bool mended = OutputEvent(f, f.OnPageEnd, at);
+            if (!mended || (PageFull(f) && f.Page == page)) { GetGoodFile(f, at); RawWrite(f, "\f", at); }
+            if (guard > 1000) throw RT.Err("on page end: the page remains full", at);
+        }
+    }
+
+    // RR 10.3.1.6.g: get good file (on physical file end)
+    void GetGoodFile(FileV f, Node at)
+    {
+        if (!FileFull(f)) return;
+        if (!OutputEvent(f, f.OnPhysicalEnd, at) || FileFull(f))
+            throw RT.Err(f.Assoc3 != null ? "physical end of the associated book reached"
+                : $"physical end of file '{f.Idf}' reached ({f.MaxPage} pages of {f.MaxLine} lines of {f.MaxChar} characters)", at);
+    }
+
+    /// <summary>Formatless output of a number (RR 10.3.3.1.a): the whole number goes on one line.</summary>
+    internal void FitOnLine(FileV f, int n, Node at)
+    {
+        if (!Bounded(f)) return;
+        for (int guard = 0; ; guard++)
+        {
+            GetGoodLine(f, at);
+            var (room, length) = LineRoom(f);
+            if (n > length) throw RT.Err($"a number of {n} characters does not fit on a line of {length} characters", at);
+            if (n <= room) return;
+            int line = f.Line, page = f.Page;
+            bool mended = OutputEvent(f, f.OnLineEnd, at);
+            if (!mended || (f.Line == line && f.Page == page)) { GetGoodPage(f, at); RawWrite(f, "\n", at); }
+            if (guard > 1000) throw RT.Err("on line end: the line remains full", at);
+        }
+    }
+
+    void RawWrite(FileV f, string s, Node at)
+    {
+        if (f.Assoc3 != null) { foreach (char c in s) WriteAssoc3(f, c, at); return; }
         switch (f.Kind)
         {
             case FileKind.StandOut:
@@ -339,7 +561,12 @@ public sealed partial class Transput
 
     // ------------------------------------------------------------------ layout
 
-    public void Newline(Frame fr, Value refFile, Node at)
+    public void Newline(Frame fr, Value refFile, Node at) => Layout(fr, refFile, '\n', at);
+    public void Newpage(Frame fr, Value refFile, Node at) => Layout(fr, refFile, '\f', at);
+    public void Space(Frame fr, Value refFile, Node at) => Layout(fr, refFile, ' ', at);
+
+    /// <summary>newline, newpage and space (RR 10.3.1.6.a, c, d).</summary>
+    void Layout(Frame fr, Value refFile, char what, Node at)
     {
         var f = GetFile(refFile, at);
         lock (f.Lock)
@@ -348,53 +575,21 @@ public sealed partial class Transput
             if (f.ReadMood || (!f.WriteMood && f.Channel.Get && !f.Channel.Put))
             {
                 SetReadMood(f, at);
+                if (what == ' ') { if (ReadChar(f) < 0) LogicalFileEnd(fr, refFile, f, at); return; }
                 while (true)
                 {
                     int c = ReadChar(f);
                     if (c < 0) { LogicalFileEnd(fr, refFile, f, at); return; }
-                    if (c == '\n') return;
+                    if (c == what) return;
                 }
             }
-            SetWriteMood(f, at);
-            WriteString(f, "\n", at);
-        }
-    }
-
-    public void Newpage(Frame fr, Value refFile, Node at)
-    {
-        var f = GetFile(refFile, at);
-        lock (f.Lock)
-        {
-            CheckOpen(f, at);
-            if (f.ReadMood || (!f.WriteMood && f.Channel.Get && !f.Channel.Put))
+            var ev = EnterEvents(f, fr, refFile);
+            try
             {
-                SetReadMood(f, at);
-                while (true)
-                {
-                    int c = ReadChar(f);
-                    if (c < 0) { LogicalFileEnd(fr, refFile, f, at); return; }
-                    if (c == '\f') return;
-                }
+                SetWriteMood(f, at);
+                WriteString(f, what.ToString(), at);
             }
-            SetWriteMood(f, at);
-            WriteString(f, "\f", at);
-        }
-    }
-
-    public void Space(Frame fr, Value refFile, Node at)
-    {
-        var f = GetFile(refFile, at);
-        lock (f.Lock)
-        {
-            CheckOpen(f, at);
-            if (f.ReadMood || (!f.WriteMood && f.Channel.Get && !f.Channel.Put))
-            {
-                SetReadMood(f, at);
-                if (ReadChar(f) < 0) LogicalFileEnd(fr, refFile, f, at);
-                return;
-            }
-            SetWriteMood(f, at);
-            WriteString(f, " ", at);
+            finally { LeaveEvents(f, ev); }
         }
     }
 
@@ -460,7 +655,8 @@ public sealed partial class Transput
             f.Pos = 0; f.Line = f.Char = f.Page = 1;
             f.ReadMood = f.WriteMood = false;
             f.TruncateOnWrite = false;
-            if (f.Kind == FileKind.Assoc && f.AssocRef!.A![f.AssocRef.I].O is RowV row)
+            if (f.Assoc3 != null) LoadAssoc3(f, at);
+            else if (f.Kind == FileKind.Assoc && f.AssocRef!.A![f.AssocRef.I].O is RowV row)
             {
                 f.Book.Clear(); f.Book.Append(row.AsString());
             }

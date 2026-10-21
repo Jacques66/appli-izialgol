@@ -1,4 +1,4 @@
-// Test harness for the Algol 68 compiler.
+// Test harness for the Algol 68 compiler: runs samples/algol68, tests/Algol68Tests/conformance and internal tests.
 // Usage: dotnet run --project tests/Algol68Tests [-- --show file.a68] [-- --filter text] [-- -v]
 using System.Diagnostics;
 using System.Text;
@@ -62,6 +62,14 @@ static class Program
             if (Path.GetFileName(Path.GetDirectoryName(file)!) == "include") continue;
             RunSample(file, samples);
         }
+        // conformance tests (Revised Report audit): same conventions as the samples (.out, .in, .err, .rte)
+        var conformance = Path.Combine(root, "tests", "Algol68Tests", "conformance");
+        if (Directory.Exists(conformance))
+            foreach (var file in Directory.GetFiles(conformance, "*.a68", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal))
+            {
+                if (filter != null && !file.Replace('\\', '/').Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
+                RunSample(file, conformance, "conformance/");
+            }
         if (filter == null || "internal".Contains(filter)) InternalTests.Run();
         Console.WriteLine();
         Console.WriteLine($"Result: {passed} passed, {failed} failed in {sw.Elapsed.TotalSeconds:F1} s");
@@ -107,9 +115,9 @@ static class Program
         return (io.Output, res, work);
     }
 
-    static void RunSample(string file, string samplesRoot)
+    static void RunSample(string file, string samplesRoot, string prefix = "")
     {
-        string name = Path.GetRelativePath(samplesRoot, file).Replace('\\', '/');
+        string name = prefix + Path.GetRelativePath(samplesRoot, file).Replace('\\', '/');
         string bas = Path.ChangeExtension(file, null);
         string? expOut = File.Exists(bas + ".out") ? Norm(File.ReadAllText(bas + ".out")) : null;
         string? input = File.Exists(bas + ".in") ? File.ReadAllText(bas + ".in") : null;

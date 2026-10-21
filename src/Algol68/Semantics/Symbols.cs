@@ -22,6 +22,8 @@ public sealed class IdSym : Sym
     public Func<ExecContext, Value>? CtxValue;
     public BuiltinFn? Builtin;
     public bool IsLoopVar;
+    /// <summary>Standard procedure with another number of parameters (establish of the RR and of a68g).</summary>
+    public IdSym? Alt;
     public bool IsPrelude => Range.Routine == null;
 }
 

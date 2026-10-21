@@ -323,8 +323,9 @@ internal sealed class FormatParser
 
     UnitAst ParseEnclosedUnit()
     {
+        // the parentheses belong to the ENCLOSED clause (RR 10.3.4.9.1: f (uir | (INT): $5d$ | $d.3d$))
         var (inner, l, c) = ReadParenthesized();
-        var toks = Lexer.LexFragment(inner, file, l, c, parser.Stropping, diags, options);
+        var toks = Lexer.LexFragment("(" + inner + ")", file, l, Math.Max(1, c - 1), parser.Stropping, diags, options);
         return parser.ParseFragmentUnit(toks);
     }
 

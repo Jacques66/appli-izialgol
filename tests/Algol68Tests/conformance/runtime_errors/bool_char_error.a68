@@ -1,0 +1,9 @@
+# RR 10.3.3.2.dd: reading a boolean expects flip or flop; otherwise on char error is called with the suggestion flop #
+FILE f; STRING buf := "T F x y"; associate(f, buf);
+CHAR seen := "?";
+on char error(f, (REF FILE g, REF CHAR c) BOOL: (seen := c; c := "T"; TRUE));
+BOOL a, b, c; get(f, (a, b, c)); print((a, b, c, " ", seen, newline));
+on char error(f, (REF FILE g, REF CHAR c) BOOL: TRUE);
+BOOL d; get(f, d); print((d, newline));
+FILE h; STRING buf2 := "x"; associate(h, buf2);
+BOOL e; get(h, e)

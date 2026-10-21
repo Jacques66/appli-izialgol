@@ -1,0 +1,27 @@
+# RR 3.2-3.5: serial, collateral, conditional, case and loop clauses, jumps and completers #
+FOR i FROM 10 BY -3 TO 1 DO print(i) OD; print(newline);
+BEGIN FOR i FROM 1 BY 0 TO 3 WHILE i < 2 DO print(i); GOTO out OD; out: print(newline) END;
+INT n := 0; WHILE n < 3 DO n +:= 1 OD; print((n, newline));
+TO 3 DO print("x") OD; print(newline);
+FOR i TO 0 DO print("never") OD;
+FOR i BY 2 TO 7 DO print(i) OD; print(newline);
+FROM 5 TO 6 DO print("y") OD; print(newline);
+INT k := 0; WHILE INT j = k * 2; j < 6 DO print(j); k +:= 1 OD; print(newline);
+BEGIN INT m := 0; again: m +:= 1; IF m < 3 THEN GOTO again FI; print((m, newline)) END;
+print(((TRUE | 10 EXIT lab: 20), newline));
+INT sk = SKIP; REF INT rn = NIL; print((rn IS NIL, newline));
+VOID vv = EMPTY;
+REF INT h = HEAP INT := 3; REF INT l = LOC INT := 4; print((h + l, newline));
+REF []INT hr = HEAP [1:3] INT; hr[2] := 5; print((hr[2], newline));
+(print("a"), print("b")); print(newline);
+FOR i FROM 0 TO 4 DO print(CASE i IN "one", "two", "three" OUT "other" ESAC) OD; print(newline);
+FOR i TO 4 DO print((i | "1", "2" |: i = 3 | "3" | "4")) OD; print(newline);
+FOR i TO 3 DO print(IF i = 1 THEN "a" ELIF i = 2 THEN "b" ELSE "c" FI) OD; print(newline);
+IF FALSE THEN print("no") FI;
+IF (TRUE | FALSE | TRUE) THEN print("bad") ELSE print("good") FI; print(newline);
+FOR i TO 3 DO IF i = 2 THEN SKIP FI; print(i) OD; print(newline);
+PROC esc = (PROC VOID e) VOID: e;
+BEGIN esc(fin); print("not here"); fin: print(("escaped", newline)) END;
+# jump out of procedure with value #
+PROC search = (INT target) INT: BEGIN FOR i TO 10 DO IF i = target THEN GOTO found FI OD; -1 EXIT found: target * 100 END;
+print((search(4), search(11), newline))

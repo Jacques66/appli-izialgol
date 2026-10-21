@@ -1,0 +1,20 @@
+# RR 10.3.1.4.e: associate a file with a row of pages of lines of characters #
+[1:2][1:3][1:12] CHAR book;
+FOR p TO 2 DO FOR l TO 3 DO FOR c TO 12 DO book[p][l][c] := "." OD OD OD;
+FILE f; associate(f, book);
+put(f, ("abc", newline, "defghijklmnopq"));          # the line is full after 12 characters: new line #
+put(f, (newline, 42));                            # a number is not split: it goes on the next line #
+put(f, (newline, "page"));                        # after the third line: new page #
+FOR p TO 2 DO FOR l TO 3 DO print((book[p][l], newline)) OD; print(("--", newline)) OD;
+print((page number(f), line number(f), char number(f), newline));
+reset(f);
+STRING s; get(f, (s, newline)); print((s, newline));
+INT lines := 0;
+on line end(f, (REF FILE g) BOOL: (lines +:= 1; FALSE));
+get(f, s); print((s, newline));
+reset(f); [3] STRING all;
+FOR i TO 3 DO get(f, (all[i], newline)) OD; print((all[1], "/", all[2], "/", all[3], newline));
+get(f, s); print((s, " ", page number(f), newline));
+FILE g; associate(g, book);
+on physical file end(g, (REF FILE h) BOOL: (print(("physical end", newline)); FALSE));
+put(g, (newpage, newpage, "x"))

@@ -1,0 +1,31 @@
+# RR 5.3.2, 2.1.3.4: rows, flexible names, slices, trimmers, displays #
+[1:5] INT a := (1,2,3,4,5);
+print((a[2:4], LWB a[2:4], UPB a[2:4], newline));
+print((LWB a[2:4 @ 0], UPB a[2:4 AT 0], LWB a[@3], LWB a[:], UPB a[3:], LWB a[3:], newline));
+[1:3, 1:4] INT m; FOR i TO 3 DO FOR j TO 4 DO m[i,j] := 10*i+j OD OD;
+print((m[2,], newline, m[,3], newline, m[2:3, 2:3], newline));
+print((1 LWB m, 1 UPB m, 2 LWB m, 2 UPB m, ELEMS m, newline));
+[,]INT t = m[2:3, 2]; 
+FLEX [1:0] INT f; print((UPB f, newline)); f := (1,2,3); print((UPB f, newline)); f := a[2:3]; print((LWB f, UPB f, newline));
+FLEX [1:3] INT g := (7,8,9); g := (1,2); print((UPB g, newline));
+[]INT e = (); print((UPB e, LWB e, ELEMS e, newline));
+[0:-1] INT e2; print((UPB e2, LWB e2, newline));
+# row of rows #
+[3][2] INT rr; rr[1] := (1,2); rr[2][1] := 5; print((rr[1], rr[2][1], newline));
+# assignment bound checks #
+[1:3] INT b; b := (1,2,3); print((b, newline));
+# slice assign #
+a[2:3] := (20, 30); print((a, newline));
+# string ops #
+STRING s := "hello"; s[1] := "H"; print((s, s[2:3], UPB s[2:], newline));
+s := s + " world"; print((s, newline));
+# rows of structs selection #
+MODE P = STRUCT(INT x, y); [3]P ps := ((1,2),(3,4),(5,6)); print((x OF ps, newline)); y OF ps := (7,8,9); print((ps, newline));
+# multiple selection of FLEX #
+# trimming with @ #
+[]INT q = a[@0]; print((q[0], LWB q, newline));
+# 2D display #
+[,]INT d = ((1,2),(3,4)); print((d, 1 UPB d, 2 UPB d, newline));
+[,]CHAR dc = ("ab", "cd"); print((dc[2,1], newline));
+# LWB UPB with dyadic on vector #
+print((1 LWB a, 1 UPB a, newline))

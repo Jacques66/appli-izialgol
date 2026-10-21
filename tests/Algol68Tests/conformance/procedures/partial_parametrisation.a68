@@ -1,0 +1,6 @@
+# Partial parametrisation (a68g extension, RR 1968 style): f (a, ) yields a routine of the missing parameters #
+PROC f = (INT a, b) INT: a - b;
+PROC (INT) INT g = f(10, ), h = f( , 10);
+print((g(3), h(3), newline));
+PROC (INT, INT, INT) INT three = (INT x, y, z) INT: 100 * x + 10 * y + z;
+PROC (INT) INT mid = three(1, , 3); print((mid(2), newline))

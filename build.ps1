@@ -97,6 +97,10 @@ if ($Test) {
     & dotnet run --project (Join-Path $root "tests\PascalTests") -c $Configuration
     if ($LASTEXITCODE -ne 0) { throw "some tests failed" }
 
+    Step "Tests (tests\Algol68Tests: Algol 68)"
+    & dotnet run --project (Join-Path $root "tests\Algol68Tests") -c $Configuration
+    if ($LASTEXITCODE -ne 0) { throw "some tests failed" }
+
     Step "Tests (tests\IdeTests)"
     & dotnet run --project (Join-Path $root "tests\IdeTests") -c $Configuration --nologo
     if ($LASTEXITCODE -ne 0) { throw "some tests failed" }

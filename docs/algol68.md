@@ -85,7 +85,9 @@ or `< > / = *`, optionally followed by one character among `< > / = *`, optional
 by `:=` or `=:` (`+:=`, `%*:=`, `+=:`, `<=`, `/=`, `**`, `%*`, `+*`…).
 `|`, `|:` and `!` (alternative form of `|`) are used by brief clauses; `@` is equivalent to
 `AT`. The brackets `[ ]` of slices may be replaced by `( )` as in the RR.
-A few Unicode characters are accepted: `×` `÷` `≤` `≥` `≠` `¬` `∧` `∨`.
+The marks of the RR (9.4.1) are accepted: `×` `÷` `≤` `≥` `≠` `¬` `↑` (also within compound
+symbols: `÷×` and `%×` are `%*`, `+×` is `+*`, `×:=`, `÷:=`, `÷×:=`…), `↓` (`DOWN`), `⌊` (`LWB`),
+`⌈` (`UPB`), `:≠:` (`:/=:`), `°` (`NIL`), `⏨` (exponent), as well as `∧` (`AND`) and `∨` (`OR`).
 
 ---
 
@@ -145,6 +147,11 @@ All coercions of the RR are implemented, in all five contexts:
 | widening | `INT → REAL → COMPL`, `BITS → []BOOL`, `BYTES → []CHAR` (and lengths) | strong |
 | rowing | `[] INT one = 7`, `[,] INT m = one`, `REF [] INT r = x` | strong |
 | voiding | `x := 1;`, `p;` (call of a `PROC VOID`) | strong |
+
+- **Voiding** (RR 6.7.1): an identifier, call, slice, selection, formula or routine text
+  whose mode is that of a procedure without parameters, or of a name of one, is
+  dereferenced and called (`PROC VOID p := …; p;` calls `p`); an assignation, a cast, a
+  generator… is voided unchanged (`PROC VOID (pp);` only deprocedures `pp` once).
 
 - **Contexts**: soft (destination of an assignment), weak (primary of a slice or of a
   selection), meek (conditions, subscripts, bounds, primary of a call), firm (operands),
@@ -261,8 +268,10 @@ Priorities: 1 combined assignments; 2 `OR`; 3 `AND & XOR`; 4 `= /= EQ NE`;
 - complex: `complex sqrt`, `complex exp`, `complex ln`, `complex sin`, `complex cos`,
   `complex tan`, `complex arcsin`, `complex arccos`, `complex arctan` (and
   `long complex …`);
-- random numbers: `random`, `next random (REF INT)`, `first random (INT)` (deterministic
-  generator; the sequence differs from that of a68g);
+- random numbers (RR 10.2.3.12.k, 10.5.1): `L next random (REF L INT)`, the variables
+  `L last random` (initially `ROUND (L max int / L 2)`) and `L random`, which is
+  `L next random (L last random)`; `first random (INT)` (a68g) sets `last random`
+  (deterministic generator; the sequence differs from that of a68g);
 - conversions: `whole (x, width)`, `fixed (x, width, decimals)`,
   `float (x, width, decimals, exponent)`, `real (x, w, d, e, radix)` (a68g);
   positive width: the sign is always written; negative: the sign only if negative;
@@ -305,7 +314,7 @@ character (`make term`); a character skips line ends.
 
 | Item | Meaning |
 |---|---|
-| `d`, `z` | digit; `z` replaces leading zeros with spaces |
+| `d`, `z` | digit; `z` writes a space for a zero before the first nonzero digit or after a `d` frame (`zd"-"zd"-19"2d` writes 180168 as `18- 1-1968`); on input, a space read by `z` is a zero |
 | `+`, `-` | sign (`-`: space if positive); the sign floats over the zeros of `z` frames |
 | `.`, `e` | decimal point, exponent (`+d.3de+2d`) |
 | `i` | separator of the parts of a complex number |
@@ -313,8 +322,8 @@ character (`make term`); a character skips line ends.
 | `b` | boolean (`T`/`F`); `b("yes","no")` boolean choice |
 | `c("monday","tuesday",…)` | integral choice |
 | `2r8d`, `16r4d` | bits in radix 2, 4, 8, 16 |
-| `g`, `g(w)`, `g(w, d)`, `g(w, d, e)` | general: `print`, `whole`, `fixed`, `float` |
-| `f(format)` | format pattern (computed format) |
+| `g`, `g(w)`, `g(w, d)`, `g(w, d, e)` | general: `print`, `whole`, `fixed`, `float` (with parameters: `L INT` and `L REAL` only) |
+| `f(format)` | format pattern (computed format): `f (u \| (INT): $5d$, (REAL): $d.3d$)` |
 | `s` | suppressed frame (`sd`, `s.`) |
 | `x`, `y`, `l`, `p`, `k`, `q` | space, backspace, new line, new page, position (`20k`), blank |
 | `"text"` | literal insertion |
@@ -332,8 +341,17 @@ up to the next pattern (`printf(($"Hello"l$))` writes the line).
   channels: `stand in channel`, `stand out channel`, `stand back channel` (disk, read,
   write, binary), `stand error channel`.
 - `open (f, name, channel)`, `establish (f, name, channel)`, `create (f, channel)` (yield 0
-  on success), `associate (f, REF STRING)` (file on a string), `close`, `lock`,
-  `scratch` (deletes the file), `reset`.
+  on success), `associate (f, REF STRING)` (file on a string, a68g) or
+  `associate (f, REF [][][] CHAR)` (RR: a book of pages of lines of characters, written in
+  place; full lines and pages raise the events below), `close`, `lock` (closes
+  the file; the book can no longer be opened: `open` then yields 1), `scratch` (deletes
+  the file), `reset`, `reidf`, `chan (f)`, `estab possible (channel)`,
+  `make conv (f, standconv (channel))` (only the standard conversion key exists).
+- `establish (f, name, channel, p, l, c)` (RR form) establishes a book of at most `p` pages
+  of `l` lines of `c` characters. On output, a full line calls the `on line end` routine
+  (default: new line), a full page the `on page end` routine (default: new page), and
+  the end of the last page the `on physical file end` routine (default: runtime error);
+  a number written by `put` is never split between two lines (RR 10.3.3.1).
 - Layout: `newline`, `newpage`, `space`, `backspace`, `set char number (f, n)`.
 - Positions: `char number`, `line number`, `page number`; `set (f, page, line, char)`
   (RR); `seek (f, n)` (a68g).
@@ -341,6 +359,9 @@ up to the next pattern (`printf(($"Hello"l$))` writes the line).
   `on page end`, `on format end`, `on value error`, `on char error (f, PROC (REF FILE,
   REF CHAR) BOOL)`, `on open error`; the routine yields `TRUE` if the event is handled
   (otherwise the default action or a runtime error follows), and may leave with `GOTO`.
+  When a string is read, a page end is passed (unless the routine yields `TRUE`), and a
+  line end ends the string unless the routine has moved to another line. Reading a
+  boolean which is neither `T` nor `F` calls `on char error` with the suggestion `F`.
 - `make term (f, ",;")`, `idf`, `term`, enquiries `put possible`, `get possible`,
   `bin possible`, `set possible`, `reset possible`, `reidf possible`, `compressible`,
   `eof`, `eoln` (a68g).
@@ -453,8 +474,24 @@ print(a(10, INT: 1, INT: -1, INT: -1, INT: 1, INT: 0))
 - The random number generator is not that of a68g (different sequences).
 - `set` follows the RR (`set (f, p, l, c)`); the two-parameter a68g variant is called
   `seek`.
-- Standard output has no maximum line length (as in a68g): the `on line end` event is
-  only raised on input.
+- Standard output and the books opened by `open`, `create` or the three-parameter
+  `establish` have no maximum line length (as in a68g): the `on line end` event is then
+  only raised on input. Use the RR form `establish (f, name, channel, p, l, c)` for a
+  bounded book.
+- Transput layout follows a68g where it differs from the RR text: `put` does not insert a
+  space before a number that is not at the start of a line (RR 10.3.3.1.a does), a complex
+  number is written as its two real parts without `" I"` between them (formatless output)
+  and the `i` frame of a complex pattern writes `i`; a sign frame followed by `z` frames
+  floats across their zeros (`+5zd` writes 42 as `    +42`; the RR writes `+    42`).
+- Formatless input of an integer or a real whose characters are not a number calls
+  `on value error` (as in a68g); the RR calls `on char error`. When reading a complex
+  number, the `I` (or `i`) between the two parts may be omitted.
+- `ABS` of a `BITS` value whose first bit is set yields a negative integer (32-bit
+  `BITS` and `INT`, as in a68g).
+- `real width` is 15 (as in a68g), whereas the formula of RR 10.3.2.1.n applied to
+  `small real` would give 17.
+- `open` on a disk channel succeeds even if the book does not exist yet (the book is then
+  empty and is created by the first output, as in a68g); `establish` creates a new book.
 - a68g extensions not provided: graphics (`draw …`), sound, PostgreSQL, curses,
   system procedures (`system`, `fork`, `execve`…), the GSL library (special functions,
   linear algebra, FFT), C-style format patterns (`%d`), POINT stropping.
@@ -468,7 +505,9 @@ print(a(10, INT: 1, INT: -1, INT: -1, INT: 1, INT: 0))
 ## 14. Tests
 
 `dotnet run --project tests/Algol68Tests` compiles and runs every program of
-`samples/algol68` and compares:
+`samples/algol68` and of `tests/Algol68Tests/conformance` (one program per chapter of the
+Revised Report audit: coercions, rows, unions, procedures, clauses, prelude, transput…)
+and compares:
 
 - the output with the `.out` file (standard input is read from `.in` if it exists);
 - the expected diagnostics with `.err` (one line per error: `line: message fragment`);

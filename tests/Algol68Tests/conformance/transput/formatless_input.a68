@@ -1,0 +1,17 @@
+# RR 10.3.3.2: formatless input (including L COMPL, 10.3.3.2.cc) #
+INT i; REAL r; BOOL b; CHAR c; STRING s; COMPL z; BITS bt; LONG INT li; [3]CHAR c3;
+read((i, r, b, c)); print((i, r, b, c, newline));
+read(s); print(("[", s, "]", newline));
+read(newline);
+read((z)); print((z, newline));
+read((li, newline)); print((li, newline));
+read(c3); print((c3, newline));
+read((newline, i)); print((i, newline));
+read(r); print((r, newline));
+read(r); print((r, newline));
+read(r); print((r, newline));
+read(r); print((r, newline));
+read(b); print((b, newline));
+STRUCT(INT a, REAL q) st; read(st); print((a OF st, q OF st, newline));
+[3]INT arr; read(arr); print((arr, newline));
+read(i); print((i, newline))

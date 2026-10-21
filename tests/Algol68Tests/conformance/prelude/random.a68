@@ -1,0 +1,14 @@
+# RR 10.5.1.a-b: L last random and L random = L next random (L last random) #
+print((last random = ROUND (max int / 2), long last random = ROUND (long max int / LONG 2), newline));
+INT copy := last random;
+REAL r1 = random;
+print((last random /= ROUND (max int / 2), newline));
+print((r1 = next random(copy), copy = last random, newline));
+REAL sum := 0; BOOL inrange := TRUE;
+TO 1000 DO REAL x = random; inrange := inrange AND x >= 0 AND x < 1; sum +:= x OD;
+print((inrange, ABS (sum / 1000 - 0.5) < 0.05, newline));
+last random := 12345; REAL a = random; last random := 12345; REAL b = random; print((a = b, newline));
+first random(99); REAL c = random; first random(99); print((c = random, newline));
+LONG REAL lr = long random; print((lr >= LONG 0 AND lr < LONG 1, newline));
+LONG LONG INT llcopy := long long last random; LONG LONG REAL llr = long long random;
+print((llr = long long next random(llcopy), newline))

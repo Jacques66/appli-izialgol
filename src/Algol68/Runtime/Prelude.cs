@@ -234,6 +234,13 @@ public static partial class Prelude
             X.R.Ids[name] = new IdSym { Name = name, Range = X.R, Mode = pm, Builtin = fn, Declared = true };
     }
 
+    /// <summary>Second form, with another number of parameters, of a standard procedure already declared.</summary>
+    public static void ProcAlt(string name, Mode result, Mode[] ps, BuiltinFn fn)
+    {
+        var pm = X.M.Intern(new ProcMode(ps, result));
+        X.R.Ids[name].Alt = new IdSym { Name = name, Range = X.R, Mode = pm, Builtin = fn, Declared = true };
+    }
+
     static string LongPrefix(int s) => s == 0 ? "" : s == 1 ? "long" : "longlong";
 
     public static void Build(Compiler c, Range r)
@@ -690,8 +697,8 @@ public static partial class Prelude
                 Op1("LENG", Bt2, Bt, (v, at) => Value.Obj(G(v)));
                 Op1("SHORTEN", Bt, Bt2, (v, at) =>
                 {
-                    var b = (BigInteger)v.O!;
-                    if (b > mask) throw RT.Err("SHORTEN: bits not representable in the shorter length", at);
+                    // RR 10.2.3.8.o: the rightmost L bits width bits are kept
+                    var b = (BigInteger)v.O! & mask;
                     return Mk(b);
                 });
             }
@@ -827,21 +834,26 @@ public static partial class Prelude
                 if (s == 0) names += " c" + name;
                 Proc(names, C, new[] { C }, (f, a, at) => ComplexFn(ra, name, a[0], at));
             }
-            // random numbers
+            // random numbers (RR 10.2.3.12.k, 10.5.1.a-b):
+            //   L INT L last random := ROUND (L max int / L 2);
+            //   PROC L random = L REAL: L next random (L last random)
             var LI = M.IntOf(s);
-            Proc(p + "random", R, Array.Empty<Mode>(), (f, a, at) => ra.FromDouble(NextRandom(f.Ctx)));
+            BigInteger initial = s == 0 ? (int.MaxValue / 2 + 1) : (MaxLongInt(s, X.C) + 1) / 2;
+            CtxConst(p + "lastrandom", M.Ref(LI), x => Value.Obj(x.LastRandomName(s, initial)));
             Proc(p + "nextrandom", R, new[] { M.Ref(LI) }, (f, a, at) =>
+                ra.FromDouble(NextRandom(RT.CheckNil(a[0].O as RefV, at), s, f.Ctx, at)));
+            Proc(p + "random", R, Array.Empty<Mode>(), (f, a, at) =>
+                ra.FromDouble(NextRandom(f.Ctx.LastRandomName(s, initial), s, f.Ctx, at)));
+            if (s == 0) Proc("rnd", M.Real, Array.Empty<Mode>(), (f, a, at) =>
+                Value.R(NextRandom(f.Ctx.LastRandomName(0, initial), 0, f.Ctx, at)));
+            // a68g: first random (seed) sets the seed of random
+            if (s == 0) Proc("firstrandom", M.Void, new[] { M.Int }, (f, a, at) =>
             {
-                var r = RT.CheckNil(a[0].O as RefV, at);
-                var cur = RT.CheckInit(r.A![r.I], at);
-                long seed = s == 0 ? cur.N : (long)((BigInteger)cur.O! % int.MaxValue);
-                seed = (long)((seed * 1103515245L + 12345L) & 0x7FFFFFFF);
-                r.A[r.I] = s == 0 ? Value.I(seed) : Value.Obj((BigInteger)seed);
-                return ra.FromDouble(seed / 2147483648.0);
+                var r = f.Ctx.LastRandomName(0, initial);
+                lock (f.Ctx.RandomLock) r.A![r.I] = Value.I(Math.Abs(a[0].N) % int.MaxValue);
+                return default;
             });
         }
-        Proc("firstrandom", M.Void, new[] { M.Int }, (f, a, at) => { lock (f.Ctx.RandomLock) f.Ctx.RandomSeed = a[0].N * 2654435761L + 1; return default; });
-        Proc("rnd", M.Real, Array.Empty<Mode>(), (f, a, at) => Value.R(NextRandom(f.Ctx)));
         // miscellaneous a68g
         Proc("seconds cputime clock", M.Real, Array.Empty<Mode>(), (f, a, at) => Value.R(f.Ctx.Clock.Elapsed.TotalSeconds));
         Proc("sleep", M.Int, new[] { M.Int }, (f, a, at) => { Thread.Sleep((int)Math.Max(0, a[0].N) * 1000); return Value.I(0); });
@@ -860,17 +872,26 @@ public static partial class Prelude
         Proc("tolower", M.Char, new[] { M.Char }, (f, a, at) => Value.I(char.ToLowerInvariant((char)a[0].N)));
     }
 
-    static double NextRandom(ExecContext ctx)
+    /// <summary>
+    /// L next random (RR 10.2.3.12.k): replaces the integer referred to by r with the next element of a
+    /// pseudo-random sequence on [0, max int] and yields the corresponding real in [0, 1).
+    /// The sequence is that of the "minimal standard" generator x := 48271 x MOD (2^31 - 1), the state being
+    /// mixed (xorshift-multiply) before it is mapped to a real, so that consecutive values are not correlated.
+    /// </summary>
+    static double NextRandom(RefV r, int size, ExecContext ctx, Node at)
     {
         lock (ctx.RandomLock)
         {
-            // xorshift64*
-            ulong x = (ulong)ctx.RandomSeed;
-            if (x == 0) x = 88172645463325252UL;
-            x ^= x >> 12; x ^= x << 25; x ^= x >> 27;
-            ctx.RandomSeed = (long)x;
-            ulong r = x * 2685821657736338717UL;
-            return (r >> 11) * (1.0 / (1UL << 53));
+            var cur = RT.CheckInit(r.A![r.I], at);
+            const long m = int.MaxValue; // 2^31 - 1, prime
+            long x = size == 0 ? cur.N : (long)BigInteger.Remainder(BigInteger.Abs((BigInteger)cur.O!), m);
+            x = Math.Abs(x) % m;
+            if (x == 0) x = 1; // 0 is a fixed point of the generator
+            x = x * 48271L % m;
+            r.A[r.I] = size == 0 ? Value.I(x) : Value.Obj((BigInteger)x);
+            ulong z = (ulong)x * 0x9E3779B97F4A7C15UL;
+            z ^= z >> 29; z *= 0xBF58476D1CE4E5B9UL; z ^= z >> 32;
+            return (z >> 11) * (1.0 / (1UL << 53));
         }
     }
 

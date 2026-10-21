@@ -1,0 +1,13 @@
+# RR 10.3.2.1: whole, fixed and float #
+PROC sh = (STRING s) VOID: print(("[", s, "]"));
+sh(whole(0, -4)); sh(whole(99, -4)); sh(whole(-99, -4)); sh(whole(9999, -4)); sh(whole(99999, -4)); print(newline);
+sh(whole(99, 4)); sh(whole(0, 0)); sh(whole(-99, 0)); sh(whole(99999, 0)); sh(whole(9999, 4)); print(newline);
+REAL e = 2.718281828; 
+sh(fixed(e, -6, 3)); sh(fixed(10*e, -6, 3)); sh(fixed(100*e, -6, 3)); sh(fixed(e, 0, 3)); sh(fixed(100*e, 0, 3)); print(newline);
+sh(fixed(0.5, 0, 2)); sh(fixed(0.5, 6, 2)); sh(fixed(-0.5, 0, 2)); sh(fixed(0.999, 0, 2)); sh(fixed(0, 0, 0)); sh(fixed(12.5, 0, 0)); sh(fixed(-3, 5, 1)); print(newline);
+sh(float(-e, 9, 3, 2)); sh(float(e/10, 9, 3, 2)); sh(float(e*1e10, 9, 3, 2)); print(newline);
+sh(float(e, 0, 3, 2)); sh(float(0, 10, 3, 2)); sh(float(123.456, -12, 4, -3)); print(newline);
+sh(whole(2.6, 0)); sh(whole(-2.4, 5)); sh(fixed(7, 0, 1)); sh(float(7, 10, 2, 2)); print(newline);
+sh(whole(LONG 12345678901234567890, 0)); sh(fixed(LONG 1.5, 0, 20)); print(newline);
+sh(fixed(1e300, 10, 2)); sh(fixed(1.0, 3, 2)); sh(fixed(9.999, 4, 2)); print(newline);
+sh(whole(max int, 0)); sh(whole(-max int - 1, 0)); print(newline)

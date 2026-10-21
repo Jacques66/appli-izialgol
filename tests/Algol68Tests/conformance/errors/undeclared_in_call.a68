@@ -1,0 +1,5 @@
+# RR 7.2: every applied identifier must be identified, including the primary of a call, a slice, a selection or an assignment #
+INT x = foo(1);
+bar[2] := 3;
+print(field OF baz);
+qux := 4

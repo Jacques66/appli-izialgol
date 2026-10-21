@@ -344,6 +344,7 @@ public sealed partial class Compiler
     ApplyInfo ClassifyApply(ApplyAst a, bool report)
     {
         var A = Apriori(a.Primary);
+        if (AltProc(a) is IdSym alt) A = alt.Mode;
         if (A == null) { if (report) Error(a.Primary, "the primary of a call or slice has no a priori mode"); return new ApplyInfo(ApplyKind.Error, null, M.Any); }
         if (A == M.Any) return new ApplyInfo(ApplyKind.Error, null, M.Any);
         int trims = a.Args.Count(x => x.IsTrimmer);
@@ -388,6 +389,11 @@ public sealed partial class Compiler
         return new ApplyInfo(ApplyKind.Error, null, M.Any);
     }
 
+    /// <summary>Second form of a standard procedure, chosen by the number of arguments of the call.</summary>
+    IdSym? AltProc(ApplyAst a) =>
+        a.Primary is IdentAst id && LookupId(id.Name) is IdSym { IsPrelude: true, Alt: IdSym alt } &&
+        alt.Mode is ProcMode apm && apm.Params.Length == a.Args.Count ? alt : null;
+
     (Node, Mode?) GenApply(ApplyAst a)
     {
         var info = ClassifyApply(a, true);
@@ -398,6 +404,8 @@ public sealed partial class Compiler
             case ApplyKind.SliceValue:
                 return (GenSlice(a, info), info.Result);
         }
+        // the primary is compiled too, so that its own errors (e.g. an undeclared identifier) are reported
+        Gen(a.Primary, M.Any, Strength.Strong);
         foreach (var x in a.Args) if (x.Unit != null) Gen(x.Unit, M.Any, Strength.Strong);
         return (new ConstNode(default).At<ConstNode>(a), M.Any);
     }
@@ -427,6 +435,8 @@ public sealed partial class Compiler
         BuiltinFn? direct = null;
         if (a.Primary is IdentAst pid && LookupId(pid.Name) is IdSym ps && ps.IsPrelude && ps.Builtin != null && ReferenceEquals(ps.Mode, pm))
             direct = ps.Builtin;
+        else if (AltProc(a) is IdSym alt && ReferenceEquals(alt.Mode, pm))
+            direct = alt.Builtin;
         proc = direct == null ? Gen(a.Primary, pm, Strength.Meek) : null!;
         if (info.Trims > 0)
             return new PartialCallNode(proc ?? new ConstNode(Value.Obj(new ProcV { Builtin = direct, Name = ((IdentAst)a.Primary).Name })), args.ToArray(), pm).At<PartialCallNode>(a);
@@ -523,7 +533,11 @@ public sealed partial class Compiler
     (Node, Mode?) GenSelection(SelectionAst sel)
     {
         var info = ClassifySelection(sel, true);
-        if (info.Kind == SelKind.Error) return (new ConstNode(default).At<ConstNode>(sel), M.Any);
+        if (info.Kind == SelKind.Error)
+        {
+            Gen(sel.Secondary, M.Any, Strength.Strong); // reports the errors of the secondary itself
+            return (new ConstNode(default).At<ConstNode>(sel), M.Any);
+        }
         var sec = Gen(sel.Secondary, info.Target!, Strength.Weak);
         Node n = info.Kind switch
         {
@@ -548,6 +562,7 @@ public sealed partial class Compiler
         if (dt is not RefMode rm)
         {
             if (dt != M.Any) Error(asg.Dest, $"the destination of an assignment must be a name (mode REF ...), not {a}");
+            else Gen(asg.Dest, M.Any, Strength.Strong); // reports the errors of the destination itself
             Gen(asg.Source, M.Any, Strength.Strong);
             return (new ConstNode(default).At<ConstNode>(asg), M.Any);
         }

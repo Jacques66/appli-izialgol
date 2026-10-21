@@ -110,8 +110,21 @@ public sealed class Lexer
         }
     }
 
-    static bool IsOpMonad(char c) => c is '+' or '-' or '!' or '?' or '%' or '^' or '&' or '~';
-    static bool IsOpNomad(char c) => c is '<' or '>' or '/' or '=' or '*';
+    // RR 9.4.2.1.H-I: MONAD and NOMAD symbols, with the RR marks ≠ ≤ ≥ ÷ ¬ ↑ (monads) and × (nomad)
+    static bool IsOpMonad(char c) => c is '+' or '-' or '!' or '?' or '%' or '^' or '&' or '~' or '≠' or '≤' or '≥' or '÷' or '¬' or '↑';
+    static bool IsOpNomad(char c) => c is '<' or '>' or '/' or '=' or '*' or '×';
+    /// <summary>ASCII spelling of an operator symbol written with RR marks (÷× is %*, ×:= is *:=, ≤ is &lt;=...).</summary>
+    static string AsciiOp(string op)
+    {
+        var sb = new StringBuilder();
+        foreach (char c in op)
+            sb.Append(c switch
+            {
+                '×' => "*", '÷' => "%", '≤' => "<=", '≥' => ">=", '≠' => "/=", '¬' => "~", '↑' => "^",
+                _ => c.ToString(),
+            });
+        return sb.ToString();
+    }
 
     void LexFile(SourceFile file, Stropping strop)
     {
@@ -239,14 +252,7 @@ public sealed class Lexer
                 s.Next();
                 int fl = s.Line, fc = s.Col;
                 var sb = new StringBuilder();
-                bool ok = false, inStr = false;
-                while (!s.AtEnd)
-                {
-                    char d = s.Next();
-                    if (d == '"') inStr = !inStr;
-                    if (d == '$' && !inStr) { ok = true; break; }
-                    sb.Append(d);
-                }
+                bool ok = ScanFormatText(s, sb);
                 if (!ok) Error(s.File, line, col, "unterminated format text (missing '$')");
                 var t = Tok(TK.FormatText, sb.ToString());
                 t.FormatLine = fl; t.FormatCol = fc;
@@ -274,6 +280,7 @@ public sealed class Lexer
                     if (s.Peek() == '=' && s.Peek(1) == ':') { s.Next(); s.Next(); Add(Tok(TK.IdtyEq, ":=:")); }
                     else if (s.Peek() == '/' && s.Peek(1) == '=' && s.Peek(2) == ':') { s.Next(); s.Next(); s.Next(); Add(Tok(TK.IdtyNe, ":/=:")); }
                     else if (s.Peek() == '~' && s.Peek(1) == '=' && s.Peek(2) == ':') { s.Next(); s.Next(); s.Next(); Add(Tok(TK.IdtyNe, ":/=:")); }
+                    else if (s.Peek() == '≠' && s.Peek(1) == ':') { s.Next(); s.Next(); Add(Tok(TK.IdtyNe, ":/=:")); } // RR 9.4.1.f
                     else if (s.Peek() == '=') { s.Next(); Add(Tok(TK.Becomes, ":=")); }
                     else Add(Tok(TK.Colon, ":"));
                     continue;
@@ -292,20 +299,50 @@ public sealed class Lexer
                 if (IsOpNomad(s.Peek()) && !(s.Peek() == '=' && s.Peek(1) == ':' ) ) sb.Append(s.Next());
                 if (s.Peek() == ':' && s.Peek(1) == '=' && s.Peek(2) != ':') { s.Next(); s.Next(); sb.Append(":="); }
                 else if (s.Peek() == '=' && s.Peek(1) == ':' && s.Peek(2) != '=') { s.Next(); s.Next(); sb.Append("=:"); }
-                Add(Tok(TK.Op, sb.ToString()));
+                Add(Tok(TK.Op, AsciiOp(sb.ToString())));
                 continue;
             }
-            // common Unicode characters
-            string? uni = c switch { '×' => "*", '÷' => "%", '≤' => "<=", '≥' => ">=", '≠' => "/=", '¬' => "~", '∧' => "&", '∨' => "OR", '↑' => "**", _ => null };
+            // other RR marks: ↓ DOWN, ⌊ LWB (floor), ⌈ UPB (ceiling), ∧ AND, ∨ OR, ° NIL
+            string? uni = c switch { '∧' => "&", '∨' => "OR", '↓' => "DOWN", '⌊' => "LWB", '⌈' => "UPB", '°' => "NIL", _ => null };
             if (uni != null)
             {
                 s.Next();
-                Add(uni == "OR" ? Tok(TK.Bold, "OR") : Tok(TK.Op, uni));
+                Add(uni == "&" ? Tok(TK.Op, uni) : Tok(TK.Bold, uni));
                 continue;
             }
             Error(s.File, line, col, $"unexpected character '{c}'");
             s.Next();
         }
+    }
+
+    /// <summary>
+    /// Reads a format text up to its closing '$' (the opening one has been read). Inside the parentheses of
+    /// a replicator, a format pattern f (...) or a general pattern g (...), a '$' opens a nested format text
+    /// (RR 10.3.4.9.1: f (uir | (INT): $5d$, (REAL): $d.3d$)).
+    /// </summary>
+    static bool ScanFormatText(Src s, StringBuilder sb)
+    {
+        bool inStr = false; int depth = 0;
+        while (!s.AtEnd)
+        {
+            char d = s.Next();
+            if (d == '"') inStr = !inStr;
+            else if (!inStr)
+            {
+                if (d == '(') depth++;
+                else if (d == ')') { if (depth > 0) depth--; }
+                else if (d == '$')
+                {
+                    if (depth == 0) return true;
+                    sb.Append('$');
+                    if (!ScanFormatText(s, sb)) return false;
+                    sb.Append('$');
+                    continue;
+                }
+            }
+            sb.Append(d);
+        }
+        return false;
     }
 
     bool SkipUntilBold(Src s, string word, Stropping strop) => ReadUntilBold(s, word, strop) != null;

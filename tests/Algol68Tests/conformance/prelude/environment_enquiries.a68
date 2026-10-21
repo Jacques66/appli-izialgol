@@ -1,0 +1,9 @@
+# RR 10.2.1: environment enquiries #
+print((int lengths, int shorths, real lengths, real shorths, newline));
+print((bits lengths, bits shorths, bytes lengths, bytes shorths, newline));
+print((max int, newline, long max int, newline, long long max int, newline));
+print((max real, newline, long max real, newline, small real, newline, long small real, newline));
+print((bits width, long bits width, long long bits width, bytes width, long bytes width, newline));
+print((max abs char, ABS null character, flip, flop, errorchar, blank, "|", newline));
+print((pi, newline, long pi, newline, long long pi, newline));
+print((int width, long int width, real width, long real width, exp width, long exp width, newline))

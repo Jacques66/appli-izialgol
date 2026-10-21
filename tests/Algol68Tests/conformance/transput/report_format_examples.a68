@@ -1,0 +1,12 @@
+# RR 10.3.4.1.1 examples: collections, replicators, alignments, choice, sign moulds and z-frame editing (jj) #
+INT lim = 3;
+FORMAT f = $p "table of"x 10a,l n (lim-1) ("x=" 12z+d 2x, +.12de+2d 3q"+j*"3" "si+.10de+2d l) p$;
+FILE o; STRING out; associate(o, out);
+putf(o, (f, "functions:", 1, 1.5 I -2.25, 22, 3.0 I 4.0));
+print((out, "|", newline));
+printf(($120k c("mon", "tues", "wednes", "thurs", "fri", "satur", "sun") "day"l$, 3));
+printf(($zd"-"zd"-19"2d l$, 180168));
+printf(($zdzd2d l$, 180168));
+printf(($4z+ s. "," d l$, 3.5))
+;
+printf(($zd.zz l$, 1.05));printf(($zd.zz l$, 1.5));printf(($zd.zd l$, 1.05));printf(($d.dz l$, 1.0));printf(($3z","3z","3d l$, 1234));printf(($3z","3z","3d l$, 1000234));printf(($zdzd2d l$, 180168));printf(($zdzd2d l$, 10168))

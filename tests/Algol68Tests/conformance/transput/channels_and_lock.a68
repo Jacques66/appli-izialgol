@@ -1,0 +1,15 @@
+# RR 10.3.1.2-10.3.1.4: channels, conversion keys, opening, locking #
+print((estab possible(stand back channel), estab possible(stand in channel), estab possible(stand out channel), newline));
+FILE f;
+print((establish(f, "locked.txt", stand back channel), newline));
+make conv(f, standconv(stand back channel));
+put(f, ("text", newline));
+print((compressible(f), newline));
+lock(f);
+print((open(f, "locked.txt", stand back channel) /= 0, newline));
+FILE g;
+print((open(g, "missing file.txt", stand in channel) /= 0, newline));
+PROC (REF FILE, STRING, CHANNEL) INT est = establish;
+FILE h; print((est(h, "other.txt", stand back channel), newline)); close(h);
+print((establish(h, "rr.txt", stand back channel, 1, 10, 80), newline)); close(h);
+FILE f2; STRING s2; associate(f2, s2); print((estab possible(chan(f2)), reidf possible(f2), newline)); reidf(f2, "x")

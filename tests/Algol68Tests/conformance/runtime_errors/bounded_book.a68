@@ -1,0 +1,22 @@
+# RR 10.3.1.4.c, 10.3.1.6: a book established with bounds (pages, lines, characters); line and page end events on output #
+FILE f;
+print((establish(f, "bounded.txt", stand back channel, 2, 3, 15), newline));
+put(f, ("abcdefghijklmnopq", newline));      # the line is full after 15 characters: newline #
+put(f, (12345, 67890));                   # a number is not split between two lines #
+INT lines := 0;
+on line end(f, (REF FILE g) BOOL: (lines +:= 1; FALSE));
+put(f, "xxxxxxxxxxxxxxxxxxxxxxx");        # page end after 3 lines: newpage #
+close(f);
+BEGIN FILE g; open(g, "bounded.txt", stand back channel);
+STRING s; INT n := 0;
+on logical file end(g, (REF FILE h) BOOL: GOTO done);
+DO get(g, (s, newline)); n +:= 1; print((whole(page number(g), 0), " ", s, newline)) OD;
+done: print((lines, n, newline))
+END;
+# a full book: physical file end #
+FILE p; establish(p, "tiny.txt", stand back channel, 1, 1, 4);
+
+on physical file end(p, (REF FILE h) BOOL: (print(("physical file end", newline)); FALSE));
+put(p, "abcd");
+print((char number(p), newline));
+put(p, "e")

@@ -1,0 +1,25 @@
+# RR 3.4.1 conformity clauses, 5.2.2 identity relations, 7.3 union equivalence #
+MODE U = UNION(INT, REAL, STRING, VOID);
+PROC show = (U u) VOID:
+  CASE u IN (INT i): print(("int ", i)), (REAL r): print(("real ", r)), (STRING s): print(("string ", s)), (VOID): print("void") ESAC;
+show(1); show(2.5); show("st"); show(EMPTY); print(newline);
+U v := 3; v := "xy"; show(v); print(newline);
+UNION(INT, REAL) w = 1; UNION(INT, REAL, CHAR) w2 = w; print(((w2 | (INT i): i | 0), newline));
+# conformity with union target #
+CASE w2 IN (UNION(INT,REAL) x): print("ir") OUT print("other") ESAC; print(newline);
+# OUSE #
+CASE w2 IN (REAL): print("r") OUSE w2 IN (INT): print("i") ESAC; print(newline);
+# conformity in brief #
+print(((w2 | (CHAR c): c | "?"), newline));
+# identity relations #
+INT a := 1, b := 1; REF INT ra = a;
+print((a :=: b, a :=: ra, ra IS a, ra ISNT b, a :/=: b, newline));
+REF INT n = NIL; print((n IS NIL, newline));
+MODE NODE = STRUCT(INT v, REF NODE next);
+REF NODE p := NIL; print((p IS NIL, REF NODE(p) IS NIL, newline));
+# union of rows #
+UNION([]INT, INT) ui = []INT(1,2,3); print(((ui | ([]INT r): UPB r | -1), newline));
+# united modes structurally equal #
+MODE A = UNION(INT, BOOL), B = UNION(BOOL, INT); A aa = TRUE; B bb2 = aa; print(((bb2 | (BOOL q): q | FALSE), newline));
+# union containing union #
+UNION(A, CHAR) ac = 5; print(((ac | (INT i): i | 0), newline))

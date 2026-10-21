@@ -51,11 +51,24 @@ public sealed partial class Transput
         {
             case PrimMode p:
                 if (p.Kind == Prim.Format) throw RT.Err("a FORMAT cannot be printed without a format (use printf/putf)", at);
-                WriteString(f, StandardString(m, v, at), at);
+                {
+                    var s = StandardString(m, v, at);
+                    if (p.Kind is Prim.Int or Prim.Real) FitOnLine(f, s.Length, at);
+                    WriteString(f, s, at);
+                }
                 return;
             case UnionMode:
                 if (v.O is UnionV u) { PutValue(fr, refFile, f, u.M, u.V, at); return; }
                 throw RT.Err("uninitialised united value", at);
+            case StructMode cs when IsCompl(cs) && Bounded(f):
+                {
+                    // RR 10.3.3.1.cc: a complex number is put on one line
+                    var fields = (Value[])v.O!;
+                    string re = StandardString(cs.Fields[0].Mode, fields[0], at), im = StandardString(cs.Fields[1].Mode, fields[1], at);
+                    FitOnLine(f, re.Length + im.Length, at);
+                    WriteString(f, re + im, at);
+                    return;
+                }
             case StructMode sm:
                 {
                     var fields = (Value[])v.O!;
@@ -88,12 +101,17 @@ public sealed partial class Transput
         var items = RowOps.GetRow(row, at).Elements();
         lock (f.Lock)
         {
-            SetWriteMood(f, at);
-            foreach (var it in items)
+            var ev = EnterEvents(f, fr, refFile);
+            try
             {
-                if (it.O is not UnionV u) throw RT.Err("uninitialised output item", at);
-                PutValue(fr, refFile, f, u.M, u.V, at);
+                SetWriteMood(f, at);
+                foreach (var it in items)
+                {
+                    if (it.O is not UnionV u) throw RT.Err("uninitialised output item", at);
+                    PutValue(fr, refFile, f, u.M, u.V, at);
+                }
             }
+            finally { LeaveEvents(f, ev); }
         }
     }
 
@@ -286,9 +304,14 @@ public sealed partial class Transput
                         {
                             int ch = SkipSpacesAndLines(fr, refFile, f, at);
                             if (ch < 0) { EofDuringRead(fr, refFile, f, at); return; }
-                            if (ch == 'T') arr[idx] = Value.B(true);
-                            else if (ch == 'F') arr[idx] = Value.B(false);
-                            else ValueError(fr, refFile, f, m, ch < 0 ? "" : ((char)ch).ToString(), at);
+                            // RR 10.3.3.2.dd: flip or flop is expected, otherwise on char error with the suggestion flop
+                            if (ch != 'T' && ch != 'F')
+                            {
+                                char sugg = SuggestedChar(fr, refFile, f, 'F', ch, at);
+                                if (sugg != 'T' && sugg != 'F') throw RT.Err($"unexpected character in input: '{sugg}' is neither flip nor flop", at);
+                                ch = sugg;
+                            }
+                            arr[idx] = Value.B(ch == 'T');
                             return;
                         }
                     case Prim.Char:
@@ -325,6 +348,17 @@ public sealed partial class Transput
                     CheckEof(fr, refFile, f, at);
                     var s = ScanString(fr, refFile, f, at);
                     arr[idx] = RT.StrValue(s);
+                    return;
+                }
+            case StructMode cs when IsCompl(cs):
+                {
+                    // RR 10.3.3.2.cc: real part, spaces, "I" (or "i"), imaginary part. The separator may
+                    // be omitted (a68g), so that the output of print can be read back.
+                    var fields = arr[idx].O as Value[] ?? throw RT.Err("uninitialised structure in input", at);
+                    ReadInto(fr, refFile, f, cs.Fields[0].Mode, fields, 0, at);
+                    while (PeekChar(f) is ' ' or '\t') ReadChar(f);
+                    if (PeekChar(f) is 'I' or 'i') ReadChar(f);
+                    ReadInto(fr, refFile, f, cs.Fields[1].Mode, fields, 1, at);
                     return;
                 }
             case StructMode sm:
@@ -368,8 +402,16 @@ public sealed partial class Transput
             if (c < 0) { if (sb.Length == 0) { Monitor.Exit(f.Lock); try { LogicalFileEnd(fr, refFile, f, at); } finally { Monitor.Enter(f.Lock); } } break; }
             if (IsNlFf(c))
             {
+                // RR 10.3.3.2.hh, 10.3.1.6.e-f (check pos): at a line end the string ends, unless the event
+                // routine moved to another line; at a page end the reading goes on with the next page,
+                // unless the event routine yields true without moving
                 var p = c == '\n' ? f.OnLineEnd : f.OnPageEnd;
-                if (p != null) { Monitor.Exit(f.Lock); try { CallEvent(fr, p, refFile, at); } finally { Monitor.Enter(f.Lock); } }
+                int line = f.Line, page = f.Page, pos = f.Kind == FileKind.StandIn ? f.InPos : f.Pos;
+                bool mended = false;
+                if (p != null) { Monitor.Exit(f.Lock); try { mended = CallEvent(fr, p, refFile, at); } finally { Monitor.Enter(f.Lock); } }
+                bool moved = f.Line != line || f.Page != page || (f.Kind == FileKind.StandIn ? f.InPos : f.Pos) != pos;
+                if (mended && moved) continue;
+                if (c == '\f' && !mended) { ReadChar(f); continue; }
                 break;
             }
             if (f.Term.Length > 0 && f.Term.IndexOf((char)c) >= 0) break;

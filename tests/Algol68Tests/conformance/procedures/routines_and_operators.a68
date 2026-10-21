@@ -1,0 +1,36 @@
+# RR 5.4 routine texts and calls, 4.4-4.5 operator and priority declarations #
+PROC f = (INT a, REAL b) REAL: a + b;
+print((f(1, 2), newline));
+PROC (INT) INT sq := (INT x) INT: x * x; print((sq(5), newline));
+sq := (INT x) INT: x + 1; print((sq(5), newline));
+PROC rec = (INT n) INT: (n = 0 | 1 | n * rec(n-1)); print((rec(10), newline));
+# procedure yielding procedure #
+PROC adder = (INT k) PROC(INT)INT: (INT x) INT: x + 1; print((adder(3)(4), newline));
+# VOID procedure, no params #
+PROC hi = VOID: print("hi"); hi; print(newline);
+# ref parameters #
+PROC inc = (REF INT x) VOID: x +:= 1; INT c := 1; inc(c); inc(c); print((c, newline));
+# procedure as parameter #
+PROC apply = (PROC(INT)INT g, INT v) INT: g(v); print((apply(sq, 10), apply((INT z) INT: z*3, 10), newline));
+# operator decl #
+OP DOUBLE = (INT a) INT: 2*a; print((DOUBLE 4, newline));
+PRIO PLUS = 6; OP PLUS = (INT a, b) INT: a + b; print((1 PLUS 2 * 3, newline));
+OP + = (STRING a, INT b) STRING: a + whole(b, 0); print(("nn" + 5, newline));
+OP ** = (STRING a, INT b) STRING: a * b; print(("ab" ** 2, newline));
+# priority redefinition in inner range #
+BEGIN PRIO + = 9; print((1 + 2 * 3, newline)) END;
+# operator with mode on REF #
+OP INCR = (REF INT x) REF INT: x +:= 1; INT d := 5; INCR d; print((d, newline));
+# routine text as unit #
+print(((INT x) INT: x * 2)(21));
+print(newline);
+# mutually recursive #
+PROC ev = (INT n) BOOL: (n = 0 | TRUE | od(n-1)), od = (INT n) BOOL: (n = 0 | FALSE | ev(n-1));
+print((ev(10), od(7), newline));
+# PROC variable without initialisation then assign #
+PROC INT pv; pv := INT: 77; print((pv, newline));
+# nested proc using outer var #
+INT cnt := 0; PROC bump = VOID: cnt +:= 1; TO 5 DO bump OD; print((cnt, newline));
+# Jensen-like #
+PROC sum = (REF INT i, INT lo, hi, PROC REAL term) REAL: (REAL s := 0; FOR k FROM lo TO hi DO i := k; s +:= term OD; s);
+INT ii; print((sum(ii, 1, 10, REAL: 1/ii), newline))

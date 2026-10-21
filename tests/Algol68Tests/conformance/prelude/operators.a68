@@ -1,0 +1,42 @@
+# RR 10.2.3.3-10.2.3.7, 10.2.3.10-11: integral, real, complex, string and boolean operators, combined assignations #
+BEGIN
+print((7 % 2, -7 % 2, 7 % -2, -7 % -2, newline));
+print((7 MOD 2, -7 MOD 2, 7 MOD -2, -7 MOD -2, newline));
+print((7 %* 2, -7 %* 2, 7 OVER 2, newline));
+print((2 ** 10, 2 UP 3, 2 ^ 3, newline));
+print((ODD 3, ODD -3, ODD 0, SIGN -5, SIGN 0, ABS -5, newline));
+print((7 / 2, newline));
+print((ROUND 2.5, ROUND -2.5, ROUND 2.4999, ENTIER -2.5, ENTIER 2.5, newline));
+print((2.0 ** 3, 2.0 ** -1, newline))
+END; BEGIN
+LONG INT a = LONG 7, b = LONG 2;
+print((a % b, a MOD b, a %* b, a ** 3, ODD a, SIGN a, ABS -a, a / b, newline));
+print((a < b, a <= b, a = b, a /= b, a >= b, a > b, newline));
+LONG REAL x = LONG 2.5;
+print((ROUND x, ENTIER x, SIGN x, ABS -x, x ** 2, x * x, x / LONG 2.0, newline));
+print((a + x, x + a, a * x, newline));
+LONG LONG INT c = LONG LONG 10;
+print((c ** 20, newline));
+print((SHORTEN a, LENG 3, LENG LENG 3, SHORTEN SHORTEN c, newline));
+print((LENG 2.5, SHORTEN LONG 2.5, newline));
+LONG COMPL z = LONG 1.0 I LONG 2.0;
+print((z, ABS z, ARG z, CONJ z, RE z, IM z, newline));
+print((z * z, z / z, z ** 2, -z, z = z, z /= z, newline));
+print((a I b, x I a, a +* b, newline))
+END; BEGIN
+print(("a" < "b", "ab" < "b", "" < "a", "a" + "b", "ab" * 3, 3 * "ab", "x" * 2, 2 * "x", newline));
+print(("abc" = "abc", "abc" /= "abd", "a" = "a", "abc" >= "abd", "b" > "abc", newline));
+print(("a" < "ab", "ab" < "a", newline));
+STRING s := "x"; s +:= "y"; s +:= "z"; "w" +=: s; "v" +=: s; s *:= 2; print((s, newline));
+print((ABS TRUE, ABS FALSE, ABS "A", REPR 66, newline));
+print((TRUE AND FALSE, TRUE & TRUE, TRUE OR FALSE, NOT TRUE, ~ FALSE, TRUE = TRUE, TRUE /= FALSE, newline));
+INT i := 10; i +:= 2; i -:= 1; i *:= 3; i %:= 2; i %*:= 5; print((i, newline));
+i PLUSAB 4; i MINUSAB 1; i TIMESAB 2; i OVERAB 3; i MODAB 4; print((i, newline));
+REAL r := 1; r +:= 1; r *:= 3; r /:= 4; r -:= 0.5; r DIVAB 2; r +:= 1; print((r, newline));
+COMPL z := 1; z +:= 1; z *:= 1 I 1; z /:= 2; z -:= 1.0; z +:= 2; print((z, newline));
+print((1 = 1.0, 1.0 < 2, 2 < 1.5, newline));
+print((1 I 2 = 1 I 2, 1 = 1 I 0, 1.0 = 1 I 0, 1 I 0 = 1, newline));
+print(((1 I 2) ** -1, newline));
+print((ARG (-1 I 0), ARG (0 I -1), ARG (1 I 1), newline));
+print(("a" + "b" = "ab", newline))
+END

@@ -1,0 +1,17 @@
+# RR 10.3.4.1.1.jj-kk: values written with a pattern are read back with the same pattern #
+PROC int trip = (FORMAT f, INT v) VOID:
+   BEGIN FILE o; STRING buf; associate(o, buf); putf(o, (f, v));
+         FILE i; associate(i, buf); INT w; getf(i, (f, w));
+         print(("[", buf, "] ", (v = w | "ok" | "MISMATCH"), newline))
+   END;
+PROC real trip = (FORMAT f, REAL v) VOID:
+   BEGIN FILE o; STRING buf; associate(o, buf); putf(o, (f, v));
+         FILE i; associate(i, buf); REAL w; getf(i, (f, w));
+         print(("[", buf, "] ", (ABS (v - w) < 1e-9 | "ok" | "MISMATCH"), newline))
+   END;
+int trip($5zd$, 42); int trip($-5zd$, -42); int trip($-5zd$, 42); int trip($+5zd$, 42); int trip($5z+d$, -42);
+int trip($zd"-"zd"-19"2d$, 180168); int trip($zdzd2d$, 10168); int trip($3z$, 0); int trip($+zz$, 0);
+int trip($3z","3z","3d$, 1234567); int trip($sd2d$, 42);
+real trip($zd.zz$, 1.05); real trip($-zd.2d$, -3.25); real trip($+d.3de+2d$, 1234.0); real trip($-d.3de-zd$, 0.0001234);
+real trip($+.3de+2d$, 12.5); real trip($-zzd.d$, -0.5); real trip($d.de-zd$, 1.5e-7);
+printf(($"["+zz"]"l$, 0)); printf(($"["+zz"]"l$, 5)); printf(($"["-zz"]"l$, 0));printf(($"["+zd"]"l$, 0))

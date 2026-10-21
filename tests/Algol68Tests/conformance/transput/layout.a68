@@ -1,0 +1,22 @@
+# RR 10.3.1.6 layout routines on an associated book, positions, reset #
+FILE f; STRING buf;
+associate(f, buf);
+put(f, ("abc", space, "d", backspace, "e", newline, "xy"));
+set char number(f, 5); put(f, "z");
+print((buf, "|", newline));
+print((char number(f), line number(f), page number(f), newline));
+put(f, (newpage, "p2"));
+print((page number(f), line number(f), newline));
+print(("a", space, "b", newline));
+print(("12345", backspace, backspace, "X", newline));
+FILE g; STRING src := "line1" + REPR 10 + "line2" + REPR 10;
+associate(g, src);
+STRING l1, l2; get(g, (l1, newline, l2)); print((l1, "/", l2, newline));
+BOOL ended := FALSE;
+on logical file end(g, (REF FILE h) BOOL: (ended := TRUE; FALSE));
+get(g, newline);
+print((ended, newline));
+FILE h; STRING s3 := "abc";
+associate(h, s3); CHAR c; get(h, (c, c)); print((c, char number(h), newline));
+reset(h); get(h, c); print((c, newline));
+close(h)

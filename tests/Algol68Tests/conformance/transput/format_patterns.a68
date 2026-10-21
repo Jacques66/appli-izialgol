@@ -1,0 +1,11 @@
+# RR 10.3.4.9: format patterns f (...) whose enclosed clause contains format texts #
+printf(($"a"f($"b"d"c"$)"e"l$, 5));
+printf(($2(f($d$)",")l$, 1, 2));
+UNION(INT, REAL) uir := 42;
+TO 2 DO
+   printf(($"["f(uir | (INT): $5d$, (REAL): $d.3d$)"]"l$, uir));
+   uir := 3.14159
+OD;
+FORMAT inner = $"<"g(0)">"$;
+printf(($f(inner), x, f(($"("d")"$))l$, 7, 8));
+printf(($n((INT k = 3; k))d l$, 123))

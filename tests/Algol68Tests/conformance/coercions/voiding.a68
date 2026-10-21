@@ -1,0 +1,10 @@
+# RR 6.7.1: voiding; a MORF yielding a procedure without parameters (or a name of one) is called, a COMORF is not #
+PROC VOID pv := VOID: print("one"); pv; pv := VOID: print("two"); pv; print(newline);
+PROC INT pi := INT: (print("int"); 3); pi; print(newline);
+PROC PROC VOID pp = PROC VOID: (print("outer"); VOID: print("inner")); PROC VOID (pp); print(newline); pp; print(newline);
+pv := VOID: print("assigned"); print(("not called", newline));
+REF REF PROC VOID rr = LOC REF PROC VOID := LOC PROC VOID := VOID: print("deep"); rr; print(newline);
+[2] PROC VOID ps := (VOID: print("a"), VOID: print("b")); ps[2]; print(newline);
+STRUCT(PROC VOID go, INT n) s := (VOID: print("field"), 0); go OF s; print(newline);
+VOID: print(("routine text", newline));
+INT x := 1; x; x + 1; print(("done", newline))

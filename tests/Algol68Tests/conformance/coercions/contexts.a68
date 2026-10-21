@@ -1,0 +1,26 @@
+# RR 6.1: soft, weak, meek, firm and strong contexts (operands, conditions, bounds, destinations, identity relations) #
+OP U = (UNION(INT, REAL) x) INT: (x | (INT i): i, (REAL r): ROUND r);
+print((U 1, U 2.6, newline));
+PROC INT p = INT: 41; print((p + 1, newline));
+INT x := 0; PROC REF INT pr = REF INT: x; pr := 5; print((x, newline));
+PROC BOOL t = BOOL: TRUE; IF t THEN print(("meek", newline)) FI;
+INT n := 3; FOR i TO n DO print(i) OD; print(newline);
+REF INT rn = n; [rn] INT arr; print((UPB arr, newline));
+# firm: deref and deproc of operand #
+REF REF INT rrx = LOC REF INT := x; print((rrx + 1, newline));
+# strong: widening int to compl in display #
+[]COMPL zs = (1, 2.5, 3 I 4); print((zs, newline));
+# rowing in display: [,]INT from rows #
+[,]INT m = ((1, 2), (3, 4)); print((m[2, 1], newline));
+# uniting in parameter #
+PROC show = (UNION(STRING, INT) v) VOID: print((v | (INT i): i, (STRING s): s)); show(3); show("abc"); print(newline);
+# voiding of a name in a serial clause #
+x; n;
+# identity relation with deproceduring #
+PROC REF INT gx = REF INT: x; print((gx :=: x, gx IS rn, newline));
+# cast to VOID #
+VOID(p);
+# hipping: SKIP, NIL, GOTO in various modes #
+INT s = SKIP; REF INT nl = NIL;
+INT j := (TRUE | 1 | GOTO end; 2); print((j, newline));
+end: SKIP

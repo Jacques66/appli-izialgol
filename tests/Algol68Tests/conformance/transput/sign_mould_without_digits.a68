@@ -1,0 +1,5 @@
+# RR 10.3.4.3.1: a real pattern whose sign mould has no digit frame before the point (+.3de+2d) #
+printf(($"["+.3de+2d"]"l$, 12.5));
+printf(($"["-.2d"]"l$, -0.25));
+printf(($"["-.2d"]"l$, 0.25));
+printf(($"["+.2d"]"l$, 0.5))

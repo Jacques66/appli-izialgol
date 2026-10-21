@@ -44,10 +44,20 @@ public static partial class Prelude
         // files
         Proc("open", I, new[] { RF, S, Ch }, (f, a, at) => Value.I(T(f).Open(f, a[0], Str(a[1], at), a[2], at)));
         Proc("establish", I, new[] { RF, S, Ch }, (f, a, at) => Value.I(T(f).Establish(f, a[0], Str(a[1], at), a[2], at)));
+        // RR 10.3.1.4.c: establish (f, idf, chan, p, l, c) bounds the book (pages, lines, characters)
+        ProcAlt("establish", I, new[] { RF, S, Ch, I, I, I }, (f, a, at) => Value.I(T(f).Establish(f, a[0], Str(a[1], at), a[2], at, a[3].N, a[4].N, a[5].N)));
         Proc("create", I, new[] { RF, Ch }, (f, a, at) => Value.I(T(f).Create(f, a[0], a[1], at)));
-        Proc("associate", V, new[] { RF, M.RefString }, (f, a, at) => { T(f).Associate(a[0], a[1], at); return default; });
+        // associate: REF STRING (a68g) or REF [][][] CHAR (RR 10.3.1.4.e: pages of lines of characters)
+        var refRow3 = M.Ref(M.Row(1, M.Row(1, M.Row(1, M.Char))));
+        Proc("associate", V, new[] { RF, M.Union(new[] { M.RefString, refRow3 }) }, (f, a, at) =>
+        {
+            var u = a[1].O as UnionV ?? throw RT.Err("associate: uninitialised name", at);
+            if (ReferenceEquals(u.M, refRow3)) T(f).Associate3(a[0], u.V.O as RefV ?? throw RT.Err("associate: NIL row", at), at);
+            else T(f).Associate(a[0], u.V, at);
+            return default;
+        });
         Proc("close", PRF.ResultVoidParams(), new[] { RF }, (f, a, at) => { T(f).Close(a[0], at); return default; });
-        Proc("lock", V, new[] { RF }, (f, a, at) => { T(f).Close(a[0], at); return default; });
+        Proc("lock", V, new[] { RF }, (f, a, at) => { T(f).Lock(a[0], at); return default; });
         Proc("scratch erase", V, new[] { RF }, (f, a, at) => { T(f).Close(a[0], at, true); return default; });
         Proc("newline", V, new[] { RF }, (f, a, at) => { T(f).Newline(f, a[0], at); return default; });
         Proc("newpage", V, new[] { RF }, (f, a, at) => { T(f).Newpage(f, a[0], at); return default; });
@@ -94,13 +104,44 @@ public static partial class Prelude
             ("setpossible", fl => fl.Opened && (fl.Channel.Set || fl.Kind is FileKind.Disk or FileKind.Assoc)),
             ("resetpossible rewindpossible", fl => fl.Opened && (fl.Channel.Reset || fl.Kind is FileKind.Disk or FileKind.Assoc)),
             ("reidfpossible", fl => fl.Opened && fl.Channel.Reidf),
-            ("compressible", fl => false),
+            ("compressible", fl => fl.Opened), // lines and pages of varying lengths (text files)
             ("drawpossible", fl => false),
         })
         {
             var pr = pred;
             Proc(name, B, new[] { RF }, (f, a, at) => Value.B(pr(Transput.GetFile(a[0], at))));
         }
+        // RR 10.3.1.3.i: the channel of a file
+        Proc("chan", Ch, new[] { RF }, (f, a, at) =>
+        {
+            var fl = Transput.GetFile(a[0], at);
+            if (!fl.Opened) throw RT.Err("chan: file not open", at);
+            return Value.Obj(fl.Channel);
+        });
+        // RR 10.3.1.3.s: new identification of the book (when the channel allows it)
+        Proc("reidf", V, new[] { RF, S }, (f, a, at) =>
+        {
+            var fl = Transput.GetFile(a[0], at);
+            if (fl.Opened && fl.Channel.Reidf) T(f).Reidf(fl, Str(a[1], at), at);
+            return default;
+        });
+        // RR 10.3.1.2.c-d, 10.3.1.3.j: channel enquiry and conversion keys (only the standard key exists)
+        Proc("estabpossible", B, new[] { Ch }, (f, a, at) => Value.B((a[0].O as ChannelV ?? throw RT.Err("uninitialised channel", at)).Kind is 2 or 4));
+        var BOOK = M.Struct((M.Int, "#book")); BOOK.Name = "BOOK";
+        var CONV = M.Struct((M.Int, "#conv")); CONV.Name = "CONV";
+        var convProc = M.Proc(CONV, M.Ref(BOOK));
+        Proc("standconv", convProc, new[] { Ch }, (f, a, at) =>
+        {
+            _ = a[0].O as ChannelV ?? throw RT.Err("uninitialised channel", at);
+            return Value.Obj(new ProcV { Name = "standconv", Builtin = (f2, a2, at2) => Value.Obj(new[] { Value.I(0) }) });
+        });
+        Proc("makeconv", V, new[] { RF, convProc }, (f, a, at) =>
+        {
+            var fl = Transput.GetFile(a[0], at);
+            if (!fl.Opened) throw RT.Err("make conv: file not open", at);
+            if (a[1].O is not ProcV) throw RT.Err("make conv: uninitialised conversion routine", at);
+            return default;
+        });
         Proc("eof endoffile", B, new[] { RF }, (f, a, at) => { var fl = Transput.GetFile(a[0], at); lock (fl.Lock) return Value.B(T(f).AtEof(fl)); });
         Proc("eoln endofline", B, new[] { RF }, (f, a, at) => { var fl = Transput.GetFile(a[0], at); lock (fl.Lock) { int ch = T(f).PeekChar(fl); return Value.B(ch < 0 || ch == '\n'); } });
 

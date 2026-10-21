@@ -1,0 +1,14 @@
+# RR 10.3.5.2: formatted input #
+INT i; REAL r; COMPL z; BITS b; BOOL t; STRING s; CHAR c; [3]CHAR c3;
+readf(($5zd l$, i)); print((i, newline));
+readf(($+3zd l$, i)); print((i, newline));
+readf(($-d.2de+2d l$, r)); print((r, newline));
+readf(($+.3d l$, r)); print((r, newline));
+readf(($d.1di d.1d l$, z)); print((z, newline));
+readf(($2r8d l$, b)); print((ABS b, newline));
+readf(($b l$, t)); print((t, newline));
+readf(($5a l$, s)); print((s, newline));
+readf(($a, 3a l$, c, c3)); print((c, c3, newline));
+readf(($g l$, s)); print((s, newline));
+readf(($g, g l$, i, r)); print((i, r, newline));
+readf(($zd"h"2d l$, i)); print((i, newline))

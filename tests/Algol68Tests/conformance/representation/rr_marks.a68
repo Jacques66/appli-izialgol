@@ -1,0 +1,9 @@
+# RR 9.4.1-9.4.2: representations with the RR marks (× ÷ ≤ ≥ ≠ ¬ ↑ ↓ ⌊ ⌈ ∧ ∨ ° ⏨) and their compounds (÷× ÷* %× +× ×:= ÷:= ÷×:=) #
+print((2 ↑ 3, 7 ÷× 3, 7 ÷* 3, 7 %× 3, 3 × 4 ÷ 2, newline));
+print((ABS (2r1 ↑ 3), ABS (2r1000 ↓ 2), newline));
+print((1 +× 2, newline));
+INT i := 7; i ×:= 2; i ÷:= 3; print(i); i ÷×:= 3; print(i); i := 10; i %×:= 4; print(i); i := 10; i ÷*:= 3; print((i, newline));
+print((3 ≤ 4, 3 ≥ 4, 3 ≠ 4, ¬ TRUE, TRUE ∧ FALSE, TRUE ∨ FALSE, newline));
+[2:5] INT a; print((⌊ a, ⌈ a, 1 ⌈ a, newline));
+REF INT r = °; INT x := 0; REF INT rx = x; print((r :≠: rx, rx :=: x, newline));
+print((1.5⏨3, newline))

@@ -1,0 +1,11 @@
+# RR 3.3 parallel clauses, 10.2.4 semaphores #
+SEMA s = LEVEL 1; INT total := 0;
+PAR (FOR i TO 1000 DO DOWN s; total +:= 1; UP s OD, FOR i TO 1000 DO DOWN s; total +:= 1; UP s OD);
+print((total, LEVEL s, newline));
+SEMA t = LEVEL 0;
+PAR BEGIN (DOWN t; print("second")), (print("first"); UP t) END; print(newline);
+SEMA u; u := LEVEL 2; print((LEVEL u, newline));
+# collateral declarations #
+INT a = 1, b = 2; print((a + b, newline));
+# PAR yielding nothing ; nested par #
+PAR (PAR (SKIP, SKIP), SKIP); print(("ok", newline))

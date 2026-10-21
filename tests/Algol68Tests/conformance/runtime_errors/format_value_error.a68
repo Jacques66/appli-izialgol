@@ -1,0 +1,3 @@
+# RR 10.3.4.2.1.bb: a value that cannot be converted with an integral pattern calls on value error, then undefined #
+printf(($"["4d"]"l$, 1234));
+printf(($"["4d"]"l$, 123456))

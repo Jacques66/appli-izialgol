@@ -1,0 +1,31 @@
+# RR 6: coercions (widening, rowing, uniting, deproceduring, dereferencing, voiding) and balancing #
+# widening chain #
+REAL r = 1; COMPL c = 2; LONG REAL lr = LONG 3; LONG COMPL lc = LONG 4;
+print((r, c, lr, lc, newline));
+[]BOOL bb = 2r101; print((UPB bb, bb[32], bb[31], newline));
+[]CHAR cc = bytes pack("ab"); print((UPB cc, cc[1], cc[2], newline));
+# rowing #
+[]INT one = 7; print((UPB one, one[1], newline));
+[,]INT m = one; print((1 UPB m, 2 UPB m, m[1,1], newline));
+[]INT row2 = (1,2,3); [,]INT m2 = row2; print((1 UPB m2, 2 UPB m2, newline));
+INT x := 5; REF []INT rr = x; rr[1] := 9; print((x, newline));
+STRING s = "a"; print((UPB s, newline));
+[]STRING ss = "abc"; print((UPB ss, ss[1], newline));
+# uniting #
+UNION(INT, STRING) u = "hello"; print(((u | (STRING t): t | "?"), newline));
+[]UNION(INT,REAL) ur = (1, 2.0, 3); FOR i TO UPB ur DO print((ur[i] | (INT k): k, (REAL q): q)) OD; print(newline);
+# deproceduring #
+PROC p = INT: 42; INT k = p; print((k, newline));
+PROC PROC INT pp = PROC INT: p; INT k2 = pp; print((k2, newline));
+# dereferencing several levels #
+INT v := 3; REF INT rv := v; REF REF INT rrv = rv; INT w = rrv; print((w, newline));
+# voiding #
+PROC q = INT: (print("called"); 1); q; print(newline);
+# soft #
+REF INT ri = LOC INT; ri := 4; print((ri, newline));
+# balancing #
+print(((TRUE | 1 | 2.5) * 2, newline));
+print((ABS (FALSE | 1 | 2.5), newline));
+REAL bal = (TRUE | 1 | 2.0); print((bal, newline));
+# united balancing case #
+print(((2 | 1, 2.5, 3), newline))

@@ -1,0 +1,12 @@
+# RR 10.3.2.3: straightening of rows, rows of rows, structures and unions in put and get #
+MODE R = STRUCT(INT a, STRING s, [2]BOOL b);
+[2]R rs := ((1, "x", (TRUE, FALSE)), (2, "yz", (FALSE, TRUE)));
+print((rs, newline));
+[]UNION(INT, STRING, CHAR) us = (1, "two", "3"); print((us, newline));
+[2,2]CHAR cm = ("ab", "cd"); print((cm, newline));
+[2][2]INT rr = ((1, 2), (3, 4)); print((rr, newline));
+STRUCT(COMPL z, BITS b) zb = (1 I 2, 2r1); print((zb, newline));
+FILE f; STRING buf := "5 6 7 8 T x"; associate(f, buf);
+[2,2]INT gm; BOOL tb; CHAR ch; get(f, (gm, tb, ch)); print((gm, tb, ch, newline));
+FILE g; STRING buf2 := "1 hello"; associate(g, buf2);
+STRUCT(INT n, STRING w) nw; get(g, nw); print((n OF nw, "/", w OF nw, newline))

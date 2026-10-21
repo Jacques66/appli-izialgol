@@ -124,18 +124,25 @@ public sealed partial class Transput
         }
     }
 
-    void CharError(Frame fr, Value refFile, FileV f, char expected, int got, Node at)
+    void CharError(Frame fr, Value refFile, FileV f, char expected, int got, Node at) =>
+        SuggestedChar(fr, refFile, f, expected, got, at, "formatted input");
+
+    /// <summary>
+    /// Calls the on char error routine with the suggestion (RR 10.3.1.3.cc, 10.3.4.1.1.ll) and yields the
+    /// suggestion, as possibly replaced by the routine; raises a runtime error if the routine yields false.
+    /// </summary>
+    char SuggestedChar(Frame fr, Value refFile, FileV f, char suggestion, int got, Node at, string what = "input")
     {
         if (f.OnCharError != null)
         {
-            var cell = RefV.NewCell(Value.I(expected), 0);
+            var cell = RefV.NewCell(Value.I(suggestion), 0);
             Monitor.Exit(f.Lock);
             Value res;
             try { res = Calls.Invoke(f.OnCharError, new[] { refFile, Value.Obj(cell) }, fr, at, fr.Depth + 1000); }
             finally { Monitor.Enter(f.Lock); }
-            if (res.N != 0) return;
+            if (res.N != 0) return (char)cell.A![0].N;
         }
-        throw RT.Err($"unexpected character in formatted input: '{(got < 0 ? "end of file" : ((char)got).ToString())}' instead of '{expected}'", at);
+        throw RT.Err($"unexpected character in {what}: '{(got < 0 ? "end of file" : ((char)got).ToString())}' instead of '{suggestion}'", at);
     }
 
     // ------------------------------------------------------------------ walking through the format
@@ -251,18 +258,23 @@ public sealed partial class Transput
         var items = RowOps.GetRow(row, at).Elements();
         lock (f.Lock)
         {
-            SetWriteMood(f, at);
-            foreach (var it in items)
+            var ev = EnterEvents(f, fr, refFile);
+            try
             {
-                if (it.O is not UnionV u) throw RT.Err("uninitialised output item", at);
-                if (u.M == null || u.M is PrimMode { Kind: Prim.Format })
+                SetWriteMood(f, at);
+                foreach (var it in items)
                 {
-                    AssociateFormat(fr, refFile, f, (FormatV)u.V.O!, false, at);
-                    continue;
+                    if (it.O is not UnionV u) throw RT.Err("uninitialised output item", at);
+                    if (u.M == null || u.M is PrimMode { Kind: Prim.Format })
+                    {
+                        AssociateFormat(fr, refFile, f, (FormatV)u.V.O!, false, at);
+                        continue;
+                    }
+                    PutFormatted(fr, refFile, f, u.M, u.V, at);
                 }
-                PutFormatted(fr, refFile, f, u.M, u.V, at);
+                PurgeFormat(fr, refFile, f, false, at);
             }
-            PurgeFormat(fr, refFile, f, false, at);
+            finally { LeaveEvents(f, ev); }
         }
     }
 
@@ -314,7 +326,7 @@ public sealed partial class Transput
         PutPicture(fr, refFile, f, pic, fv, m, v, at);
     }
 
-    static bool IsCompl(StructMode sm) => sm.Fields.Length == 2 && sm.Fields[0].Name == "re" && sm.Fields[1].Name == "im" && sm.Fields[0].Mode is PrimMode { Kind: Prim.Real };
+    internal static bool IsCompl(StructMode sm) => sm.Fields.Length == 2 && sm.Fields[0].Name == "re" && sm.Fields[1].Name == "im" && sm.Fields[0].Mode is PrimMode { Kind: Prim.Real };
 
     void PutPicture(Frame fr, Value refFile, FileV f, CPicture pic, FormatV fv, Mode m, Value v, Node at)
     {
@@ -327,7 +339,9 @@ public sealed partial class Transput
             case PatternKind.GeneralH:
                 {
                     DoInsertion(fr, refFile, f, pat.Lead, env, false, at);
-                    if (pat.GParams.Length == 0 || !IsNumber(m))
+                    // RR 10.3.4.10.1.aa: a parametrized general pattern only accepts L INT and L REAL values
+                    if (pat.GParams.Length > 0 && !IsNumber(m)) { ok = false; break; }
+                    if (pat.GParams.Length == 0)
                     {
                         if (m is StructMode sm && IsCompl(sm))
                         {
@@ -515,8 +529,10 @@ public sealed partial class Transput
                 }
                 else if (fm.Marker == 'd')
                 {
+                    // RR 10.3.4.1.1.jj: zeros of z frames are also blanked between a d frame and the next
+                    // nonzero digit (zd"-"zd"-19"2d edits 180168 as "18- 1-1968")
                     WriteString(f, ch.ToString(), at); qi++;
-                    mood.DigitBlank = false; mood.InsertionBlank = false;
+                    mood.DigitBlank = true; mood.InsertionBlank = false;
                 }
             }
         }
@@ -562,6 +578,8 @@ public sealed partial class Transput
         var mood = new Mood { DigitBlank = true };
         int qi = 0;
         WriteMould(fr, refFile, f, list, q, ref qi, ref mood, env, at);
+        // the sign moved across all the zeros ("+zz" with 0): it is written last, so that no position is lost
+        if (sign != null && qi < q.Length && q[qi] is '+' or '-' or ' ') WriteString(f, q[qi].ToString(), at);
         return true;
     }
 
@@ -632,13 +650,15 @@ public sealed partial class Transput
         var mood = new Mood { DigitBlank = true };
         int qi = 0;
         WriteMould(fr, refFile, f, stag, q, ref qi, ref mood, env, at);
+        // a sign mould without digit frames before the point ("+.3d"): the sign is still written
+        if (sign != null && qi < q.Length && q[qi] is '+' or '-' or ' ') { WriteString(f, q[qi].ToString(), at); qi++; }
         if (pPos >= 0)
         {
             var pf = mant[pPos];
             DoInsertion(fr, refFile, f, pf.Ins, env, false, at);
             if (!pf.Supp) WriteString(f, ".", at);
             var fq = new StringBuilder(fracStr);
-            var fm = new Mood { DigitBlank = false };
+            var fm = new Mood { DigitBlank = true }; // each integral mould blanks its leading zeros (RR 10.3.4.1.1.jj)
             int fi = 0;
             WriteMould(fr, refFile, f, frac, fq, ref fi, ref fm, env, at);
         }
@@ -803,17 +823,38 @@ public sealed partial class Transput
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Text of a number read under the control of a sign mould and an integral mould (RR 10.3.4.1.1.kk):
+    /// spaces before the sign or the first digit are skipped (a space may stand for the sign "+"), the other
+    /// spaces, read by z frames, stand for zeros ("18 168" read with zdzd2d is 180168).
+    /// </summary>
+    static string InditedNumber(string s)
+    {
+        var t = s.TrimStart(' ');
+        if (t.Length == 0) return "0";
+        if (t is "+" or "-") return t + "0";
+        return t.Replace(' ', '0');
+    }
+
+    static string InditedReal(string s)
+    {
+        s = s.Replace('E', 'e').Replace('\\', 'e');
+        int e = s.IndexOf('e');
+        if (e < 0) return InditedNumber(s);
+        return InditedNumber(s[..e]) + "e" + InditedNumber(s[(e + 1)..]);
+    }
+
     bool ConvertIndited(CPattern pat, Mode m, string s, Value[] arr, int idx, Node at)
     {
         switch (pat.Kind)
         {
             case PatternKind.Integral:
                 if (m is not PrimMode { Kind: Prim.Int } ip) return false;
-                if (!ParseIntText(s.Replace(" ", ""), ip.Size, out var iv)) return false;
+                if (!ParseIntText(InditedNumber(s), ip.Size, out var iv)) return false;
                 arr[idx] = iv; return true;
             case PatternKind.Real:
                 if (m is not PrimMode { Kind: Prim.Real } rp) return false;
-                if (!ParseRealText(s.Replace(" ", "").Replace('E', 'e'), rp.Size, out var rv)) return false;
+                if (!ParseRealText(InditedReal(s), rp.Size, out var rv)) return false;
                 arr[idx] = rv; return true;
             case PatternKind.Complex:
                 {
@@ -821,7 +862,7 @@ public sealed partial class Transput
                     int i = s.IndexOfAny(new[] { 'i', 'I' });
                     if (i < 0) return false;
                     var rmode = (PrimMode)sm.Fields[0].Mode;
-                    if (!ParseRealText(s[..i].Replace(" ", ""), rmode.Size, out var re) || !ParseRealText(s[(i + 1)..].Replace(" ", ""), rmode.Size, out var im)) return false;
+                    if (!ParseRealText(InditedReal(s[..i]), rmode.Size, out var re) || !ParseRealText(InditedReal(s[(i + 1)..]), rmode.Size, out var im)) return false;
                     arr[idx] = Value.Obj(new[] { re, im });
                     return true;
                 }

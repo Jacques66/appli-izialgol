@@ -1,0 +1,7 @@
+# RR 10.3.4.10.1.aa: general patterns g, g(w), g(w, d), g(w, d, e); with parameters only L INT and L REAL are accepted #
+printf(($"["g(6)"]"l$, 3.7));
+printf(($"["g(8,2)"]"l$, 3));
+printf(($"["g(10,2,1)"]"l$, 42));
+printf(($"["g(-4)"]"l$, LONG 42));
+printf(($"["g"]"l$, TRUE));
+printf(($"["g(5)"]"l$, "abc"))
