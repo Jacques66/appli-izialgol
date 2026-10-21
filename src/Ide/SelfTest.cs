@@ -432,6 +432,9 @@ public static class SelfTest
             w.StopExecution();
             await WaitFor(() => w.State == IdeState.Idle, "stopped after pause");
 
+            // ---- 8b. ANSI escape sequences: in-place redraw in the integrated console
+            await AnsiConsoleScenario(w, dir);
+
             // ---- 9. Standalone exe
             w.Activate(doc);
             await Task.Delay(50);
@@ -560,6 +563,7 @@ public static class SelfTest
             await RealCompilerScenario(w, LanguageDefinitions.Algol60, RealAlgol60, "Sum:", 5, "n");
             await RealCompilerScenario(w, LanguageDefinitions.SimulaI, RealSimulaI, "Sum:", 5, "n");
             await RealCompilerScenario(w, LanguageDefinitions.Pascal, RealPascal, "Sum:", 5, "n");
+            await RealAnsiScenario(w);
 
             // ---- 12b. Samples (information)
             foreach (var sample in MainWindow.ListSamples().Take(300))
@@ -745,6 +749,67 @@ public static class SelfTest
             Real(output.Contains(expected) && p.ExitCode == 0, $"{lang.DisplayName}: standalone exe, output \"{Flat(output)}\"");
         }
         else Real(false, $"{lang.DisplayName}: exe generation");
+        w.CloseDocument(doc, force: true);
+    }
+
+    const string Esc = "\u001b";
+
+    /// <summary>Program output with escape sequences: clear, home, colours, erase; the screen is redrawn in place.</summary>
+    static async Task AnsiConsoleScenario(MainWindow w, string dir)
+    {
+        var console = w.ConsoleView;
+        bool clearOnRun = console.ClearOnRun;
+        w.ShowBottomPanel("console");
+        console.Clear();
+        console.Terminal.Reset();
+        console.AppendLine("[ANSI escape sequences]", ConsoleTextKind.Info);
+        for (int i = 1; i <= 20; i++)
+        {
+            console.Append(Esc + "[?25l" + Esc + "[2J" + Esc + "[H" + $"Counter: {i,2}\n" +
+                Esc + "[32m" + new string('#', i) + Esc + "[0m" + Esc + "[K\n" +
+                Esc + "[1;31mbright red" + Esc + "[m" + Esc + "[3;20Hcolumn 20\n");
+            await Task.Delay(20);
+        }
+        console.Append(Esc + "[H" + Esc + "[2B" + "THIRD!" + Esc + "[?25h");
+        var expected = "[ANSI escape sequences]\nCounter: 20\n" + new string('#', 20) + "\nTHIRD! red         column 20\n";
+        Check(console.Text == expected, "ANSI: screen redrawn in place (" + Flat(console.Text) + ")");
+        Check(console.Terminal.CursorVisible, "ANSI: cursor shown again");
+        console.AppendLine("[end of the ANSI test]", ConsoleTextKind.Info);
+        Check(console.Text.EndsWith("column 20\n[end of the ANSI test]\n"), "ANSI: message appended at the end after a cursor move");
+        await Task.Delay(200);
+        Capture(w, Path.Combine(dir, "2b-console-ansi.png"));
+        console.ClearOnRun = clearOnRun;
+    }
+
+    const string RealSimulaAnsi =
+        "begin\r\n" +
+        "   integer i;\r\n" +
+        "   outchar(char(27)); outtext(\"[2J\");\r\n" +
+        "   for i := 1 step 1 until 20 do\r\n" +
+        "   begin\r\n" +
+        "      outchar(char(27)); outtext(\"[H\");\r\n" +
+        "      outtext(\"Counter:\"); outint(i, 4); outimage;\r\n" +
+        "      outtext(\"Line two\"); outimage\r\n" +
+        "   end\r\n" +
+        "end\r\n";
+
+    /// <summary>Real Simula 67 program that redraws a counter in place 20 times.</summary>
+    static async Task RealAnsiScenario(MainWindow w)
+    {
+        var doc = w.NewDocument(LanguageDefinitions.Simula, RealSimulaAnsi);
+        var path = Path.Combine(OutDir, "ansi.sim");
+        w.SaveDocumentAs(doc, path);
+        w.ConsoleView.Clear();
+        await w.RunAsync(false);
+        if (await RealWait(() => w.State == IdeState.Idle, "Simula 67 ANSI: end of run"))
+        {
+            var text = w.ConsoleView.Text;
+            int lineTwo = text.Split("Line two").Length - 1;
+            Real(w.LastResult is { Error: null, ExitCode: 0 } && text.Contains("Counter:  20\nLine two\n") && !text.Contains("Counter:   1") && lineTwo == 1,
+                $"Simula 67 ANSI: counter redrawn in place (\"{Flat(text)}\")");
+            Capture(w, Path.Combine(OutDir, "2c-console-ansi-simula.png"));
+        }
+        else { w.StopExecution(); await RealWait(() => w.State == IdeState.Idle, "stop"); }
         w.CloseDocument(doc, force: true);
     }
 

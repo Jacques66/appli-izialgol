@@ -1,5 +1,6 @@
 // Running a compiled program: large-stack thread, Windows console, error formatting.
 
+using System.Runtime.InteropServices;
 using System.Text;
 using Studio.Common;
 
@@ -67,6 +68,38 @@ public static class ProgramHost
         return result.ExitCode;
     }
 
+    const int StdOutputHandle = -11;
+    const uint EnableVirtualTerminalProcessing = 0x0004;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern IntPtr GetStdHandle(int nStdHandle);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    /// <summary>
+    /// Enables the interpretation of ANSI/VT escape sequences (cursor positioning, erase, colours)
+    /// by the Windows console, so that programs can redraw the screen in place in the classic
+    /// console host as well as in Windows Terminal. Failures are ignored (output redirected to a
+    /// file or a pipe, no console, older Windows, other operating system).
+    /// </summary>
+    public static void EnableVirtualTerminal()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        try
+        {
+            var handle = GetStdHandle(StdOutputHandle);
+            if (handle == IntPtr.Zero || handle == new IntPtr(-1)) return;
+            if (GetConsoleMode(handle, out var mode) && (mode & EnableVirtualTerminalProcessing) == 0)
+                SetConsoleMode(handle, mode | EnableVirtualTerminalProcessing);
+        }
+        catch
+        {
+            // not a console, or the API is unavailable: the sequences are written unchanged
+        }
+    }
+
     /// <summary>
     /// Runs in the Windows console (Runner, simc --run, a68c --run): ConsoleProgramIO,
     /// Ctrl+C = stop, runtime error on stderr. Returns the exit code.
@@ -74,6 +107,7 @@ public static class ProgramHost
     public static int RunInConsole(ICompiledProgram program, string? workingDirectory = null)
     {
         try { Console.OutputEncoding = new UTF8Encoding(false); } catch { /* no console */ }
+        EnableVirtualTerminal();
         // Redirected input (file, pipe): read as UTF-8. From the keyboard, keep the console encoding.
         try { if (Console.IsInputRedirected) Console.InputEncoding = new UTF8Encoding(false); } catch { }
 

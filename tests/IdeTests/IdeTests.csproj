@@ -30,6 +30,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\Runner\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
     <Compile Include="..\..\src\Ide\Language\*.cs" Link="Language\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Ide\Panels\AnsiTerminal.cs" Link="Panels\AnsiTerminal.cs" />
   </ItemGroup>
 
 </Project>

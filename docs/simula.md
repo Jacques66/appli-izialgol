@@ -274,6 +274,11 @@ classic examples of the Simula literature:
 | `19_job_shop.sim` | orders routed through groups of machines | Dahl and Nygaard, *SIMULA – an ALGOL-based simulation language* (1966) |
 | `20_harbour.sim` | tankers competing for jetties and a tug | the port model of Birtwistle's DEMOS package |
 | `21_traffic_police.sim` | cars on a road and a police speed patrol | the car and police example of the original SIMULA manual |
+| `22_crossroads.sim` | a signalised four-way intersection (driving on the right, left/straight/right lanes, arrow lights) whose cars, light controller, generators and display are processes of a round-robin scheduler written with `call` and `detach`; animated in place with ANSI escape sequences, with the process table (state, timer, CPU, details) and the scheduler queues | operating-system process scheduling (quantum, preemption, sleep, blocking and wake-up) |
+
+`22_crossroads.sim` redraws the screen in place: run it in the IDE console or in a
+Windows console at least 120 columns wide. It has no `.out` file because its output is
+an animation (`framedelay` sets the pause between frames, using the standard `clocktime`).
 
 ---
 

@@ -54,6 +54,7 @@ public sealed class ConsoleProgramIO : IProgramIO
     {
         WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory;
     }
+    // Console.Out flushes after each write (AutoFlush): every frame of an animation is shown at once.
     public void Write(string text) => Console.Out.Write(text);
     public string? ReadLine() { Console.Out.Flush(); return Console.In.ReadLine(); }
     public string WorkingDirectory { get; }

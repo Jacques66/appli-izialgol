@@ -14,7 +14,7 @@ using Studio.Tooling.Testing;
 
 namespace Studio.IdeTests;
 
-static class Program
+static partial class Program
 {
     static int _passed, _failed;
     static readonly List<string> Failures = new();
@@ -54,6 +54,14 @@ static class Program
         Test("editor: languages by file extension", LanguagesByExtension);
         Test("editor: automatic indentation", Indentation);
         Test("editor: comment / uncomment", CommentToggle);
+        Test("console ANSI: plain text, CR LF and CR",AnsiPlainText);
+        Test("console ANSI: sequences split across writes", AnsiSplitSequences);
+        Test("console ANSI: cursor positioning and overwrite", AnsiCursorAndOverwrite);
+        Test("console ANSI: clear screen and in-place redraw", AnsiClearAndRedraw);
+        Test("console ANSI: erase in line / display", AnsiErase);
+        Test("console ANSI: SGR colours, cursor visibility, ignored sequences", AnsiSgrAndIgnored);
+        Test("console ANSI: minimal edits, origin, size limit", AnsiOriginAndEdits);
+        Test("console ANSI: the animated crossroads sample redraws in place", AnsiCrossroadsSample);
         Test("Algol 60 samples: compile, run, compare with .out", () => CheckSamples("algol60", ".a60"));
         Test("Simula I samples: compile, run, compare with .out", () => CheckSamples("simula1", ".s1"));
         Test("Pascal samples: compile, run, compare with .out", () => CheckSamples("pascal", ".pas"));

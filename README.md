@@ -104,6 +104,18 @@ Start `AlgolStudio.exe` (optionally with files or a folder as arguments).
   errors while you type (can be turned off).
 * **Run** (Ctrl+F5): the program runs in the **integrated console** — output as it is produced,
   line input (Enter), end of file (Ctrl+Z or button), history (↑/↓), **Stop** (Shift+F5).
+* **ANSI/VT escape sequences** (ESC = character 27) let a program redraw a text screen in place
+  (animations, games), in the integrated console as well as in the external console and the
+  generated executables (virtual terminal processing is enabled on the Windows console):
+  `ESC[2J` clear screen (`ESC[J`/`ESC[0J` to the end, `ESC[1J`, `ESC[3J` ignored),
+  `ESC[H`, `ESC[row;colH`/`ESC[row;colf` cursor position (1-based, from the start of the program
+  output or of the last full clear), `ESC[A`/`B`/`C`/`D` cursor moves (also `E`, `F`, `G`, `d`),
+  `ESC[K`/`ESC[0K` clear to end of line (`ESC[1K`, `ESC[2K`), `ESC[s`/`ESC[u` and `ESC 7`/`ESC 8`
+  save/restore the cursor, `ESC[?25l`/`ESC[?25h` (accepted, ignored), `ESC[…m` SGR: foreground
+  colours 30–37, 90–97, bold (bright colours), 39 and reset 0 (backgrounds and other attributes
+  ignored). After a cursor move, text overwrites the characters in place (lines are extended with
+  spaces when needed); `\n` goes to the next line, `\r` back to column 1. Other sequences are
+  ignored. Simula 67 example: `outchar(char(27)); outtext("[H"); outtext("frame 1"); outimage;`
 * **Run in external Windows console** option (toolbar button or Debug menu): the executable
   is generated in a temporary folder and started in a real console.
 * **Generate a standalone .exe** (Ctrl+Shift+E): a single Windows executable that can be copied

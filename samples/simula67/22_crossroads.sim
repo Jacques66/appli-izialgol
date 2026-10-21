@@ -1,0 +1,645 @@
+comment Crossroads: an operating-system style round-robin scheduler, written in
+        Simula 67, runs the processes of a signalised intersection. Every car,
+        the traffic light controller, the four car generators and the display
+        are coroutines (call and detach). A process consumes CPU units with
+        compute, gives the processor back with sleep (timer) or block (wait on a
+        traffic light or behind another car), and is preempted when its
+        quantum is used up.
+
+        Driving on the right, traffic in both directions, four lanes on every
+        arm: three entry lanes (left, straight, right) and one exit lane. The
+        lights stand on the right of each approach, one head per entry lane:
+        [<0>] = left arrow, straight, right arrow. Green shows the arrow (or 0),
+        amber shows -, red shows X. Four phases: A North-South straight and
+        right, B North-South left, C East-West straight and right, D East-West
+        left (right arrows also run during the compatible left phase).
+
+        The screen is redrawn in place with ANSI escape sequences (cursor
+        home, erase line): the intersection on the left, the process table
+        on the right, the scheduler queues below. Run it in the console of the
+        IDE or in a Windows console at least 120 columns wide;
+
+begin
+   integer B = 8;                    ! first row and column of the box;
+   integer GRID = 20;                ! size of the grid (2 arms of B cells + 4);
+   integer Q = 2;                    ! quantum, in CPU units;
+   integer TICKS = 200;              ! length of the run;
+   integer GENSTOP = 170;            ! generators stop creating cars;
+   integer MAXP = 800;               ! process table size;
+   integer READY = 0, RUNNING = 1, SLEEPING = 2, BLOCKED = 3, DONE = 4;
+   integer RED = 0, AMBER = 1, GREEN = 2;
+   integer KLIGHTS = 1, KGEN = 2, KCAR = 3, KDISPLAY = 4;
+
+   real framedelay;                  ! seconds between two frames;
+   integer tick, U, maxpid, dispatches, preemptions, entryfull;
+   integer array cpukind(1:4);
+   ref(Proc) array procs(1:MAXP);
+   ref(Car) array cell(0:GRID - 1, 0:GRID - 1);
+   integer array sig(0:11);          ! state of the 12 light heads;
+   Boolean array greenin(0:3, 0:11); ! heads green in each phase;
+   integer array greenlen(0:3);
+   ref(Queue) array lightq(0:11);    ! cars waiting at each head;
+   integer array boxn(0:11), boxr(0:11, 0:3), boxc(0:11, 0:3);
+   integer array passed(0:3, 0:2), waitsum(0:3, 0:2), waitmax(0:3, 0:2);
+   ref(Queue) readyq, sleepq;
+   ref(Lights) controller;
+   ref(Display) screen;
+   ref(Proc) p;
+   integer i, j, n, cx;
+   text ln, wokenline, runline;
+   integer rx;
+   character esc;
+
+   ! ---------------------------------------------------------------- queues;
+   class Queue;
+   begin
+      ref(Proc) first, last;
+      integer n;
+      procedure put(p); ref(Proc) p;
+      begin
+         p.link :- none;
+         if last == none then first :- p else last.link :- p;
+         last :- p;
+         n := n + 1
+      end;
+      ref(Proc) procedure get;
+      begin
+         get :- first;
+         if first =/= none then
+         begin
+            first :- first.link;
+            if first == none then last :- none;
+            n := n - 1
+         end
+      end
+   end;
+
+   ! ------------------------------------------------------------- processes;
+   class Proc(kind, pname); integer kind; text pname;
+   virtual: procedure details;
+   begin
+      integer pid, state, wake, cpu, used, runs;
+      text reason;
+      ref(Proc) link;
+
+      procedure details; ;
+
+      ! one CPU unit, preemption when the quantum is used up;
+      procedure compute;
+      begin
+         if used >= Q then
+         begin
+            preemptions := preemptions + 1;
+            state := READY;
+            readyq.put(this Proc);
+            detach
+         end;
+         used := used + 1;
+         cpu := cpu + 1;
+         cpukind(kind) := cpukind(kind) + 1
+      end;
+
+      ! give the processor back until tick + n;
+      procedure sleep(n); integer n;
+      begin
+         wake := tick + n;
+         state := SLEEPING;
+         sleepq.put(this Proc);
+         detach
+      end;
+
+      ! give the processor back until another process wakes us up;
+      procedure block(why); text why;
+      begin
+         reason :- why;
+         state := BLOCKED;
+         detach
+      end;
+
+      maxpid := maxpid + 1;
+      pid := maxpid;
+      procs(pid) :- this Proc;
+      detach;
+      inner;
+      state := DONE;
+      procs(pid) :- none
+   end;
+
+   procedure wakeup(p); ref(Proc) p;
+   begin
+      p.state := READY;
+      p.reason :- notext;
+      readyq.put(p)
+   end;
+
+   ! ------------------------------------------------------- traffic lights;
+   Proc class Lights;
+   begin
+      integer phase, stage, stagelen, stageend, h, nxt;
+
+      procedure details;
+      begin
+         w(phasename(phase)); w("  ");
+         w(if stage = 0 then "green " else if stage = 1 then "amber " else "all red ");
+         wi(stagelen - (stageend - tick)); w("/"); wi(stagelen)
+      end;
+
+      procedure sethead(h, s); integer h, s;
+      begin
+         if s = GREEN and sig(h) <> GREEN then
+            while lightq(h).n > 0 do wakeup(lightq(h).get);
+         sig(h) := s
+      end;
+
+      while true do
+      begin
+         compute;
+         stage := 0; stagelen := greenlen(phase);
+         for h := 0 step 1 until 11 do
+            if greenin(phase, h) then sethead(h, GREEN);
+         stageend := tick + stagelen;
+         sleep(stagelen);
+
+         compute;
+         nxt := mod(phase + 1, 4);
+         stage := 1; stagelen := 2;
+         for h := 0 step 1 until 11 do
+            if sig(h) = GREEN and not greenin(nxt, h) then sethead(h, AMBER);
+         stageend := tick + stagelen;
+         sleep(stagelen);
+
+         compute;
+         stage := 2; stagelen := 1;
+         for h := 0 step 1 until 11 do
+            if sig(h) = AMBER then sethead(h, RED);
+         stageend := tick + stagelen;
+         sleep(stagelen);
+         phase := nxt
+      end
+   end;
+
+   ! ----------------------------------------------------------------- cars;
+   Proc class Car(arm, m); integer arm, m;
+   begin
+      integer array pr(0:40), pc(0:40);
+      integer len, pos, stopidx, born, moves, h, k, nr, nc;
+      ref(Car) follower, ahead;
+
+      procedure add(r, c); integer r, c;
+      begin pr(len) := r; pc(len) := c; len := len + 1 end;
+
+      ! approach lane, path across the box, exit lane;
+      procedure build;
+      begin
+         integer i, lane, d;
+         h := arm * 3 + m;
+         if arm = 0 then begin lane := B + 2 - m; for i := 0 step 1 until B - 1 do add(i, lane) end
+         else if arm = 1 then begin lane := B + 2 - m; for i := GRID - 1 step -1 until B + 4 do add(lane, i) end
+         else if arm = 2 then begin lane := B + 1 + m; for i := GRID - 1 step -1 until B + 4 do add(i, lane) end
+         else begin lane := B + 1 + m; for i := 0 step 1 until B - 1 do add(lane, i) end;
+         stopidx := len - 1;
+         for i := 0 step 1 until boxn(h) - 1 do add(B + boxr(h, i), B + boxc(h, i));
+         d := mod(arm + 1 + m, 4);
+         if d = 0 then begin for i := B - 1 step -1 until 0 do add(i, B + 3) end
+         else if d = 1 then begin for i := B + 4 step 1 until GRID - 1 do add(B + 3, i) end
+         else if d = 2 then begin for i := B + 4 step 1 until GRID - 1 do add(i, B) end
+         else begin for i := B - 1 step -1 until 0 do add(B, i) end
+      end;
+
+      ! another flow still inside the cells of our path across the box;
+      Boolean procedure conflict;
+      begin
+         integer i; ref(Car) o;
+         for i := stopidx + 1 step 1 until stopidx + boxn(h) do
+         begin
+            o :- cell(pr(i), pc(i));
+            if o =/= none and then (o.arm <> arm or o.m <> m) then conflict := true
+         end
+      end;
+
+      procedure details;
+      begin
+         w(armname(arm)); w(" "); w(manname(m));
+         w(" cell "); wi(pos + 1); w("/"); wi(len);
+         w(" wait "); wi(tick - born - moves);
+         if state = BLOCKED then begin w(" ["); w(reason); w("]") end
+      end;
+
+   loop:
+      if pos < len - 1 then
+      begin
+         compute;                                  ! look ahead;
+         nr := pr(pos + 1); nc := pc(pos + 1);
+         if pos = stopidx then
+         begin
+            if sig(h) <> GREEN then
+            begin
+               lightq(h).put(this Proc);
+               block("red light");
+               goto loop
+            end;
+            if conflict then begin sleep(1); goto loop end
+         end;
+         if cell(nr, nc) =/= none then
+         begin
+            ahead :- cell(nr, nc);
+            if ahead.follower == none then
+            begin
+               ahead.follower :- this Car;
+               block(cat("behind ", ahead.pname))
+            end
+            else sleep(1);
+            goto loop
+         end;
+         compute;                                  ! move one cell;
+         cell(pr(pos), pc(pos)) :- none;
+         pos := pos + 1;
+         cell(nr, nc) :- this Car;
+         moves := moves + 1;
+         if follower =/= none then
+         begin
+            compute;                               ! signal the car behind;
+            wakeup(follower);
+            follower :- none
+         end;
+         sleep(1);
+         goto loop
+      end;
+
+      ! last cell of the exit lane: leave the screen;
+      compute;
+      cell(pr(pos), pc(pos)) :- none;
+      if follower =/= none then begin wakeup(follower); follower :- none end;
+      k := tick - born - moves;
+      passed(arm, m) := passed(arm, m) + 1;
+      waitsum(arm, m) := waitsum(arm, m) + k;
+      if k > waitmax(arm, m) then waitmax(arm, m) := k
+   end;
+
+   ! ------------------------------------------------------- car generators;
+   Proc class Generator(arm, gmin, gmax); integer arm, gmin, gmax;
+   begin
+      integer made, r, mm, er, ec;
+      Boolean full;
+      ref(Car) c;
+
+      procedure details;
+      begin
+         w("made "); wi(made);
+         if full then w(", entry lane full")
+         else if tick < GENSTOP then begin w(", next car in "); wi(wake - tick) end
+         else w(", stopped")
+      end;
+
+      while tick < GENSTOP do
+      begin
+         compute;                                  ! choose the manoeuvre;
+         r := randint(1, 10, U);
+         mm := if r <= 3 then 0 else if r <= 8 then 1 else 2;
+         if arm = 0 then begin er := 0; ec := B + 2 - mm end
+         else if arm = 1 then begin er := B + 2 - mm; ec := GRID - 1 end
+         else if arm = 2 then begin er := GRID - 1; ec := B + 1 + mm end
+         else begin er := B + 1 + mm; ec := 0 end;
+         while cell(er, ec) =/= none do
+         begin
+            if not full then entryfull := entryfull + 1;
+            full := true;
+            sleep(1)
+         end;
+         full := false;
+         compute;                                  ! create the car process;
+         c :- new Car(KCAR, notext, arm, mm);
+         c.pname :- cat("Car #", itoa(c.pid));
+         c.build;
+         c.born := tick;
+         cell(er, ec) :- c;
+         wakeup(c);
+         made := made + 1;
+         sleep(randint(gmin, gmax, U))
+      end
+   end;
+
+   ! -------------------------------------------------------------- display;
+   Proc class Display;
+   begin
+      procedure details; begin w("frame "); wi(tick); w(", low priority, after each tick") end;
+      while true do
+      begin
+         cpu := cpu + 1;
+         cpukind(KDISPLAY) := cpukind(KDISPLAY) + 1;
+         render;
+         detach
+      end
+   end;
+
+   ! ------------------------------------------------------------ text tools;
+   text procedure itoa(v); integer v;
+   begin
+      text f; integer d, x;
+      d := 1; x := abs(v);
+      while x >= 10 do begin x := x // 10; d := d + 1 end;
+      if v < 0 then d := d + 1;
+      f :- blanks(d);
+      f.putint(v);
+      itoa :- f
+   end;
+
+   text procedure cat(a, b); text a, b;
+   begin
+      text f;
+      f :- blanks(a.length + b.length);
+      if a.length > 0 then f.sub(1, a.length) := a;
+      if b.length > 0 then f.sub(a.length + 1, b.length) := b;
+      cat :- f
+   end;
+
+   ! write s at column col of the frame line (cut at the right margin);
+   procedure putat(col, s); integer col; text s;
+   begin
+      integer k;
+      k := s.length;
+      if col + k - 1 > ln.length then k := ln.length - col + 1;
+      if k > 0 then ln.sub(col, k) := s.sub(1, k)
+   end;
+
+   procedure intat(col, wd, v); integer col, wd, v;
+   begin text f; f :- ln.sub(col, wd); f.putint(v) end;
+
+   ! sequential writing from column cx;
+   procedure w(s); text s; begin putat(cx, s); cx := cx + s.length end;
+   procedure wi(v); integer v; begin w(itoa(v)) end;
+
+   procedure emit(first); Boolean first;
+   begin
+      if first then begin outchar(esc); outtext("[H") end;
+      outtext(ln.strip);
+      outchar(esc); outtext("[K");
+      outimage;
+      ln := notext
+   end;
+
+   text procedure armname(a); integer a;
+      armname :- if a = 0 then "N" else if a = 1 then "E" else if a = 2 then "S" else "W";
+
+   text procedure manname(m); integer m;
+      manname :- if m = 0 then "left    " else if m = 1 then "straight" else "right   ";
+
+   text procedure phasename(p); integer p;
+      phasename :- if p = 0 then "A N-S straight+right"
+                   else if p = 1 then "B N-S left arrows   "
+                   else if p = 2 then "C E-W straight+right"
+                   else "D E-W left arrows   ";
+
+   text procedure statename(s); integer s;
+      statename :- if s = READY then "ready" else if s = RUNNING then "running"
+                   else if s = SLEEPING then "sleeping" else if s = BLOCKED then "blocked"
+                   else "done";
+
+   ! ---------------------------------------------------------------- render;
+   text procedure headchar(h); integer h;
+      headchar :- if sig(h) = AMBER then "-" else if sig(h) = RED then "X"
+                  else if mod(h, 3) = 0 then "<" else if mod(h, 3) = 1 then "0" else ">";
+
+   procedure lightat(a, col); integer a, col;
+   begin
+      cx := col;
+      w("["); w(headchar(a * 3)); w(headchar(a * 3 + 1)); w(headchar(a * 3 + 2)); w("]")
+   end;
+
+   Boolean procedure isroad(r, c); integer r, c;
+      isroad := (c >= B and c <= B + 3) or (r >= B and r <= B + 3);
+
+   Boolean procedure isbox(r, c); integer r, c;
+      isbox := c >= B and c <= B + 3 and r >= B and r <= B + 3;
+
+   procedure maprow(r); integer r;
+   begin
+      integer c;
+      for c := 0 step 1 until GRID - 1 do
+      begin
+         if cell(r, c) =/= none then putat(2 * c + 1, "o")
+         else if isroad(r, c) and not isbox(r, c) then putat(2 * c + 1, ".")
+      end;
+      if r = B - 1 then begin lightat(0, 2 * (B - 3) + 1); lightat(1, 2 * (B + 4) + 1) end;
+      if r = B + 4 then begin lightat(3, 2 * (B - 3) + 1); lightat(2, 2 * (B + 4) + 1) end
+   end;
+
+   procedure procrow(p); ref(Proc) p;
+   begin
+      intat(43, 3, p.pid);
+      putat(47, p.pname);
+      putat(57, statename(p.state));
+      if p.state = SLEEPING then putat(66, cat("t+", itoa(p.wake - tick)));
+      intat(71, 4, p.cpu);
+      cx := 77;
+      p.details
+   end;
+
+   procedure render;
+   begin
+      integer r, k, shown, live, cars, onroad, atred, behind, total;
+      ref(Proc) array rows(1:GRID - 1);
+
+      ! live processes, system processes first (lowest pids);
+      for k := 1 step 1 until maxpid do
+         if procs(k) =/= none then
+         begin
+            live := live + 1;
+            if procs(k).kind = KCAR then cars := cars + 1;
+            if procs(k).state = BLOCKED then
+            begin
+               if procs(k).reason = "red light" then atred := atred + 1 else behind := behind + 1
+            end;
+            if shown < GRID - 1 then begin shown := shown + 1; rows(shown) :- procs(k) end
+         end;
+
+      cx := 1;
+      w("CROSSROADS - Simula 67 processes on a round-robin scheduler");
+      cx := 80; w("tick "); wi(tick); w(" / "); wi(TICKS);
+      emit(true);
+
+      for r := 0 step 1 until GRID - 1 do
+      begin
+         maprow(r);
+         if r = 0 then
+         begin
+            putat(43, "PID NAME      STATE    TIMER   CPU  DETAILS")
+         end
+         else if r < GRID - 1 or live <= GRID - 1 then
+         begin
+            if r <= shown then procrow(rows(r))
+         end
+         else
+         begin
+            cx := 47; w("... and "); wi(live - shown + 1); w(" more processes")
+         end;
+         emit(false)
+      end;
+
+      cx := 1;
+      w("Lights: phase "); w(phasename(controller.phase));
+      w("   heads [left straight right]: < 0 > green, - amber, X red   quantum "); wi(Q);
+      emit(false);
+
+      cx := 1; w("Woken by the timer: "); w(wokenline.strip); emit(false);
+      cx := 1; w("Run order         : "); w(runline.strip); w("   (! = preempted)"); emit(false);
+
+      cx := 1;
+      w("Queues: ready "); wi(readyq.n);
+      w("   sleeping "); wi(sleepq.n);
+      w("   blocked at a red light "); wi(atred);
+      w("   blocked behind a car "); wi(behind);
+      w("   dispatches "); wi(dispatches);
+      w("   preemptions "); wi(preemptions);
+      emit(false);
+
+      for k := 0 step 1 until 3 do total := total + passed(k, 0) + passed(k, 1) + passed(k, 2);
+      cx := 1;
+      w("Passed:");
+      for k := 0 step 1 until 3 do
+      begin w("  "); w(armname(k)); w(" "); wi(passed(k, 0) + passed(k, 1) + passed(k, 2)) end;
+      w("  total "); wi(total);
+      w("   cars on the road "); wi(cars);
+      w("   processes "); wi(live);
+      w("   entry lane full "); wi(entryfull); w(" times");
+      emit(false)
+   end;
+
+   procedure pause;
+   begin
+      long real stopat;
+      stopat := clocktime + framedelay;
+      while clocktime < stopat do ;
+   end;
+
+   ! run order of the current tick;
+   procedure trace(s); text s;
+   begin
+      integer k;
+      k := s.length;
+      if rx + k - 1 <= runline.length then
+      begin runline.sub(rx, k) := s; rx := rx + k end
+   end;
+
+   ! ------------------------------------------------------------ box paths;
+   ! cells crossed in the box by each flow (head = arm * 3 + manoeuvre),
+     as offsets from the corner (B, B) of the box;
+   procedure path(h, n, r1, c1, r2, c2, r3, c3, r4, c4);
+      integer h, n, r1, c1, r2, c2, r3, c3, r4, c4;
+   begin
+      boxn(h) := n;
+      boxr(h, 0) := r1; boxc(h, 0) := c1;
+      boxr(h, 1) := r2; boxc(h, 1) := c2;
+      boxr(h, 2) := r3; boxc(h, 2) := c3;
+      boxr(h, 3) := r4; boxc(h, 3) := c4
+   end;
+
+   ! ================================================================ main;
+   esc := char(27);
+   framedelay := 0.2;
+   U := 1966;
+   ln :- blanks(120);
+   wokenline :- blanks(84);
+   runline :- blanks(84);
+
+   !         arm GRID (heading south);
+   path(0, 4, 0, 2, 1, 2, 2, 2, 3, 3);    ! left: to the east;
+   path(1, 4, 0, 1, 1, 1, 2, 1, 3, 0);    ! straight: to the south;
+   path(2, 1, 0, 0, 0, 0, 0, 0, 0, 0);    ! right: to the west;
+   !         arm E (heading west);
+   path(3, 4, 2, 3, 2, 2, 2, 1, 3, 0);
+   path(4, 4, 1, 3, 1, 2, 1, 1, 0, 0);
+   path(5, 1, 0, 3, 0, 0, 0, 0, 0, 0);
+   !         arm S (heading north);
+   path(6, 4, 3, 1, 2, 1, 1, 1, 0, 0);
+   path(7, 4, 3, 2, 2, 2, 1, 2, 0, 3);
+   path(8, 1, 3, 3, 0, 0, 0, 0, 0, 0);
+   !         arm W (heading east);
+   path(9, 4, 1, 0, 1, 1, 1, 2, 0, 3);
+   path(10, 4, 2, 0, 2, 1, 2, 2, 3, 3);
+   path(11, 1, 3, 0, 0, 0, 0, 0, 0, 0);
+
+   ! green heads of each phase (GRID 0-2, E 3-5, S 6-8, W 9-11: left, straight, right);
+   greenin(0, 1) := greenin(0, 2) := greenin(0, 7) := greenin(0, 8) := true;
+   greenin(1, 0) := greenin(1, 6) := greenin(1, 5) := greenin(1, 11) := true;
+   greenin(2, 4) := greenin(2, 5) := greenin(2, 10) := greenin(2, 11) := true;
+   greenin(3, 3) := greenin(3, 9) := greenin(3, 2) := greenin(3, 8) := true;
+   greenlen(0) := 9; greenlen(1) := 4; greenlen(2) := 9; greenlen(3) := 4;
+
+   readyq :- new Queue;
+   sleepq :- new Queue;
+   for i := 0 step 1 until 11 do lightq(i) :- new Queue;
+
+   controller :- new Lights(KLIGHTS, "Lights");
+   wakeup(controller);
+   wakeup(new Generator(KGEN, "Gen N", 0, 2, 6));
+   wakeup(new Generator(KGEN, "Gen E", 1, 3, 8));
+   wakeup(new Generator(KGEN, "Gen S", 2, 2, 6));
+   wakeup(new Generator(KGEN, "Gen W", 3, 3, 8));
+   screen :- new Display(KDISPLAY, "Display");
+
+   outchar(esc); outtext("[2J"); outchar(esc); outtext("[?25l"); outimage;
+
+   ! ----------------------------------------------------------- scheduler;
+   for tick := 1 step 1 until TICKS do
+   begin
+      wokenline := notext; runline := notext;
+      rx := 1;
+      n := sleepq.n;
+      for i := 1 step 1 until n do
+      begin
+         p :- sleepq.get;
+         if p.wake <= tick then begin wakeup(p); trace(cat(p.pname, " ")) end
+         else sleepq.put(p)
+      end;
+      wokenline := runline;
+      runline := notext;
+      rx := 1;
+
+      while readyq.n > 0 do
+      begin
+         p :- readyq.get;
+         p.state := RUNNING;
+         p.used := 0;
+         p.runs := p.runs + 1;
+         dispatches := dispatches + 1;
+         trace(p.pname);
+         call(p);
+         if p.state = READY then trace("! ") else trace(" ")
+      end;
+
+      screen.state := RUNNING;
+      call(screen);
+      screen.state := SLEEPING;
+      screen.wake := tick + 1;
+      pause
+   end;
+
+   ! ---------------------------------------------------------- statistics;
+   outchar(esc); outtext("[?25h"); outimage;
+   outimage;
+   outtext("Simulation finished at tick "); outint(TICKS, 0); outimage;
+   outimage;
+   outtext("Cars passed        left straight    right    total  mean wait  max wait"); outimage;
+   for i := 0 step 1 until 3 do
+   begin
+      n := passed(i, 0) + passed(i, 1) + passed(i, 2);
+      outtext("  from "); outtext(armname(i)); outtext("      ");
+      for j := 0 step 1 until 2 do outint(passed(i, j), 9);
+      outint(n, 9);
+      j := waitsum(i, 0) + waitsum(i, 1) + waitsum(i, 2);
+      if n > 0 then outfix(j / n, 1, 11) else outtext("          -");
+      outint(max(waitmax(i, 0), max(waitmax(i, 1), waitmax(i, 2))), 10);
+      outimage
+   end;
+   outimage;
+   outtext("Scheduler: "); outint(dispatches, 0); outtext(" dispatches, ");
+   outint(preemptions, 0); outtext(" preemptions, quantum "); outint(Q, 0);
+   outtext(" CPU units"); outimage;
+   outtext("CPU units: lights "); outint(cpukind(KLIGHTS), 0);
+   outtext(", generators "); outint(cpukind(KGEN), 0);
+   outtext(", cars "); outint(cpukind(KCAR), 0);
+   outtext(", display "); outint(cpukind(KDISPLAY), 0); outimage;
+   outtext("Processes created: "); outint(maxpid, 0);
+   outtext(", entry lane full "); outint(entryfull, 0); outtext(" times"); outimage
+end
