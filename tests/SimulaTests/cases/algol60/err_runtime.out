@@ -1,0 +1,3 @@
+before
+runtime error (err_runtime.a60:5): index 6 outside the bounds (1:5)
+

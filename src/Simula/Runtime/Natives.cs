@@ -487,6 +487,7 @@ public static class Natives
         });
         Def("__blankimage", "T>V", (vm, s, b) => { var t = T(s[b]); if (t != null) { for (int i = 0; i < t.Length; i++) t[i] = ' '; t.Pos = 1; } return Nothing; });
         FileNatives.Register(Def);
+        ClassicNatives.Register(Def);
     }
 
     internal static Value MkText(string s) => Tx(TextRef.FromString(s));

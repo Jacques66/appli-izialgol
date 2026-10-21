@@ -5,23 +5,27 @@ using Studio.Simula.Runtime;
 
 namespace Studio.Simula;
 
-public sealed class SimulaLanguage : ILanguageService
+/// <summary>
+/// Shared front-end plumbing for the languages compiled by the Simula engine
+/// (Simula 67, Algol 60, Simula I): dialect, user lexer and environment prelude differ.
+/// </summary>
+public abstract class EngineLanguage : ILanguageService
 {
-    public string Id => "simula";
-    public string DisplayName => "Simula 67";
-    public IReadOnlyList<string> FileExtensions { get; } = new[] { ".sim" };
+    public abstract string Id { get; }
+    public abstract string DisplayName { get; }
+    public abstract IReadOnlyList<string> FileExtensions { get; }
+    /// <summary>Environment block (Simula source) enclosing the user program.</summary>
+    protected abstract string PreludeText { get; }
+    protected abstract Dialect Dialect { get; }
+    /// <summary>Lexer for the user program; null means the Simula 67 lexer.</summary>
+    protected virtual Func<string, int, Action<SrcPos, string>, Func<string, List<Token>?>, List<Token>>? UserLexer => null;
 
-    static string? prelude;
-    internal static string Prelude
+    protected static string ReadResource(Type owner, string name)
     {
-        get
-        {
-            if (prelude != null) return prelude;
-            using var st = typeof(SimulaLanguage).Assembly.GetManifestResourceStream("Studio.Simula.Prelude.sim")
-                ?? throw new InvalidOperationException("Simula prelude not found");
-            using var rd = new StreamReader(st, Encoding.UTF8);
-            return prelude = rd.ReadToEnd();
-        }
+        using var st = owner.Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"resource {name} not found");
+        using var rd = new StreamReader(st, Encoding.UTF8);
+        return rd.ReadToEnd();
     }
 
     public CompilationResult Compile(SourceFile main, CompileOptions options)
@@ -33,11 +37,11 @@ public sealed class SimulaLanguage : ILanguageService
             if (sf != null) used.Add(sf);
             return sf;
         };
-        var c = new SimCompiler();
+        var c = new SimCompiler(Dialect) { UserLexer = UserLexer };
         SimProgram? prog;
         try
         {
-            prog = c.CompileProgram(main, Prelude, resolver);
+            prog = c.CompileProgram(main, PreludeText, resolver);
         }
         catch (Exception e)
         {
@@ -46,7 +50,7 @@ public sealed class SimulaLanguage : ILanguageService
             return new CompilationResult(diags, null);
         }
         if (prog == null) return new CompilationResult(c.Diagnostics, null);
-        return new CompilationResult(c.Diagnostics, new SimulaProgram(prog, used));
+        return new CompilationResult(c.Diagnostics, new SimulaProgram(prog, used, Id));
     }
 
     static SourceFile? DefaultResolve(string name, string from)
@@ -83,12 +87,23 @@ public sealed class SimulaLanguage : ILanguageService
     }
 }
 
+public sealed class SimulaLanguage : EngineLanguage
+{
+    public override string Id => "simula";
+    public override string DisplayName => "Simula 67";
+    public override IReadOnlyList<string> FileExtensions { get; } = new[] { ".sim" };
+    protected override Dialect Dialect => Dialect.Simula67;
+
+    static string? prelude;
+    protected override string PreludeText => prelude ??= ReadResource(typeof(SimulaLanguage), "Studio.Simula.Prelude.sim");
+}
+
 sealed class SimulaProgram : ICompiledProgram
 {
     readonly SimProgram prog;
     readonly List<SourceFile> sources;
-    public SimulaProgram(SimProgram p, List<SourceFile> srcs) { prog = p; sources = srcs; }
-    public string LanguageId => "simula";
+    public SimulaProgram(SimProgram p, List<SourceFile> srcs, string languageId) { prog = p; sources = srcs; LanguageId = languageId; }
+    public string LanguageId { get; }
 
     public byte[] Serialize()
     {

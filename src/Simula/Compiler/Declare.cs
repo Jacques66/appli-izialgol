@@ -7,6 +7,10 @@ namespace Studio.Simula.Compiler;
 public sealed partial class SimCompiler
 {
     readonly List<Diagnostic> diags = new();
+    readonly Dialect dialect;
+
+    public SimCompiler(Dialect dialect = Dialect.Simula67) { this.dialect = dialect; }
+    public Dialect Dialect => dialect;
     readonly List<string> files = new();
     readonly SimProgram prog = new();
     readonly Dictionary<object, Scope> scopeOf = new(ReferenceEqualityComparer.Instance);
@@ -74,8 +78,9 @@ public sealed partial class SimCompiler
                 case VarDecl vd:
                     foreach (var it in vd.Items)
                     {
-                        var v = new VarSym { Name = it.Name, Orig = it.Orig, Pos = it.Pos, Spec = vd.Type, OwnerClass = owner, IsConst = it.Const != null, ConstExpr = it.Const };
-                        v.Slot = s.Frame.AllocSlot();
+                        var v = new VarSym { Name = it.Name, Orig = it.Orig, Pos = it.Pos, Spec = vd.Type, OwnerClass = owner, IsConst = it.Const != null, ConstExpr = it.Const, IsOwn = vd.IsOwn };
+                        // own variables keep their value between block instances: they live in the environment frame
+                        v.Slot = vd.IsOwn ? env.AllocSlot() : s.Frame.AllocSlot();
                         Define(s, v);
                     }
                     break;
@@ -83,8 +88,8 @@ public sealed partial class SimCompiler
                     foreach (var seg in ad.Segments)
                         foreach (var n in seg.Names)
                         {
-                            var a = new ArraySym { Name = n.Name, Orig = n.Orig, Pos = n.Pos, Spec = ad.Type, Dims = seg.Bounds.Count, Segment = seg, OwnerClass = owner };
-                            a.Slot = s.Frame.AllocSlot();
+                            var a = new ArraySym { Name = n.Name, Orig = n.Orig, Pos = n.Pos, Spec = ad.Type, Dims = seg.Bounds.Count, Segment = seg, OwnerClass = owner, IsOwn = ad.IsOwn };
+                            a.Slot = ad.IsOwn ? env.AllocSlot() : s.Frame.AllocSlot();
                             Define(s, a);
                         }
                     break;

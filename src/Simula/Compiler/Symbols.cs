@@ -45,6 +45,7 @@ public sealed class SType
         BaseType.LongReal => "long real",
         BaseType.None => "(no type)",
         BaseType.Notype => "(error)",
+        BaseType.Boolean => "Boolean",
         _ => B.ToString().ToLowerInvariant()
     };
 }
@@ -68,6 +69,7 @@ public sealed class VarSym : Sym
     public Value ConstValue;
     public bool ConstDone, ConstBusy;
     public bool IsHiddenTemp;
+    public bool IsOwn;
     public override string KindName => IsConst ? "constant" : "variable";
 }
 
@@ -78,6 +80,7 @@ public sealed class ArraySym : Sym
     public int Dims;
     public int Slot;
     public ArraySegment Segment = null!;
+    public bool IsOwn;
     public override string KindName => "array";
 }
 

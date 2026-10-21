@@ -87,7 +87,8 @@ public sealed partial class SimCompiler
                         break;
                     }
                 default:
-                    if (sc.Syms.TryGetValue(name, out var sym)) return new Found(sym, sc, null, sc.Frame);
+                    if (sc.Syms.TryGetValue(name, out var sym))
+                        return new Found(sym, sc, null, sym is VarSym { IsOwn: true } or ArraySym { IsOwn: true } ? env : sc.Frame);
                     break;
             }
         }
@@ -160,7 +161,7 @@ public sealed partial class SimCompiler
         {
             case ParamKind.Label: t = SType.LabelT; break;
             case ParamKind.Switch: t = SType.SwitchT; break;
-            default: t = spec.Type == null ? SType.Void : ResolveSpec(spec.Type, ps.Scope.Parent ?? ps.Scope); break;
+            default: t = !spec.Specified ? SType.Err : spec.Type == null ? SType.Void : ResolveSpec(spec.Type, ps.Scope.Parent ?? ps.Scope); break;
         }
         ps.Type = t;
         bool valueType = t.IsArith || t.B is BaseType.Boolean or BaseType.Character;
@@ -175,7 +176,14 @@ public sealed partial class SimCompiler
                 else { Err(spec.Pos, $"call by value not allowed for '{spec.Orig}'"); ps.Mode = ParamMode.Default; }
                 break;
             default:
-                ps.Mode = ps.Kind == ParamKind.Simple && valueType ? ParamMode.Value : ParamMode.Default;
+                if (dialect != Dialect.Simula67)
+                {
+                    // Algol 60: parameters not in the value part are called by name;
+                    // for arrays and procedures, name and reference are equivalent
+                    ps.Mode = ps.Kind is ParamKind.Array or ParamKind.Procedure ? ParamMode.Default : ParamMode.Name;
+                }
+                else
+                    ps.Mode = ps.Kind == ParamKind.Simple && valueType ? ParamMode.Value : ParamMode.Default;
                 break;
         }
     }

@@ -1,13 +1,18 @@
 using System.Diagnostics;
 using System.Text;
 using Studio.Common;
+using Studio.Algol60;
 using Studio.Simula;
 
-// Simula test bench: compiles and runs samples/simula/**/*.sim and tests/SimulaTests/cases/**/*.sim,
+// Test bench of the Simula engine languages (Simula 67 .sim, Algol 60 .a60/.alg): compiles and runs
+// samples/simula, samples/algol60 and tests/SimulaTests/cases,
 // compares with <name>.out (optional input <name>.in). Usage: SimulaTests [file.sim | filter | --debugtest]
 var root = FindRoot();
-var lang = new SimulaLanguage();
-if (args.Length == 1 && args[0].EndsWith(".sim") && File.Exists(args[0]))
+var simula = new SimulaLanguage();
+var algol60 = new Algol60Language();
+EngineLanguage LangFor(string path) => Path.GetExtension(path).ToLowerInvariant() is ".a60" or ".alg" ? algol60 : simula;
+static bool IsSource(string f) => Path.GetExtension(f).ToLowerInvariant() is ".sim" or ".a60" or ".alg";
+if (args.Length == 1 && IsSource(args[0]) && File.Exists(args[0]))
 {
     var r = RunFile(args[0], File.Exists(Path.ChangeExtension(args[0], ".in")) ? File.ReadAllText(Path.ChangeExtension(args[0], ".in")) : "", true);
     Console.Write(r.Output);
@@ -17,8 +22,8 @@ if (args.Length == 1 && args[0].EndsWith(".sim") && File.Exists(args[0]))
 if (args.Length == 1 && args[0] == "--debugtest") return DebugTest();
 var filter = args.Length > 0 ? args[0] : "";
 var filesToTest = new List<string>();
-foreach (var dir in new[] { Path.Combine(root, "samples", "simula"), Path.Combine(root, "tests", "SimulaTests", "cases") })
-    if (Directory.Exists(dir)) filesToTest.AddRange(Directory.GetFiles(dir, "*.sim", SearchOption.AllDirectories));
+foreach (var dir in new[] { Path.Combine(root, "samples", "simula"), Path.Combine(root, "samples", "algol60"), Path.Combine(root, "tests", "SimulaTests", "cases") })
+    if (Directory.Exists(dir)) filesToTest.AddRange(Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories).Where(IsSource));
 int pass = 0, fail = 0;
 foreach (var f in filesToTest.OrderBy(x => x))
 {
@@ -51,7 +56,7 @@ string Rel(string p) => Path.GetRelativePath(root, p);
 int DebugTest()
 {
     var path = Path.Combine(root, "samples", "simula", "02_factorial.sim");
-    var res = lang.Compile(new SourceFile(path, File.ReadAllText(path)), new CompileOptions());
+    var res = simula.Compile(new SourceFile(path, File.ReadAllText(path)), new CompileOptions());
     var io = new MemIO("", root);
     var exec = res.Program!.CreateExecution(io);
     var dbg = exec.Debugger;
@@ -93,7 +98,7 @@ int DebugTest()
 (bool Ok, string Output, string Diag) RunFile(string path, string input, bool verbose)
 {
     var src = new SourceFile(Path.GetFullPath(path), File.ReadAllText(path));
-    var res = lang.Compile(src, new CompileOptions());
+    var res = LangFor(path).Compile(src, new CompileOptions());
     var diag = new StringBuilder();
     foreach (var d in res.Diagnostics)
         diag.AppendLine($"{Path.GetFileName(d.File)}({d.Line},{d.Column}): {(d.Severity == Severity.Error ? "error" : "warning")}: {d.Message}");

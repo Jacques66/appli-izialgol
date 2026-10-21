@@ -12,6 +12,7 @@ public sealed class Parser
     readonly Action<SrcPos, string> error;
     int p;
     public bool InPrelude;
+    public Dialect Dialect = Dialect.Simula67;
 
     public Parser(List<Token> tokens, Action<SrcPos, string> error)
     {
@@ -83,7 +84,7 @@ public sealed class Parser
         {
             case T.KInteger: case T.KReal: case T.KBoolean: case T.KCharacter: case T.KText:
             case T.KRef: case T.KShort: case T.KLong: case T.KArray: case T.KProcedure:
-            case T.KClass: case T.KSwitch: case T.KExternal:
+            case T.KClass: case T.KSwitch: case T.KExternal: case T.KOwn:
                 return true;
             case T.Ident:
                 return KAt(1) == T.KClass;
@@ -120,6 +121,17 @@ public sealed class Parser
     {
         var pos = Cur.Pos;
         if (K == T.KExternal) return ParseExternal();
+        if (Accept(T.KOwn))
+        {
+            var od = ParseDeclaration();
+            switch (od)
+            {
+                case VarDecl ov: ov.IsOwn = true; break;
+                case ArrayDecl oa: oa.IsOwn = true; break;
+                default: error(od.Pos, "'own' applies only to simple variables and arrays"); break;
+            }
+            return od;
+        }
         if (K == T.KClass) return ParseClass(null, pos, SrcPos.None);
         if (K == T.Ident && KAt(1) == T.KClass)
         {
@@ -202,7 +214,7 @@ public sealed class Parser
         return ed;
     }
 
-    static bool IsSpecifierStart(T k) => k is T.KInteger or T.KReal or T.KBoolean or T.KCharacter or T.KText
+    static bool IsSpecifierStart(T k) => k is T.KStringSpec or T.KInteger or T.KReal or T.KBoolean or T.KCharacter or T.KText
         or T.KRef or T.KShort or T.KLong or T.KArray or T.KProcedure or T.KLabel or T.KSwitch;
 
     /// <summary>Formal parameter part + modes + specifications. Returns the list.</summary>
@@ -240,7 +252,8 @@ public sealed class Parser
             var spos = Cur.Pos;
             ParamKind kind = ParamKind.Simple;
             TypeSpec? type = null;
-            if (Accept(T.KLabel)) kind = ParamKind.Label;
+            if (Accept(T.KStringSpec)) { kind = ParamKind.Simple; type = TypeSpec.Of(BaseType.Text, spos); }
+            else if (Accept(T.KLabel)) kind = ParamKind.Label;
             else if (Accept(T.KSwitch)) kind = ParamKind.Switch;
             else if (Accept(T.KArray)) { kind = ParamKind.Array; type = TypeSpec.Of(BaseType.Real, spos); }
             else if (Accept(T.KProcedure)) kind = ParamKind.Procedure;
@@ -534,8 +547,16 @@ public sealed class Parser
     {
         var pos = Expect(T.KFor).Pos;
         var fs = new ForStmt { Pos = pos };
-        var id = ExpectIdent("controlled variable");
-        fs.Var = new Ident { Name = id.Name, Orig = id.Orig, Pos = id.Pos };
+        if (Dialect != Dialect.Simula67 && K == T.Ident)
+        {
+            // Algol 60: the controlled variable may be a subscripted variable
+            fs.Var = ParsePostfix();
+        }
+        else
+        {
+            var id = ExpectIdent("controlled variable");
+            fs.Var = new Ident { Name = id.Name, Orig = id.Orig, Pos = id.Pos };
+        }
         if (Accept(T.Denote)) fs.IsRef = true;
         else Expect(T.Assign, "':=' or ':-'");
         do

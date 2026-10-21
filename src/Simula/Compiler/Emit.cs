@@ -74,6 +74,16 @@ public sealed partial class SimCompiler
 
     // ================================================================ entry point
 
+    /// <summary>Lexer used for the user program and its included files (Simula by default).</summary>
+    public Func<string, int, Action<SrcPos, string>, Func<string, List<Token>?>, List<Token>>? UserLexer { get; set; }
+
+    List<Token> LexUser(string text, int fileIndex, Func<string, List<Token>?> includes)
+    {
+        if (UserLexer != null) return UserLexer(text, fileIndex, Err, includes);
+        var lx = new Lexer(text, fileIndex, Err) { IncludeHandler = includes };
+        return lx.Tokenize();
+    }
+
     public SimProgram? CompileProgram(SourceFile user, string preludeText, Func<string, string, SourceFile?>? resolver)
     {
         includeResolver = resolver;
@@ -85,7 +95,6 @@ public sealed partial class SimCompiler
         CreateRoot();
 
         // user program
-        var ulex = new Lexer(user.Text, 0, Err);
         int includeNesting = 0;
         Func<string, List<Token>?>? handler = null;
         handler = name =>
@@ -95,14 +104,12 @@ public sealed partial class SimCompiler
             int fi = files.Count;
             files.Add(sf.Path);
             prog.Files.Add(sf.Path);
-            var lx = new Lexer(sf.Text, fi, Err) { IncludeHandler = handler };
-            var r = lx.Tokenize();
+            var r = LexUser(sf.Text, fi, handler!);
             includeNesting--;
             return r;
         };
-        ulex.IncludeHandler = handler;
-        var utoks = ulex.Tokenize();
-        var uparser = new Parser(utoks, Err);
+        var utoks = LexUser(user.Text, 0, handler);
+        var uparser = new Parser(utoks, Err) { Dialect = dialect };
         var (userStmt, userExternals, userModules) = uparser.ParseProgram();
         if (userStmt == null && userModules.Count > 0)
         {
@@ -213,6 +220,13 @@ public sealed partial class SimCompiler
                 case ArrayDecl ad:
                     foreach (var seg in ad.Segments)
                     {
+                        // own arrays are created once, at the first entry into their block
+                        int ownSkip = -1;
+                        if (ad.IsOwn && seg.Names.Count > 0 && scope.Syms.TryGetValue(seg.Names[0].Name, out var os0) && os0 is ArraySym oa0)
+                        {
+                            E(Op.LdG, oa0.Slot); E(Op.PushNone); E(Op.RefEq);
+                            ownSkip = EJump(Op.Jf);
+                        }
                         foreach (var bp in seg.Bounds)
                         {
                             CheckNoLocalRef(bp.Lower, scope);
@@ -228,10 +242,11 @@ public sealed partial class SimCompiler
                             if (first == null) E(Op.NewArr, (int)et.B, seg.Bounds.Count);
                             else E(Op.NewArrLike);
                             E(Op.Dup);
-                            E(Op.St, a.Slot);
+                            E(a.IsOwn ? Op.StG : Op.St, a.Slot);
                             first = a;
                         }
                         E(Op.Pop);
+                        if (ownSkip >= 0) Patch(ownSkip);
                     }
                     break;
                 case SwitchDecl sd:
@@ -605,14 +620,18 @@ public sealed partial class SimCompiler
     {
         var body = f.Body;
         var lscope = scopeOf[f];
-        if (f.Var is not Ident cv) { Err(f.Pos, "invalid controlled variable"); return; }
-        var found = Lookup(cv.Name, g.Scope, cv.Pos);
-        if (found != null)
+        Expr cv = f.Var;
+        if (cv is Ident cvi)
         {
-            if (found.Value.Sym is ParamSym pp && pp.IsName) Err(cv.Pos, "the controlled variable cannot be a parameter called by name");
-            if (found.Value.Sym is ProcSym) Err(cv.Pos, "the controlled variable cannot be a procedure identifier");
-            if (found.Value.Sym is VarSym vs && vs.IsConst) Err(cv.Pos, "the controlled variable cannot be a constant");
+            var found = Lookup(cvi.Name, g.Scope, cvi.Pos);
+            if (found != null)
+            {
+                if (dialect == Dialect.Simula67 && found.Value.Sym is ParamSym pp && pp.IsName) Err(cv.Pos, "the controlled variable cannot be a parameter called by name");
+                if (found.Value.Sym is ProcSym) Err(cv.Pos, "the controlled variable cannot be a procedure identifier");
+                if (found.Value.Sym is VarSym vs && vs.IsConst) Err(cv.Pos, "the controlled variable cannot be a constant");
+            }
         }
+        else if (dialect == Dialect.Simula67 || cv is not CallExpr) { Err(f.Pos, "invalid controlled variable"); return; }
         bool multi = f.Elems.Count > 1;
         int kSlot = multi ? tempOf[f] : -1;
         var retFix = new List<int>();

@@ -1,0 +1,7 @@
+begin
+   integer i; real x;
+   procedure p(a); a := 1;
+   i := y;
+   x := true;
+   if i then x := 1
+end

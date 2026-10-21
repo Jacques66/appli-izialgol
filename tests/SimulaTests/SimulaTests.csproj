@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Common\Common.csproj" />
     <ProjectReference Include="..\..\src\Simula\Simula.csproj" />
+    <ProjectReference Include="..\..\src\Algol60\Algol60.csproj" />
   </ItemGroup>
 
 </Project>

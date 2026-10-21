@@ -19,6 +19,8 @@ public enum T
     KValue, KVirtual, KWhen, KWhile,
     // compound forms recognised by the lexer
     KAndThen, KOrElse,
+    // Algol 60 / Simula I only
+    KOwn, KStringSpec,
 }
 
 public readonly record struct SrcPos(int File, int Line, int Col)

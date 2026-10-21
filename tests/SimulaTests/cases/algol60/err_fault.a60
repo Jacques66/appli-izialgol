@@ -1,0 +1,6 @@
+begin
+   real x;
+   x := -4;
+   outstring(1, "computing\n");
+   outreal(1, sqrt(x))
+end

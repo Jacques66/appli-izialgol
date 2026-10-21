@@ -1,0 +1,6 @@
+begin
+   integer array a[1:5];
+   integer i;
+   outstring(1, "before\n");
+   for i := 1 step 1 until 6 do a[i] := i
+end

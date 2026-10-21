@@ -2,6 +2,9 @@ namespace Studio.Simula.Compiler;
 
 // ---------------------------------------------------------------- syntactic types
 
+/// <summary>Source language handled by the shared compiler.</summary>
+public enum Dialect { Simula67, Algol60, SimulaI }
+
 public enum BaseType { None, Integer, ShortInteger, Real, LongReal, Boolean, Character, Text, Ref, Label, Switch, Notype }
 
 public sealed class TypeSpec
@@ -32,6 +35,7 @@ public abstract class Decl : Node { }
 
 public sealed class VarDecl : Decl
 {
+    public bool IsOwn;
     public TypeSpec Type = null!;
     public List<(string Name, string Orig, SrcPos Pos, Expr? Const)> Items = new();
 }
@@ -46,6 +50,7 @@ public sealed class ArraySegment
 
 public sealed class ArrayDecl : Decl
 {
+    public bool IsOwn;
     public TypeSpec Type = null!;   // Real when omitted
     public List<ArraySegment> Segments = new();
 }

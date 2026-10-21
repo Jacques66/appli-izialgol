@@ -1,0 +1,5 @@
+err_compile.a60(3,16): error: parameter 'a' is not specified
+err_compile.a60(4,9): error: undeclared identifier 'y'
+err_compile.a60(5,9): error: type Boolean is incompatible with real
+err_compile.a60(6,7): error: Boolean expression expected (found integer)
+

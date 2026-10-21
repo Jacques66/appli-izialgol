@@ -148,3 +148,36 @@ public sealed partial class Vm
         }
     }
 }
+
+public sealed partial class Vm
+{
+    // character stream used by the Algol 60 / Simula I input procedures
+    string? charLine;
+    int charPos;
+    bool charEof;
+
+    /// <summary>Next character of the console input (newline included), or -1 at end of file.</summary>
+    internal int ReadChar()
+    {
+        if (charEof) return -1;
+        if (charLine == null)
+        {
+            charLine = io.ReadLine();
+            charPos = 0;
+            if (charLine == null) { charEof = true; return -1; }
+        }
+        if (charPos < charLine.Length) return charLine[charPos++];
+        charLine = null;
+        return '\n';
+    }
+
+    /// <summary>Puts back the last character read (one character of look-back).</summary>
+    internal void UnreadChar(int c)
+    {
+        if (c < 0) return;
+        if (c == '\n') { charLine = ""; charPos = 0; return; }
+        if (charLine != null && charPos > 0) charPos--;
+    }
+
+    internal void WriteConsole(string text) => io.Write(text);
+}
