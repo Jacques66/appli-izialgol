@@ -47,9 +47,13 @@ digits.
   function goto if in label mod nil not of or packed procedure program record
   repeat set then to type until var while with`. The directive `forward` is
   not reserved.
-* Comments: `{ ... }` and `(* ... *)`; a comment opened by `{` ends at `}`, one
-  opened by `(*` ends at `*)`, comments do not nest.
-* Alternative symbols: `(.` and `.)` for `[` and `]`; `@` and `↑` for `^`.
+* Comments: `{ ... }` and `(* ... *)`. As in the Report, `(*` and `*)` are
+  synonyms for `{` and `}`: a comment ends at the first `}` or `*)`, whichever
+  symbol opened it (`{ ... *)` is a comment), and comments do not nest.
+* Alternative symbols: `(.` and `.)` for `[` and `]`; `@` and `↑` for `^`; the
+  reference symbols of the Report, which the CDC character set of Pascal 6000
+  provides, are accepted as well: `≠` `≤` `≥` for `<>` `<=` `>=`, `¬` `∧` `∨`
+  for `not` `and` `or`.
 * Numbers: `123`, `3.14`, `1.5E-3`, `2e10`. A real number needs digits on both
   sides of the point (`1.` and `.5` are not numbers). Integers larger than
   `maxint` are rejected.
@@ -192,8 +196,13 @@ intersection, `-` difference, `=` `<>`, `<=` (inclusion) `>=`, and `x in s`.
 
 `new(p)` allocates a variable `p^`; `new(p, t1, ..., tn)` allocates a record
 with the variants selected by the tag values t1..tn (the tag fields receive
-these values). `dispose(p)` releases the variable and makes `p` undefined;
-any other pointer to it becomes a dangling pointer (detected). A pointer type
+these values, and must then keep them: assigning another value to such a tag
+field is a runtime error). `dispose(p)` releases the variable and makes `p`
+undefined; any other pointer to it becomes a dangling pointer (detected). A
+variable allocated by `new(p, t1, ..., tn)` must be released by
+`dispose(p, t1, ..., tn)` with the same tag values; `dispose(p, t1, ...)` of a
+variable allocated by `new(p)` checks that the tag fields hold these values
+(runtime errors otherwise). A pointer type
 may name a type declared later in the same type definition part:
 
 ```pascal
@@ -241,17 +250,24 @@ type link = ^node;
 | with | `with r1, r2 do s` (= `with r1 do with r2 do s`) |
 | goto | `goto 10` |
 
-**for**: the control variable is a variable of ordinal type declared in the
-variable part of the block containing the statement; the initial and final
-values are evaluated once, before the loop; the statement may not assign the
-control variable (nor pass it as a var parameter, nor read into it); after the
-loop the control variable is **undefined** (Revised Report 9.2.3.3) — using it
-is a runtime error — unless the loop was left by a goto.
+**for**: the control variable is an entire variable of ordinal type declared in
+the block containing the statement or in the program block (Pascal 6000, error
+155: not a variable of an intermediate block, and not a parameter); the initial
+and final values are evaluated once, before the loop; the repeated statement may
+not assign the control variable (nor pass it as a var parameter, nor read into
+it, nor use it as the control variable of a nested for statement); after the
+loop the control variable is **undefined** (Revised Report 9.2.3.3: "the final
+value of the control variable is left undefined"), also when the statement was
+not executed at all — using it is a runtime error — unless the loop was left by
+a goto.
 
 **with**: the record variable is selected once when the statement starts
-(`with a[i] do` keeps the element even if `i` changes); its field names become
-visible as variables. Fields of nested records and pointers work as well
-(`with p^, origin do`).
+(`with a[i] do` keeps the element even if `i` is changed by a procedure); its
+field names become visible as variables. Fields of nested records and pointers
+work as well (`with p^, origin do`). As the Report requires, the qualified
+statement may not assign the variables that make up the record variable list
+(`with a[i] do i := 2`, `with p^ do p := nil`, `with r do r := s`, also by
+`read`, `new` or as a for control variable): compile error.
 
 **goto and labels**: labels are declared in the `label` part of the block whose
 statement they prefix. A goto may lead to a statement of an enclosing statement
@@ -278,8 +294,10 @@ function name(parameters): resulttype;
   fields cannot be var parameters.
 * A function returns its result by an assignment to its name, inside its block
   (or in a routine nested in it). The result type is a simple type (ordinal or
-  real) or a pointer type. A function that returns without assigning its result
-  is a runtime error.
+  real) or a pointer type. A function block that contains no assignment to the
+  function identifier is a compile error (Revised Report 11: "there must be at
+  least one assignment"); a function that returns without having executed such
+  an assignment is a runtime error.
 * Procedures and functions may be nested and recursive; inner routines access the
   variables of the enclosing blocks.
 * **forward**: `procedure p(x: integer); forward;` declares the heading; the
@@ -306,7 +324,7 @@ function name(parameters): resulttype;
 | `abs(x)`, `sqr(x)` | integer or real | same type |
 | `sin`, `cos`, `exp`, `ln`, `sqrt`, `arctan` | integer or real | real (`ln` of x ≤ 0 and `sqrt` of x < 0 are errors) |
 | `odd(i)` | integer | boolean |
-| `trunc(x)`, `round(x)` | real (an integer argument is converted) | integer; `round` rounds halves away from zero; a result beyond maxint is an error |
+| `trunc(x)`, `round(x)` | real (an integer argument is a compile error, as in Pascal 6000 and Pascal-P) | integer; `round` rounds halves away from zero; a result beyond maxint is an error |
 | `ord(x)` | ordinal | integer |
 | `chr(i)` | integer 0..255 | char |
 | `succ(x)`, `pred(x)` | ordinal | same type; no successor of the last value (error) |
@@ -484,3 +502,11 @@ Run them in the IDE (**File › Examples**) or with `pasc samples\pascal\04_eigh
 * A variable is limited to 8 million components; recursion is limited by the
   stack (a deep recursion reports a stack overflow).
 * Variants do not share storage: a free union cannot reinterpret a value.
+* `=` and `<>` do not apply to arrays (other than strings) and records: the
+  relational operators take scalars, strings, sets and pointers, as in Pascal
+  6000 (the 1973 text of the Revised Report allowed `=` and `<>` on any type
+  except files). The Pascal 6000 restriction on string comparisons (lengths
+  below 10 or multiples of 10) is not applied.
+* The constancy of the tag fields of a variable allocated by `new(p, t1, ...,
+  tn)` is checked for assignments to the tag fields themselves, not for an
+  assignment of the whole record.

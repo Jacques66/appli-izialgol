@@ -173,6 +173,7 @@ public sealed partial class Compiler
             if (ReferenceEquals(c.Sym, rs))
             {
                 if (!rs.IsFunction) break;
+                rs.ResultAssigned = true;
                 return At(new ResultNode(rc.Level - rs.Level, rs.Info.ResultSlot) { Type = rs.Info.Sig.Result!, Desc = "result of " + t.Raw }, t);
             }
         Error(t, rs.IsFunction ? $"the result of function '{t.Raw}' can only be assigned inside its own block" : $"'{t.Raw}' is a procedure: it cannot be assigned");
@@ -235,8 +236,18 @@ public sealed partial class Compiler
     /// <summary>Assignments, var parameters and reads may not alter the control variable of an active for statement.</summary>
     void CheckThreat(Expr target, Token at, string what)
     {
-        if (target is Designator d && d.IsEntire && d.RootSymbol is VarSym v && activeForVars.Contains(v))
+        if (target is not Designator d || !d.IsEntire || d.RootSymbol is not VarSym v) return;
+        if (activeForVars.Contains(v))
             Error(at, $"{what} '{v.Name}', the control variable of an enclosing for statement, is not allowed");
+        else if (what != "passing as a var parameter") CheckWithConstituent(v, at, what);
+    }
+
+    /// <summary>Revised Report 9.2.4: no assignments may be made by the qualified statement of a with statement to
+    /// any constituents of its record variable list (the variables that select the record: indices, pointers).</summary>
+    void CheckWithConstituent(VarSym v, Token at, string what)
+    {
+        if (withConstituents.Contains(v))
+            Error(at, $"{what} '{v.Name}' is not allowed: it selects the record variable of an enclosing with statement");
     }
 
     // ------------------------------------------------------------------ structured statements
@@ -300,16 +311,22 @@ public sealed partial class Compiler
         else name = ExpectIdent();
         VarSym? v = null;
         if (!entire)
-            Error(vt, $"the control variable of a for statement must be an entire variable declared in this block ({TextOf(IndexOfTok(vt))} is not)");
+            Error(vt, $"the control variable of a for statement must be an entire variable ({TextOf(IndexOfTok(vt))} is not)");
         else if (sym is VarSym vs)
         {
-            if (vs.Level != rc.Level || vs.IsParam)
-                Error(vt, $"the control variable '{vt.Raw}' must be a variable declared in the variable declaration part of this block");
+            // Pascal 6000 (error 155): a variable of this block or of the program, not of an intermediate level
+            if ((vs.Level != rc.Level && vs.Level != 1) || vs.IsParam)
+                Error(vt, vs.IsParam ? $"the control variable '{vt.Raw}' must not be a parameter"
+                    : $"the control variable '{vt.Raw}' must be a variable declared in this block or in the program (not in an intermediate block)");
             else if (!vs.Type.IsOrdinal && !vs.Type.IsError)
                 Error(vt, $"the control variable '{vt.Raw}' must be of an ordinal type (found {vs.Type})");
             else if (activeForVars.Contains(vs))
                 Error(vt, $"'{vt.Raw}' is already the control variable of an enclosing for statement");
-            else v = vs;
+            else
+            {
+                v = vs;
+                CheckWithConstituent(vs, vt, "using as the control variable");
+            }
         }
         else if (name.Length > 0 && sym is not WithFieldSym)
             Error(vt, sym == null ? $"'{vt.Raw}' is not declared" : $"the control variable '{vt.Raw}' must be a simple variable");
@@ -331,7 +348,7 @@ public sealed partial class Compiler
         var body = Statement(false);
         if (v != null) activeForVars.Remove(v);
         if (v == null) return At(new EmptyStmt(), t);
-        var ctl = At(new VarNode(0, v.Slot) { Type = v.Type, Desc = vt.Raw, RootSymbol = v }, vt);
+        var ctl = At(new VarNode(rc.Level - v.Level, v.Slot) { Type = v.Type, Desc = vt.Raw, RootSymbol = v }, vt);
         return At(new ForStmt(ctl, from, to, down, body), t);
     }
 
@@ -342,7 +359,11 @@ public sealed partial class Compiler
         var t = Advance();
         var st = Cur;
         var sel = Expression();
-        if (!sel.Type.IsOrdinal && !sel.Type.IsError) Error(st, $"the case selector must be of an ordinal type (found {sel.Type})");
+        if (!sel.Type.IsOrdinal && !sel.Type.IsError)
+        {
+            Error(st, $"the case selector must be of an ordinal type (found {sel.Type})");
+            sel = ErrorExpr(st);
+        }
         Expect(T.Of);
         var map = new Dictionary<long, int>();
         var branches = new List<Stmt>();
@@ -382,12 +403,16 @@ public sealed partial class Compiler
     {
         var t = Advance();
         var recs = new List<(Designator d, int slot)>();
-        int scopes = 0;
+        int scopes = 0, locked = 0;
         do
         {
             var rt = Cur;
             if (!Is(T.Ident)) { SyntaxError($"record variable expected but {Describe(Cur)} found"); break; }
+            var outerCollect = collectVars;
+            var used = collectVars = new List<VarSym>();
             var d = VariableOrError();
+            collectVars = outerCollect;
+            collectVars?.AddRange(used);
             if (d.Type is RecordType rec)
             {
                 int slot = rc.Alloc(1);
@@ -397,12 +422,14 @@ public sealed partial class Compiler
                     ws.Syms[fl.Name] = new WithFieldSym { Name = fl.Name, Field = fl, Record = rec, Slot = slot, PackedRecord = rec.Packed || d.PackedComponent, RecordDesc = d.Desc };
                 scope = ws;
                 scopes++;
+                foreach (var u in used) { withConstituents.Add(u); locked++; }
             }
             else if (!d.Type.IsError) Error(rt, $"{d.Desc} is not a record variable (type {d.Type})");
         } while (Accept(T.Comma));
         Expect(T.Do);
         var body = Statement(false);
         for (int k = 0; k < scopes; k++) scope = scope.Parent!;
+        withConstituents.RemoveRange(withConstituents.Count - locked, locked);
         for (int k = recs.Count - 1; k >= 0; k--)
             body = At(new WithStmt(recs[k].d, recs[k].slot, body), t);
         return body;

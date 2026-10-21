@@ -1,0 +1,3 @@
+ 1.0
+runtime error (fixed_tag.pas:8:4): the tag field of a variable allocated by new with tag values cannot be changed (Revised Report 10.1.2)
+   at fixedtag (fixed_tag.pas:8)

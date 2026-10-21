@@ -1,8 +1,10 @@
 (* Recursive descent evaluator of arithmetic expressions read from the input,
   one per line:
-     expression = term {("+" | "-") term}
-     term       = factor {("*" | "/") factor}
+     expression = term [("+" | "-") term]...
+     term       = factor [("*" | "/") factor]...
      factor     = number | "(" expression ")" | "-" factor
+  ([x]... means: x repeated zero or more times; a closing brace would end
+  this comment, the two kinds of comment brackets being synonyms.)
   Errors are reported and the rest of the line is skipped with a non-local
   goto out of the recursive functions. *)
 program calculator(input, output);

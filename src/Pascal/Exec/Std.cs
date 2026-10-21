@@ -195,11 +195,11 @@ public sealed class EofNode : Expr
 
 public sealed class NewStmt : Stmt
 {
-    readonly Expr ptr; readonly PType target; readonly (int Offset, long Value)[] tags;
+    readonly Expr ptr; readonly PType target; readonly (int Offset, long Value)[] tags; readonly long[] values;
     readonly List<(int, FileType)> files = new();
-    public NewStmt(Expr ptr, PType target, (int, long)[] tags)
+    public NewStmt(Expr ptr, PType target, (int, long)[] tags, long[] values)
     {
-        this.ptr = ptr; this.target = target; this.tags = tags;
+        this.ptr = ptr; this.target = target; this.tags = tags; this.values = values;
         target.CollectFiles(0, files);
     }
     public override int Exec(Frame f)
@@ -209,7 +209,14 @@ public sealed class NewStmt : Stmt
         Array.Fill(cells, Cell.Undefined);
         foreach (var (off, ft) in files) cells[off] = Cell.Obj(ctx.NewFile(ft, "(dynamic)", null));
         foreach (var (off, v) in tags) cells[off] = Cell.Ord(v);
-        var h = new HeapObj(target, cells, ++ctx.HeapCounter) { FixedVariant = tags.Length > 0 };
+        var h = new HeapObj(target, cells, ++ctx.HeapCounter) { FixedVariant = values.Length > 0 };
+        if (values.Length > 0)
+        {
+            // new(p, t1, ..., tn): the tag fields must keep these values (Revised Report 10.1.2)
+            h.TagValues = values;
+            h.FixedTagOffsets = tags.Select(t => t.Offset).ToArray();
+            if (tags.Length > 0) ctx.FixedTagStores.AddOrUpdate(cells, h);
+        }
         var r = ptr.Addr(f);
         r.S[r.I] = Cell.Obj(h);
         return 0;
@@ -218,13 +225,28 @@ public sealed class NewStmt : Stmt
 
 public sealed class DisposeStmt : Stmt
 {
-    readonly Designator ptr;
-    public DisposeStmt(Designator ptr) { this.ptr = ptr; }
+    readonly Designator ptr; readonly (int Offset, long Value)[] tags; readonly long[] values;
+    public DisposeStmt(Designator ptr, (int, long)[] tags, long[] values) { this.ptr = ptr; this.tags = tags; this.values = values; }
     public override int Exec(Frame f)
     {
         var o = ptr.Obj(f);
         if (o is not HeapObj h) throw RT.Err("dispose(nil): the pointer does not reference a variable", this);
         if (h.Disposed) throw RT.Err($"dispose of a variable that was already disposed ({ptr.Desc})", this);
+        if (h.TagValues != null)
+        {
+            // a variable allocated by new(p, t1, ..., tn) is disposed by dispose(p, t1, ..., tn) with identical tag values
+            if (!h.TagValues.AsSpan().SequenceEqual(values))
+                throw RT.Err($"dispose: {ptr.Desc} was allocated by new with {h.TagValues.Length} tag value(s); dispose must name the same tag values", this);
+        }
+        else
+        {
+            foreach (var (off, v) in tags)
+            {
+                var c = h.C[off];
+                if (c.IsUndef || c.N != v)
+                    throw RT.Err($"dispose: the tag values given do not match the variant of {ptr.Desc}", this);
+            }
+        }
         h.Disposed = true;
         var r = ptr.Addr(f);
         r.S[r.I] = Cell.Undefined;

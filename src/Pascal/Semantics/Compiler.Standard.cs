@@ -186,6 +186,7 @@ public sealed partial class Compiler
         var at = Cur;
         var d = VariableOrError();
         var tags = new List<(int, long)>();
+        var values = new List<long>();     // every tag value given (also those of variant parts without tag field)
         PointerType? pt = d.Type as PointerType;
         if (pt == null && !d.Type.IsError) Error(at, $"{proc}: a pointer variable is required (found {d.Type})");
         VariantPart? part = (pt?.Target as RecordType)?.VariantPart;
@@ -199,13 +200,14 @@ public sealed partial class Compiler
             var v = part.Find(c.Ord);
             if (v == null) { Error(ct, $"{proc}: no variant has the tag value {Format.OrdText(part.TagType, c.Ord)}"); continue; }
             if (part.Tag != null) tags.Add((part.Tag.Offset, c.Ord));
+            values.Add(c.Ord);
             part = v.Nested;
         }
         Expect(T.RParen);
         if (pt == null) return At(new EmptyStmt(), t);
         CheckThreat(d, at, proc + " on");
-        if (isNew) return At(new NewStmt(d, pt.Target, tags.ToArray()), t);
-        return At(new DisposeStmt(d), t);
+        if (isNew) return At(new NewStmt(d, pt.Target, tags.ToArray(), values.ToArray()), t);
+        return At(new DisposeStmt(d, tags.ToArray(), values.ToArray()), t);
     }
 
     // ------------------------------------------------------------------ pack, unpack
@@ -288,7 +290,7 @@ public sealed partial class Compiler
                 if (a is ConstOrd co) return At(new ConstOrd((co.V & 1) != 0 ? 1 : 0, EnumType.Boolean), t);
                 return At(new IntFn(Fn.Odd, a, EnumType.Boolean), t);
             case "trunc": case "round":
-                if (!a.Type.IsNumeric) return Bad("real");
+                if (!a.Type.IsReal) return Bad("real");      // Revised Report 11.1.3: x is real (Pascal-P and Pascal 6000 reject integers)
                 return At(new IntFn(name == "trunc" ? Fn.Trunc : Fn.Round, ToReal(a), IntegerType.T), t);
             case "ord":
                 if (!a.Type.IsOrdinal) return Bad("of an ordinal type");

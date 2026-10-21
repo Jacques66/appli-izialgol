@@ -1,0 +1,3 @@
+allocated
+runtime error (dispose_tags.pas:8:4): dispose: p was allocated by new with 1 tag value(s); dispose must name the same tag values
+   at disposetags (dispose_tags.pas:8)

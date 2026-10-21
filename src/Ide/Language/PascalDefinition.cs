@@ -1,7 +1,7 @@
 namespace Studio.Ide.Language;
 
 /// <summary>Pascal (Revised Report, Pascal 6000): case-insensitive reserved words, comments { … } and (* … *)
-/// (several lines), strings '…' with doubled quotes, alternative symbols (. .) for [ ] and @ for ^.
+/// (synonym brackets, several lines), strings '…' with doubled quotes, alternative symbols (. .) for [ ] and @ for ^.
 /// Folding of begin/end, record/end, case/end (statement) and repeat/until; outline of the program,
 /// its procedures, functions and type definitions.</summary>
 public sealed class PascalDefinition : LanguageDefinition
@@ -53,19 +53,15 @@ public sealed class PascalDefinition : LanguageDefinition
         {
             char c = s[i];
             if (char.IsWhiteSpace(c) || c == '﻿') { i++; continue; }
-            if (c == '{')
+            if (c == '{' || (c == '(' && i + 1 < n && s[i + 1] == '*'))
             {
+                // (* and *) are synonyms for { and } (as in the compiler): the first } or *) ends the comment
                 int st = i;
-                int k = s.IndexOf('}', i + 1);
-                i = k < 0 ? n : k + 1;
-                tokens.Add(new Token(TokenKind.Comment, st, i - st, ""));
-                continue;
-            }
-            if (c == '(' && i + 1 < n && s[i + 1] == '*')
-            {
-                int st = i;
-                int k = s.IndexOf("*)", i + 2, StringComparison.Ordinal);
-                i = k < 0 ? n : k + 2;
+                int kb = s.IndexOf('}', i + 1);
+                int ks = s.IndexOf("*)", i + (c == '{' ? 1 : 2), StringComparison.Ordinal);
+                if (kb < 0 && ks < 0) i = n;
+                else if (ks < 0 || (kb >= 0 && kb < ks)) i = kb + 1;
+                else i = ks + 2;
                 tokens.Add(new Token(TokenKind.Comment, st, i - st, ""));
                 continue;
             }
@@ -281,16 +277,15 @@ public sealed class PascalDefinition : LanguageDefinition
         m.PairOf[close] = open;
     }
 
-    // Line comments: { text }, or (* text *) when the line already contains a closing brace.
+    // Line comments: { text }. The two kinds of comment brackets are synonyms, so a closing } or *) of the
+    // line is altered (to ")" and "* )") to keep the whole line inside the comment.
 
     public override string CommentLine(string line)
     {
         int ind = line.Length - line.TrimStart().Length;
         var body = line[ind..].TrimEnd();
         if (body.Length == 0) return line;
-        if (!body.Contains('}')) return line[..ind] + "{ " + body + " }";
-        if (!body.Contains("*)")) return line[..ind] + "(* " + body + " *)";
-        return line[..ind] + "{ " + body.Replace("}", ")") + " }";
+        return line[..ind] + "{ " + body.Replace("*)", "* )").Replace("}", ")") + " }";
     }
 
     public override bool IsCommentedLine(string line)

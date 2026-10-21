@@ -33,8 +33,9 @@ public sealed class Token
     };
 }
 
-/// <summary>Lexical analysis (Revised Report, chapter 3): case-insensitive words, comments { } and (* *),
-/// alternative symbols (. .) for [ ], @ and ↑ for ^, strings with doubled quotes.</summary>
+/// <summary>Lexical analysis (Revised Report, chapter 3): case-insensitive words, comments { } and (* *) (synonyms),
+/// alternative symbols (. .) for [ ], @ and ↑ for ^, the reference symbols ≠ ≤ ≥ ¬ ∧ ∨ for &lt;&gt; &lt;= &gt;= not and or,
+/// strings with doubled quotes.</summary>
 public sealed class Lexer
 {
     static readonly Dictionary<string, T> Reserved = new(StringComparer.OrdinalIgnoreCase)
@@ -99,15 +100,16 @@ public sealed class Lexer
             if (char.IsWhiteSpace(c) || c == '﻿') { i++; continue; }
             if (c == '{' || (c == '(' && Peek(1) == '*'))
             {
+                // (* and *) are synonyms for { and } (User Manual and Report, chapter 3): either closing
+                // symbol ends a comment, whichever symbol opened it
                 int l = line, col = Col;
-                bool brace = c == '{';
-                i += brace ? 1 : 2;
+                i += c == '{' ? 1 : 2;
                 bool closed = false;
                 while (i < s.Length)
                 {
                     if (s[i] == '\n') { NewLine(); i++; continue; }
-                    if (brace && s[i] == '}') { i++; closed = true; break; }
-                    if (!brace && s[i] == '*' && Peek(1) == ')') { i += 2; closed = true; break; }
+                    if (s[i] == '}') { i++; closed = true; break; }
+                    if (s[i] == '*' && Peek(1) == ')') { i += 2; closed = true; break; }
                     i++;
                 }
                 if (!closed) Error(l, col, "unterminated comment");
@@ -223,6 +225,13 @@ public sealed class Lexer
             case ']': return Make(T.RBrack, l, c, "]");
             case ')': return Make(T.RParen, l, c, ")");
             case '^': case '@': case '↑': return Make(T.Caret, l, c, ch.ToString());
+            // reference symbols of the Report, present in the CDC character set of Pascal 6000
+            case '≠': return Make(T.Ne, l, c, "≠");
+            case '≤': return Make(T.Le, l, c, "≤");
+            case '≥': return Make(T.Ge, l, c, "≥");
+            case '¬': return Make(T.Not, l, c, "¬");
+            case '∧': return Make(T.And, l, c, "∧");
+            case '∨': return Make(T.Or, l, c, "∨");
             case ':':
                 if (Peek() == '=') { i++; return Make(T.Assign, l, c, ":="); }
                 return Make(T.Colon, l, c, ":");

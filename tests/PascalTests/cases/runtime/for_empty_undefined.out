@@ -1,0 +1,2 @@
+runtime error (for_empty_undefined.pas:8:12): undefined value: i
+   at forempty (for_empty_undefined.pas:8)

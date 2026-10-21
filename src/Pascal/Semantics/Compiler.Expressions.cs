@@ -53,6 +53,7 @@ public sealed partial class Compiler
                     v.ReportedHeading = true;
                     Error(t, $"'{v.Name}' must be listed in the program heading, e.g. program p(input, output);");
                 }
+                collectVars?.Add(v);
                 int hops = rc.Level - v.Level;
                 d = v.IsRef ? new RefVarNode(hops, v.Slot, 0) : new VarNode(hops, v.Slot);
                 d.Type = v.Type; d.Desc = t.Raw; d.RootSymbol = v; d.IsEntire = true;

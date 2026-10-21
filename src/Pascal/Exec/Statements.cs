@@ -110,6 +110,8 @@ public sealed class AssignTag : Stmt
         var v = value.Value(f);
         var r = target.Addr(f);
         var old = r.S[r.I];
+        if (!old.IsUndef && old.N != v.N && f.Ctx.FixedTagStores.TryGetValue(r.S, out var h) && Array.IndexOf(h.FixedTagOffsets, r.I) >= 0)
+            throw RT.Err("the tag field of a variable allocated by new with tag values cannot be changed (Revised Report 10.1.2)", this);
         r.S[r.I] = v;
         if (old.IsUndef || old.N != v.N)
             Array.Fill(r.S, Cell.Undefined, r.I + partOffsetFromTag, partSize);
@@ -195,7 +197,11 @@ public sealed class ForStmt : Stmt
     {
         long a = from.Ord(f), b = to.Ord(f);
         var r = control.Addr(f);
-        if (down ? a < b : a > b) return 0;
+        if (down ? a < b : a > b)
+        {
+            r.S[r.I] = Cell.Undefined;     // Revised Report 9.2.3.3: the final value is left undefined
+            return 0;
+        }
         long lo = ctype.Lo, hi = ctype.Hi;
         if (a < lo || a > hi) throw RT.RangeErr(a, ctype, from);
         if (b < lo || b > hi) throw RT.RangeErr(b, ctype, to);

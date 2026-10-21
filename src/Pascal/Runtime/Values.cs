@@ -109,6 +109,10 @@ public sealed class HeapObj
     public readonly int Id;
     /// <summary>Allocated with explicit variant tag values (new(p, t1, ...)).</summary>
     public bool FixedVariant;
+    /// <summary>Tag values of new(p, t1, ..., tn), null for new(p).</summary>
+    public long[]? TagValues;
+    /// <summary>Offsets of the tag fields set by new(p, t1, ..., tn): their values must remain constant.</summary>
+    public int[] FixedTagOffsets = Array.Empty<int>();
     public HeapObj(PType type, Cell[] cells, int id) { Type = type; C = cells; Id = id; }
 }
 

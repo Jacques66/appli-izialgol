@@ -1,9 +1,13 @@
 program forcontrol(output);
 var i, g: integer; r: real; a: array[1..2] of integer;
 procedure p(k: integer);
-var j: integer;
+var j, m: integer;
+   procedure q;
+   begin
+      for m := 1 to 2 do      { m belongs to an intermediate block (Pascal 6000 error 155) }
+   end;
 begin
-   for g := 1 to 2 do;
+   for g := 1 to 2 do;        { a variable of the program is allowed }
    for k := 1 to 2 do;
    for j := 1 to 2 do j := 5
 end;

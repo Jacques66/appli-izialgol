@@ -911,7 +911,7 @@ static class Program
             var toks = pas.Tokenize(c + "\nx := 2;");
             Check(toks.Where(t => t.Start < c.Length).All(t => t.Kind == TokenKind.Comment), "Pascal line fully commented: " + c);
             Check(toks.Any(t => t.Kind == TokenKind.Identifier && t.Start > c.Length), "Pascal next line not commented: " + c);
-            if (!(line.Contains('}') && line.Contains("*)"))) Eq(line, pas.UncommentLine(c), "Pascal round trip");
+            if (!line.Contains('}') && !line.Contains("*)")) Eq(line, pas.UncommentLine(c), "Pascal round trip");
         }
         // Algol 60 / Simula I: "comment ... ;" (reserved words) or "'COMMENT' ... ;" (quote stropping)
         foreach (var d in new LanguageDefinition[] { LanguageDefinitions.Algol60, LanguageDefinitions.SimulaI })

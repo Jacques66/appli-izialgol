@@ -25,6 +25,11 @@ public sealed partial class Compiler
     readonly List<(string Name, Token At)> headingParams = new();
     SeqCtx? seq;
     readonly List<VarSym> activeForVars = new();
+    /// <summary>Entire variables used to select the records of the enclosing with statements (Revised Report 9.2.4:
+    /// the qualified statement may not assign them).</summary>
+    readonly List<VarSym> withConstituents = new();
+    /// <summary>Collects the entire variables referenced while a with record variable is compiled.</summary>
+    List<VarSym>? collectVars;
     bool inTypePart;
     readonly List<PointerType> pendingPointers = new();
 
@@ -737,6 +742,8 @@ public sealed partial class Compiler
         var outerScope = scope; var outerRc = rc; var outerSeq = seq;
         var outerFor = activeForVars.ToList();
         activeForVars.Clear();
+        var outerWith = withConstituents.ToList();
+        withConstituents.Clear();
         scope = new Scope(outerScope, sym.Level);
         rc = new RoutineCtx { Info = info, Level = sym.Level, Parent = outerRc, Sym = sym, NextSlot = sym.ParamsEnd };
         seq = null;
@@ -754,12 +761,15 @@ public sealed partial class Compiler
         if (info.IsFunction) info.Vars.Add(new DebugVar { Name = info.Name, Slot = info.ResultSlot, Type = info.Sig.Result!, IsResult = true });
         // display order: parameters, locals, result
         info.Body = Block(info, isMain: false);
+        if (info.IsFunction && !sym.ResultAssigned && !info.Sig.Result!.IsError)
+            Error(new Token { Line = info.Line, Col = info.Col }, $"function '{info.Name}' contains no assignment to its result (Revised Report 11: the function block must assign a value to the function identifier)");
         info.EndPos = At(new EmptyStmt(), toks[Math.Max(0, p - 1)]);
         var res = info.Vars.FirstOrDefault(v => v.IsResult);
         if (res != null) { info.Vars.Remove(res); info.Vars.Add(res); }
         info.Seal(rc.NextSlot);
         scope = outerScope; rc = outerRc; seq = outerSeq;
         activeForVars.Clear(); activeForVars.AddRange(outerFor);
+        withConstituents.Clear(); withConstituents.AddRange(outerWith);
     }
 
     /// <summary>Formal parameter list: value, var, procedure and function parameters.</summary>

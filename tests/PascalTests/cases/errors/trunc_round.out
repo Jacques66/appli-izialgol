@@ -1,0 +1,3 @@
+trunc_round.pas(6,15): error: the parameter of 'trunc' must be real (found integer)
+trunc_round.pas(7,15): error: the parameter of 'round' must be real (found integer)
+trunc_round.pas(9,15): error: the parameter of 'round' must be real (found char)

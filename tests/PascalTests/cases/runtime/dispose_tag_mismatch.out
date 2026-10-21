@@ -1,0 +1,2 @@
+runtime error (dispose_tag_mismatch.pas:7:4): dispose: the tag values given do not match the variant of p
+   at disposemismatch (dispose_tag_mismatch.pas:7)

@@ -1,0 +1,7 @@
+with_constituents.pas(8,19): error: assignment to 'i' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(9,37): error: assignment to 'p' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(10,25): error: new on 'p' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(11,23): error: using as the control variable 'i' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(12,24): error: reading into 'i' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(13,14): error: assignment to 'r' is not allowed: it selects the record variable of an enclosing with statement
+with_constituents.pas(15,29): error: assignment to 'i' is not allowed: it selects the record variable of an enclosing with statement

@@ -49,6 +49,8 @@ public sealed class RoutineSym : Sym
     public Signature Sig => Info.Sig;
     public int Level;            // level of the body
     public bool Forward, Defined;
+    /// <summary>An assignment to the function identifier occurs in its block (Revised Report 11).</summary>
+    public bool ResultAssigned;
     public int ParamsEnd;        // first free slot after parameters and result
     public List<VarSym> ParamSyms = new();
     public List<FormalRoutineSym> FormalSyms = new();

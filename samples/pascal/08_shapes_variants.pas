@@ -65,5 +65,11 @@ begin
          total := total + area(figs[i]^)
       end;
    writeln('total area: ', total:8:3);
-   for i := 1 to 4 do dispose(figs[i])
+   { a variable allocated by new(p, t) is released by dispose(p, t), with the same tag value }
+   for i := 1 to 4 do
+      case figs[i]^.k of
+         circle:    dispose(figs[i], circle);
+         rectangle: dispose(figs[i], rectangle);
+         triangle:  dispose(figs[i], triangle)
+      end
 end.

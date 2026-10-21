@@ -1,0 +1,5 @@
+ 1 2 3
+ 3 2 1
+xyz
+runtime error (for_global.pas:20:12): undefined value: g
+   at forglobal (for_global.pas:20)

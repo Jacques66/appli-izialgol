@@ -17,6 +17,8 @@ public sealed class ExecContext
     public Frame? Top;
     public int CallDepth;
     public int HeapCounter;
+    /// <summary>Storage of the dynamic variables allocated with tag values (new(p, t1, ..., tn)).</summary>
+    public readonly System.Runtime.CompilerServices.ConditionalWeakTable<Cell[], HeapObj> FixedTagStores = new();
     readonly List<PFile> files = new();
     readonly System.Text.StringBuilder pendingOut = new();
 

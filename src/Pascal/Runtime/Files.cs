@@ -398,5 +398,6 @@ public sealed class PFile
     {
         CheckWrite(at);
         elems.Add(src.S.AsSpan(src.I, Buffer.Length).ToArray());
+        Array.Fill(Buffer, Cell.Undefined);     // as after f^ := x; put(f)
     }
 }
