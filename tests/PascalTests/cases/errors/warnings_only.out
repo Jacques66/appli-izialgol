@@ -1,0 +1,4 @@
+a declared but unused label is only a warning
+
+warnings_only.pas(2,7): warning: label 7 is declared but not used
+warnings_only.pas(6,1): warning: text after the final '.' is ignored

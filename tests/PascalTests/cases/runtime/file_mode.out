@@ -1,0 +1,2 @@
+runtime error (file_mode.pas:5:4): file f: reading a file that is being written (call reset first)
+   at filemode (file_mode.pas:5)

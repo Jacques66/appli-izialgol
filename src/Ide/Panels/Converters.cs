@@ -18,7 +18,7 @@ public sealed class FileNameConverter : IValueConverter
 }
 
 /// <summary>Display name of a sample: "Algol 68 — classics/primes.a68" (path relative to
-/// samples/simula, samples/algol68, samples/algol60 or samples/simula1, which may contain subfolders).</summary>
+/// samples/simula, samples/algol68, samples/algol60, samples/simula1 or samples/pascal, which may contain subfolders).</summary>
 public sealed class SampleNameConverter : IValueConverter
 {
     public static readonly SampleNameConverter Instance = new();
@@ -26,7 +26,7 @@ public sealed class SampleNameConverter : IValueConverter
     /// <summary>Sample folder → language name.</summary>
     static readonly Dictionary<string, string> Folders = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["simula"] = "Simula 67", ["algol68"] = "Algol 68", ["algol60"] = "Algol 60", ["simula1"] = "Simula I",
+        ["simula"] = "Simula 67", ["algol68"] = "Algol 68", ["algol60"] = "Algol 60", ["simula1"] = "Simula I", ["pascal"] = "Pascal",
     };
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

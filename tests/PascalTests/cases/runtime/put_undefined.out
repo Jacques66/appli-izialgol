@@ -1,0 +1,2 @@
+runtime error (put_undefined.pas:4:16): file f: put with an undefined buffer variable
+   at putundef (put_undefined.pas:4)

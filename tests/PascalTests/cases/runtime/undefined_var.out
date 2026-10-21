@@ -1,0 +1,2 @@
+runtime error (undefined_var.pas:5:16): undefined value: j
+   at undefinedvar (undefined_var.pas:5)

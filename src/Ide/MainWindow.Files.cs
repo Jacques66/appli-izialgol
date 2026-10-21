@@ -11,8 +11,8 @@ namespace Studio.Ide;
 public partial class MainWindow
 {
     const string FileFilter =
-        "All programs (*.sim;*.a68;*.a60;*.alg;*.s1)|*.sim;*.a68;*.a60;*.alg;*.s1|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|" +
-        "Algol 60 (*.a60;*.alg)|*.a60;*.alg|Simula I (*.s1)|*.s1|All files (*.*)|*.*";
+        "All programs (*.sim;*.a68;*.a60;*.alg;*.s1;*.pas;*.p)|*.sim;*.a68;*.a60;*.alg;*.s1;*.pas;*.p|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|" +
+        "Algol 60 (*.a60;*.alg)|*.a60;*.alg|Simula I (*.s1)|*.s1|Pascal (*.pas;*.p)|*.pas;*.p|All files (*.*)|*.*";
 
     string FileFilterWithEcho => LanguageRegistry.TestLanguageEnabled
         ? FileFilter + "|Echo, test language (*.echo)|*.echo"
@@ -90,12 +90,14 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Unknown extension: Simula I for a "SIMULA begin" block, Algol 60 when its standard
-    /// procedures or quoted keywords are found, Algol 68 when upper-case bold words are found, otherwise Simula 67.</summary>
+    /// <summary>Unknown extension: Pascal for a program heading "program name(...);", Simula I for a "SIMULA begin"
+    /// block, Algol 60 when its standard procedures or quoted keywords are found, Algol 68 when upper-case bold
+    /// words are found, otherwise Simula 67.</summary>
     static LanguageDefinition GuessLanguage(string text)
     {
         var t = text.Length > 4000 ? text[..4000] : text;
         const System.Text.RegularExpressions.RegexOptions ic = System.Text.RegularExpressions.RegexOptions.IgnoreCase;
+        if (System.Text.RegularExpressions.Regex.IsMatch(t, @"^\s*(\{[^}]*\}\s*|\(\*.*?\*\)\s*)*program\s+[a-z][a-z0-9]*\s*\(", ic | System.Text.RegularExpressions.RegexOptions.Singleline)) return LanguageDefinitions.Pascal;
         if (System.Text.RegularExpressions.Regex.IsMatch(t, @"\bSIMULA\s*(\bbegin\b|'BEGIN')", ic)) return LanguageDefinitions.SimulaI;
         int algol60 = System.Text.RegularExpressions.Regex.Matches(t,
             @"\b(outstring|outinteger|outreal|ininteger|inreal|outchar|inchar|outterminator)\b|'(PROCEDURE|INTEGER|BOOLEAN|ARRAY|STEP|UNTIL|SWITCH)'", ic).Count;
@@ -130,7 +132,7 @@ public partial class MainWindow
             var dlg = new SaveFileDialog
             {
                 Filter = FileFilterWithEcho,
-                FilterIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "echo" => 7, _ => 1 },
+                FilterIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "pascal" => 6, "echo" => 8, _ => 1 },
                 FileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
                 DefaultExt = doc.Language.DefaultExtension,
                 AddExtension = true,
@@ -253,7 +255,7 @@ public partial class MainWindow
         var root = PathLocator.SamplesDirectory;
         var list = new List<string>();
         if (root == null) return list;
-        foreach (var (sub, ext) in new[] { ("simula", "*.sim"), ("algol68", "*.a68"), ("algol60", "*.a60"), ("simula1", "*.s1") })
+        foreach (var (sub, ext) in new[] { ("simula", "*.sim"), ("algol68", "*.a68"), ("algol60", "*.a60"), ("simula1", "*.s1"), ("pascal", "*.pas") })
         {
             var dir = System.IO.Path.Combine(root, sub);
             if (System.IO.Directory.Exists(dir))
@@ -309,7 +311,7 @@ public partial class MainWindow
             ExamplesMenu.Items.Add(new MenuItem { Header = "(samples folder not found)", IsEnabled = false });
             return;
         }
-        foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68"), ("algol60", "*.a60", "Algol 60"), ("simula1", "*.s1", "Simula I") })
+        foreach (var (sub, ext, title) in new[] { ("simula", "*.sim", "Simula 67"), ("algol68", "*.a68", "Algol 68"), ("algol60", "*.a60", "Algol 60"), ("simula1", "*.s1", "Simula I"), ("pascal", "*.pas", "Pascal") })
         {
             var group = new MenuItem { Header = title };
             var dir = System.IO.Path.Combine(root, sub);
@@ -332,7 +334,7 @@ public partial class MainWindow
             {
                 var t = line.Trim();
                 if (t.StartsWith("comment", StringComparison.OrdinalIgnoreCase) || t.StartsWith("'COMMENT'", StringComparison.OrdinalIgnoreCase)
-                    || t.StartsWith('!') || t.StartsWith('#') || t.StartsWith("CO"))
+                    || t.StartsWith('!') || t.StartsWith('#') || t.StartsWith("CO") || t.StartsWith('{') || t.StartsWith("(*"))
                     return t.Length > 120 ? t[..120] + "…" : t;
             }
         }

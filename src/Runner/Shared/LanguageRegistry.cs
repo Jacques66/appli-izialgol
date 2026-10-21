@@ -4,6 +4,7 @@
 using Studio.Algol60;
 using Studio.Algol68;
 using Studio.Common;
+using Studio.Pascal;
 using Studio.Simula;
 using Studio.SimulaI;
 using Studio.Tooling.Testing;
@@ -16,14 +17,14 @@ public static class LanguageRegistry
     static ILanguageService[]? _languages;
     static EchoLanguage? _echo;
 
-    /// <summary>Real languages (Simula 67, Algol 68, Algol 60, Simula I).</summary>
+    /// <summary>Real languages (Simula 67, Algol 68, Algol 60, Simula I, Pascal).</summary>
     public static IReadOnlyList<ILanguageService> Languages
     {
         get
         {
             lock (Gate)
             {
-                _languages ??= new ILanguageService[] { new SimulaLanguage(), new Algol68Language(), new Algol60Language(), new SimulaILanguage() };
+                _languages ??= new ILanguageService[] { new SimulaLanguage(), new Algol68Language(), new Algol60Language(), new SimulaILanguage(), new PascalLanguage() };
                 var list = new List<ILanguageService>(_languages);
                 if (TestLanguageEnabled) list.Add(Echo);
                 return list;

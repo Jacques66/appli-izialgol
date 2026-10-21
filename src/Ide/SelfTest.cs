@@ -241,6 +241,27 @@ public static class SelfTest
         "   hold(10)\r\n" +                                                // 11
         "end of simulation model\r\n";                                     // 12
 
+    public const string PascalSample =
+        "program shapes(output);\r\n" +                                          // 1
+        "{ Example Pascal: a record type, a function and a procedure }\r\n" +    // 2
+        "type point = record x, y: real end;\r\n" +                              // 3
+        "var p: point; i: integer;\r\n" +                                        // 4
+        "function fact(n: integer): integer;\r\n" +                              // 5
+        "begin\r\n" +                                                            // 6
+        "   if n <= 1 then fact := 1 else fact := n * fact(n - 1)\r\n" +         // 7
+        "end;\r\n" +                                                             // 8
+        "procedure show(q: point);\r\n" +                                        // 9
+        "begin\r\n" +                                                            // 10
+        "   writeln(q.x:6:2, q.y:6:2)\r\n" +                                     // 11
+        "end;\r\n" +                                                             // 12
+        "begin\r\n" +                                                            // 13
+        "   for i := 1 to 5 do writeln('fact(', i:1, ') = ', fact(i):1);\r\n" + // 14
+        "   p.x := 3.0; p.y := 4.0;\r\n" +                                       // 15
+        "   repeat\r\n" +                                                        // 16
+        "      show(p); p.x := p.x - 1\r\n" +                                    // 17
+        "   until p.x < 1\r\n" +                                                 // 18
+        "end.\r\n";                                                              // 19
+
     public static async Task RunSmokeAsync(MainWindow w)
     {
         try
@@ -251,11 +272,13 @@ public static class SelfTest
             var alg = w.NewDocument(LanguageDefinitions.Algol68, AlgolSample);
             var a60 = w.NewDocument(LanguageDefinitions.Algol60, Algol60Sample);
             var s1 = w.NewDocument(LanguageDefinitions.SimulaI, SimulaISample);
+            var pas = w.NewDocument(LanguageDefinitions.Pascal, PascalSample);
             Check(sim.Model.Tokens.Count > 20 && alg.Model.Tokens.Count > 20, "highlighting: Simula and Algol 68 tokens");
             Check(a60.Model.Tokens.Count > 20 && s1.Model.Tokens.Count > 20, "highlighting: Algol 60 and Simula I tokens");
             Check(sim.Model.Folds.Count > 0 && alg.Model.Folds.Count > 0, "folding computed");
             Check(a60.Model.Folds.Count > 0 && s1.Model.Folds.Count > 0, "folding computed (Algol 60, Simula I)");
-            Check(w.Documents.Count == 4, "four tabs open");
+            Check(pas.Model.Tokens.Count > 20 && pas.Model.Folds.Count > 0, "highlighting and folding computed (Pascal)");
+            Check(w.Documents.Count == 5, "five tabs open");
             w.Activate(sim);
             await Task.Delay(900);
             if (App.Options.Screenshot != null) Capture(w, App.Options.Screenshot);
@@ -461,8 +484,18 @@ public static class SelfTest
             w.Activate(s1);
             await Task.Delay(300);
             Capture(w, Path.Combine(dir, "3b-simula1-editor.png"));
+            var pas = w.NewDocument(LanguageDefinitions.Pascal, PascalSample);
+            await Task.Delay(450);
+            Check(pas.Model.Outline.Select(o => o.Name).SequenceEqual(new[] { "shapes", "point", "fact", "show" }), "Pascal outline: " + string.Join(",", pas.Model.Outline.Select(o => o.Name)));
+            Check(pas.Folding.AllFoldings.Count() >= 4, "Pascal folding: " + pas.Folding.AllFoldings.Count());
+            Check(pas.Model.Tokens.Any(t => t.Kind == TokenKind.Builtin && pas.Model.TokenText(t) == "writeln"), "Pascal standard procedure writeln");
+            Check(pas.Model.Tokens.Any(t => t.Kind == TokenKind.Comment && pas.Model.TokenText(t).StartsWith("{ Example")), "Pascal comment");
+            w.Activate(pas);
+            await Task.Delay(300);
+            Capture(w, Path.Combine(dir, "3c-pascal-editor.png"));
             w.CloseDocument(a60, force: true);
             w.CloseDocument(s1, force: true);
+            w.CloseDocument(pas, force: true);
             // Automatic indentation after BEGIN
             alg.Editor.CaretOffset = alg.Editor.Document.GetLineByNumber(1).EndOffset;
             alg.Editor.TextArea.PerformTextInput("\n");
@@ -526,6 +559,7 @@ public static class SelfTest
             await RealCompilerScenario(w, LanguageDefinitions.Algol68, RealAlgol, "Sum:", 5, "n");
             await RealCompilerScenario(w, LanguageDefinitions.Algol60, RealAlgol60, "Sum:", 5, "n");
             await RealCompilerScenario(w, LanguageDefinitions.SimulaI, RealSimulaI, "Sum:", 5, "n");
+            await RealCompilerScenario(w, LanguageDefinitions.Pascal, RealPascal, "Sum:", 5, "n");
 
             // ---- 12b. Samples (information)
             foreach (var sample in MainWindow.ListSamples().Take(300))
@@ -553,7 +587,7 @@ public static class SelfTest
                 help.ShowTopic("shortcuts");
                 await Task.Delay(800);
                 Check(help.TocList.Items.Count >= 5, "help: keyboard shortcuts");
-                foreach (var (topic, file) in new[] { ("algol60", "algol60.md"), ("simula1", "simula1.md") })
+                foreach (var (topic, file) in new[] { ("algol60", "algol60.md"), ("simula1", "simula1.md"), ("pascal", "pascal.md") })
                 {
                     help.ShowTopic(topic);
                     await Task.Delay(800);
@@ -625,6 +659,19 @@ public static class SelfTest
         "   hold(10);\r\n" +                                                         // 13
         "   outstring(1, \"Sum:\"); outinteger(1, s); outstring(1, \"\\n\")\r\n" +   // 14
         "end of simulation model\r\n";                                               // 15
+
+    const string RealPascal =
+        "program sum(output);\r\n" +                                               // 1
+        "var i, s: integer;\r\n" +                                                 // 2
+        "procedure add(n: integer);\r\n" +                                         // 3
+        "begin\r\n" +                                                              // 4
+        "   s := s + n\r\n" +                                                      // 5
+        "end;\r\n" +                                                               // 6
+        "begin\r\n" +                                                              // 7
+        "   s := 0;\r\n" +                                                         // 8
+        "   for i := 1 to 3 do add(i);\r\n" +                                      // 9
+        "   writeln('Sum:', s:3)\r\n" +                                            // 10
+        "end.\r\n";                                                                // 11
 
     static int _realWarnings;
 

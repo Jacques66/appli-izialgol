@@ -1,0 +1,2 @@
+runtime error (dangling.pas:5:13): dangling pointer: q^ refers to a disposed variable
+   at dangling (dangling.pas:5)

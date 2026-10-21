@@ -1,0 +1,14 @@
+[ 0 2 3 4 ]
+[ 3 4 5 6 ]
+[ 0 2 3 4 5 6 ]
+[ 3 4 ]
+[ 0 2 ]
+[ ]
+     FALSE      TRUE      TRUE      TRUE      TRUE     FALSE      TRUE
+      TRUE     FALSE      TRUE      TRUE
+  3  6  9 10 11 12
+!"#$%&'()*+,-./
+      TRUE     FALSE      TRUE
+      TRUE     FALSE      TRUE
+      TRUE     FALSE      TRUE
+      TRUE      TRUE

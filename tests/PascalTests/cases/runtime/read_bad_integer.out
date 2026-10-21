@@ -1,0 +1,3 @@
+42
+runtime error (read_bad_integer.pas:5:4): file input: digit expected while reading an integer, found 'a'
+   at readbad (read_bad_integer.pas:5)

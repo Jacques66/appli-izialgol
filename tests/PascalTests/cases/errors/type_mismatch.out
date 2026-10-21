@@ -1,0 +1,9 @@
+type_mismatch.pas(4,6): error: type mismatch: a value of type real cannot be assigned to i of type integer
+type_mismatch.pas(5,6): error: type mismatch: a value of type integer cannot be assigned to b of type boolean
+type_mismatch.pas(6,6): error: type mismatch: a value of type packed array[1..2] of char cannot be assigned to c of type char
+type_mismatch.pas(7,6): error: type mismatch: a value of type packed array[1..4] of char cannot be assigned to s of type packed array[1..3] of char (string lengths differ: 4 and 3; strings must have exactly the same length)
+type_mismatch.pas(8,6): error: type mismatch: a value of type char cannot be assigned to r of type real
+type_mismatch.pas(9,11): error: operator '+' cannot be applied to operands of types integer and boolean
+type_mismatch.pas(10,7): error: the condition of an if statement must be of type boolean (found integer)
+type_mismatch.pas(11,10): error: the condition of a while statement must be of type boolean (found char)
+type_mismatch.pas(12,6): error: type mismatch: a value of type char cannot be assigned to i of type integer

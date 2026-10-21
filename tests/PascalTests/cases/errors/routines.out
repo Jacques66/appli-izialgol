@@ -1,0 +1,9 @@
+routines.pas(4,10): error: the result type of a function must be a simple or pointer type (arr is not)
+routines.pas(5,11): error: procedure 'fwd' is declared forward but its block is missing
+routines.pas(7,15): error: the parameter list of 'fwd2' must not be repeated (it was declared forward)
+routines.pas(11,9): error: procedure 'p' cannot be used in an expression (it yields no value)
+routines.pas(12,4): error: function 'f' cannot be called as a procedure (its result must be used)
+routines.pas(13,4): error: too few parameters: 'p' expects 2, 1 given
+routines.pas(14,12): error: too many parameters: 'p' expects 2
+routines.pas(15,9): error: 'f' expects 1 parameter(s)
+routines.pas(16,4): error: the result of function 'f' can only be assigned inside its own block

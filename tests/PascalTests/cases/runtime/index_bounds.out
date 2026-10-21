@@ -1,0 +1,4 @@
+ok
+runtime error (index_bounds.pas:6:24): index 6 out of bounds 1..5 in a[i]
+   at fill (index_bounds.pas:6)
+   at indexbounds (index_bounds.pas:10)

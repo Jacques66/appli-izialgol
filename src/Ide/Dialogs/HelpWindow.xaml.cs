@@ -10,7 +10,7 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-/// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md and docs/simula1.md (Markdig → HTML).</summary>
+/// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md, docs/simula1.md and docs/pascal.md (Markdig → HTML).</summary>
 public partial class HelpWindow : Window
 {
     public sealed record TocEntry(string Title, string Id, int Level)
@@ -51,8 +51,9 @@ public partial class HelpWindow : Window
             case "algol68":
             case "algol60":
             case "simula1":
+            case "pascal":
             {
-                title = topic switch { "simula" => "Simula 67", "algol68" => "Algol 68", "algol60" => "Algol 60", _ => "Simula I" };
+                title = topic switch { "simula" => "Simula 67", "algol68" => "Algol 68", "algol60" => "Algol 60", "pascal" => "Pascal", _ => "Simula I" };
                 var docs = PathLocator.DocsDirectory;
                 var file = docs == null ? null : System.IO.Path.Combine(docs, topic + ".md");
                 if (file != null && System.IO.File.Exists(file))
@@ -171,7 +172,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
             ScrollTo(s[(s.IndexOf('#') + 1)..]);
             return;
         }
-        foreach (var topic in new[] { "simula1", "simula", "algol68", "algol60" })
+        foreach (var topic in new[] { "simula1", "simula", "algol68", "algol60", "pascal" })
         {
             var file = topic + ".md";
             if (s.EndsWith(file, StringComparison.OrdinalIgnoreCase) || s.Contains(file + "#", StringComparison.OrdinalIgnoreCase))
@@ -210,7 +211,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 |---|---|
 | <kbd>Ctrl+N</kbd> | New Simula 67 program |
 | <kbd>Ctrl+Shift+N</kbd> | New Algol 68 program |
-| (menu only) | **File › New Algol 60 program** / **New Simula I program** |
+| (menu only) | **File › New Algol 60 program** / **New Simula I program** / **New Pascal program** |
 | <kbd>Ctrl+O</kbd> | Open |
 | <kbd>Ctrl+S</kbd> | Save |
 | <kbd>Ctrl+Shift+S</kbd> | Save all |
@@ -275,8 +276,8 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 
 ## Writing a program
 
-* **File › New Simula 67 program** (<kbd>Ctrl+N</kbd>), **Algol 68** (<kbd>Ctrl+Shift+N</kbd>), **Algol 60** or **Simula I** creates a tab with a template.
-* The language is chosen from the extension (`.sim` Simula 67, `.a68` Algol 68, `.a60` or `.alg` Algol 60, `.s1` Simula I); it can be changed in **Build › File language** or by clicking the language name in the status bar.
+* **File › New Simula 67 program** (<kbd>Ctrl+N</kbd>), **Algol 68** (<kbd>Ctrl+Shift+N</kbd>), **Algol 60**, **Simula I** or **Pascal** creates a tab with a template.
+* The language is chosen from the extension (`.sim` Simula 67, `.a68` Algol 68, `.a60` or `.alg` Algol 60, `.s1` Simula I, `.pas` or `.p` Pascal); it can be changed in **Build › File language** or by clicking the language name in the status bar.
 * The **Examples** menu opens the programs of the `samples` folder (one submenu per language).
 * Files can be dragged and dropped into the window; a dropped folder becomes the root of the explorer.
 * The session (open tabs, breakpoints, caret position, layout) is restored at start-up.
@@ -302,6 +303,13 @@ Input and output go through `outstring`, `outinteger`, `outreal`, `ininteger`, `
 Algol 60 extended with the `SIMULA begin … end` block, `activity` declarations, `element` and `set` variables, `activate`, `hold`, `passivate`, `wait`, `inspect … when … otherwise`…
 Comments after `end` also stop at `when` and `otherwise`. There is no `text` type: strings are written with `outstring`. See **Help › Simula I help**.
 
+## Pascal
+
+The Pascal of the Revised Report (Jensen and Wirth), as implemented by Pascal 6000 on the CDC 6600: reserved words are case-insensitive,
+comments are written `{ … }` or `(* … *)`, strings `'text'` (a quote is doubled: `'don''t'`), `(.` `.)` may replace `[` `]` and `@` may replace `^`.
+A program starts with its heading, e.g. `program hello(input, output);`, and ends with `end.`; files listed in the heading other than
+`input` and `output` are files of the working directory. See **Help › Pascal help**.
+
 ## Build and run
 
 * **Build** (<kbd>F7</kbd>) compiles the current file: diagnostics appear in the **Output**, in the **error list** (double-click to go to the line) and are underlined in the editor. A background check underlines errors while you type.
@@ -324,6 +332,7 @@ simc program.sim [-o program.exe] [--run] [--no-debug]
 a68c program.a68 [-o program.exe] [--run] [--no-debug]
 a60c program.a60 [-o program.exe] [--run] [--no-debug]
 s1c  program.s1  [-o program.exe] [--run] [--no-debug]
+pasc program.pas [-o program.exe] [--run] [--no-debug]
 ```
 ";
 }

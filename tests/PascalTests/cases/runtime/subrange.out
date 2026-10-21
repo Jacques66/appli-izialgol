@@ -1,0 +1,3 @@
+9
+runtime error (subrange.pas:5:21): value 10 out of range 0..9
+   at subrange (subrange.pas:5)

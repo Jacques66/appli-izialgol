@@ -1,0 +1,2 @@
+runtime error (overflow_mul.pas:5:14): integer overflow: the result exceeds maxint (281474976710655)
+   at overflowmul (overflow_mul.pas:5)

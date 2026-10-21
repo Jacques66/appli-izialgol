@@ -1,8 +1,8 @@
 // End-to-end tests of the tooling (without the real compilers):
 // "echo" test language, debugger, standalone exe through Runner, CLI, editor analysis.
 // Usage: dotnet run --project tests/IdeTests [-- --samples]
-//   --samples: also compiles and runs samples/simula, samples/algol68, samples/algol60 and samples/simula1
-//   with the real compilers (the Algol 60 and Simula I samples are always checked against their .out files).
+//   --samples: also compiles and runs samples/simula, samples/algol68, samples/algol60, samples/simula1 and samples/pascal
+//   with the real compilers (the Algol 60, Simula I and Pascal samples are always checked against their .out files).
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -41,7 +41,7 @@ static class Program
         Test("standalone exe: generation + execution + standard input", ExeEndToEnd);
         Test("standalone exe: runtime error on stderr, exit code", ExeRuntimeError);
         Test("standalone exe: program exit code", ExeExitCode);
-        Test("simc / a68c / a60c / s1c: usage, file not found, diagnostics", CliBasics);
+        Test("simc / a68c / a60c / s1c / pasc: usage, file not found, diagnostics", CliBasics);
         Test("Simula editor: tokens and comments", SimulaLexer);
         Test("Simula editor: folding, matching, outline", SimulaStructure);
         Test("Algol 68 editor: UPPER/QUOTE stropping, comments", AlgolLexer);
@@ -49,11 +49,14 @@ static class Program
         Test("Algol 60 editor: reserved words, quote stropping, comments, strings", Algol60Lexer);
         Test("Algol 60 editor: folding, matching, outline", Algol60Structure);
         Test("Simula I editor: keywords, end comments, folding, outline", SimulaILexerAndStructure);
+        Test("Pascal editor: reserved words, comments, strings, numbers", PascalLexer);
+        Test("Pascal editor: folding, matching, outline", PascalStructure);
         Test("editor: languages by file extension", LanguagesByExtension);
         Test("editor: automatic indentation", Indentation);
         Test("editor: comment / uncomment", CommentToggle);
         Test("Algol 60 samples: compile, run, compare with .out", () => CheckSamples("algol60", ".a60"));
         Test("Simula I samples: compile, run, compare with .out", () => CheckSamples("simula1", ".s1"));
+        Test("Pascal samples: compile, run, compare with .out", () => CheckSamples("pascal", ".pas"));
 
         if (args.Contains("--samples")) Samples();
 
@@ -468,7 +471,7 @@ static class Program
 
     static void CliBasics()
     {
-        foreach (var (proj, exe, ext) in new[] { ("SimC", "simc.exe", ".sim"), ("A68C", "a68c.exe", ".a68"), ("A60C", "a60c.exe", ".a60"), ("S1C", "s1c.exe", ".s1") })
+        foreach (var (proj, exe, ext) in new[] { ("SimC", "simc.exe", ".sim"), ("A68C", "a68c.exe", ".a68"), ("A60C", "a60c.exe", ".a60"), ("S1C", "s1c.exe", ".s1"), ("PasC", "pasc.exe", ".pas") })
         {
             var tool = FindTool(proj, exe);
             Check(tool != null, exe + " not found");
@@ -706,8 +709,90 @@ static class Program
         Check(m.Tokens.Any(k => k.Kind == TokenKind.Comment && src.Substring(k.Start, k.Length) == "of simulation model"), "final end comment");
     }
 
+    static void PascalLexer()
+    {
+        var d = LanguageDefinitions.Pascal;
+        var t = Toks(d, "PROGRAM p(output); { brace comment } (* star\ncomment *) var i: Integer; s: alfa;\n" +
+                        "BEGIN i := 10 div 3; x := 1.5E-3 + 2.0; a(.1.) := 'don''t'; c := 'x'; p@.next := nil; for i := 1..9 do writeln(i:3) END.");
+        Check(t.Contains((TokenKind.Keyword, "PROGRAM")) && t.Contains((TokenKind.Keyword, "BEGIN")) && t.Contains((TokenKind.Keyword, "END")), "keywords (case-insensitive)");
+        Check(t.Contains((TokenKind.Keyword, "div")) && t.Contains((TokenKind.Keyword, "nil")), "div, nil");
+        Check(t.Contains((TokenKind.Type, "Integer")) && t.Contains((TokenKind.Type, "alfa")), "standard types");
+        Check(t.Contains((TokenKind.Comment, "{ brace comment }")), "{ } comment");
+        Check(t.Contains((TokenKind.Comment, "(* star\ncomment *)")), "(* *) comment over two lines");
+        Check(t.Contains((TokenKind.Number, "1.5E-3")) && t.Contains((TokenKind.Number, "2.0")) && t.Contains((TokenKind.Number, "10")), "numbers");
+        Check(t.Contains((TokenKind.Number, "1")) && t.Contains((TokenKind.Operator, "..")) && t.Contains((TokenKind.Number, "9")), "1..9 is a subrange, not a real");
+        Check(t.Contains((TokenKind.String, "'don''t'")), "string with doubled quote");
+        Check(t.Contains((TokenKind.Char, "'x'")), "character constant");
+        Check(t.Contains((TokenKind.Builtin, "writeln")) && t.Contains((TokenKind.Builtin, "output")), "standard identifiers");
+        Check(t.Contains((TokenKind.Operator, ":=")), "assignment");
+        var toks = d.Tokenize("a(.1.) := p@");
+        Check(toks.Any(k => k.Norm == "[") && toks.Any(k => k.Norm == "]") && toks.Any(k => k.Norm == "^"), "alternative symbols (. .) @");
+        Check(d.Tokenize("Begin")[0].Norm == "begin", "normalization to lower case");
+    }
+
+    static void PascalStructure()
+    {
+        var d = LanguageDefinitions.Pascal;
+        var src = string.Join("\n",
+            "program shapes(input, output);",
+            "type kind = (circle, square);",
+            "   figure = record",
+            "      x, y: real;",
+            "      case k: kind of",
+            "         circle: (r: real);",
+            "         square: (side: real)",
+            "   end;",
+            "var f: figure;",
+            "procedure later(n: integer); forward;",
+            "function area(f: figure): real;",
+            "   function sq(x: real): real;",
+            "   begin sq := x * x end;",
+            "begin",
+            "   case f.k of",
+            "      circle: area := 3.14 * sq(f.r);",
+            "      square: area := sq(f.side)",
+            "   end",
+            "end;",
+            "procedure later;",
+            "begin",
+            "   repeat",
+            "      n := n - 1",
+            "   until n = 0",
+            "end;",
+            "procedure apply(procedure p(x: integer); function g: real);",
+            "begin",
+            "   p(1)",
+            "end;",
+            "begin",
+            "   writeln(area(f))",
+            "end.");
+        var m = d.Analyze(src);
+        Eq("shapes,kind,figure,later,area,sq,later,apply", string.Join(",", m.Outline.Select(o => o.Name)), "outline");
+        Eq(OutlineKind.Class, m.Outline[0].Kind, "program");
+        Eq(OutlineKind.Mode, m.Outline[1].Kind, "type");
+        Eq("function", m.Outline[4].Detail, "function detail");
+        Eq(1, m.Outline[4].Depth, "area depth");
+        Eq(2, m.Outline[5].Depth, "nested function depth");
+        Check(m.Folds.Any(f => f.Title == "record … end"), "record fold");
+        Check(m.Folds.Any(f => f.Title == "function area …"), "function fold (the nested function and the case statement do not break it)");
+        Check(m.Folds.Any(f => f.Title == "case … end"), "case statement fold");
+        Check(m.Folds.Any(f => f.Title == "procedure later …"), "forward procedure body fold");
+        Check(m.Folds.Any(f => f.Title == "repeat … until"), "repeat/until fold");
+        Check(m.Folds.Any(f => f.Title == "procedure apply …"), "procedural parameters do not open a fold");
+        Check(m.Folds.Any(f => f.Title == "program shapes …"), "main program fold");
+        var toks = m.Tokens.ToList();
+        int rec = toks.FindIndex(t => t.Norm == "record");
+        Check(m.PairOf.TryGetValue(rec, out var recEnd) && m.Tokens[recEnd].Norm == "end" && m.Tokens[recEnd].Start == src.IndexOf("   end;") + 3, "record/end matching (the variant part has no end)");
+        int rep = toks.FindIndex(t => t.Norm == "repeat");
+        Check(m.PairOf.TryGetValue(rep, out var until) && m.Tokens[until].Norm == "until", "repeat/until matching");
+        int lastBegin = toks.FindLastIndex(t => t.Norm == "begin");
+        Check(m.PairOf.TryGetValue(lastBegin, out var lastEnd) && m.Tokens[lastEnd].Start == src.LastIndexOf("end"), "begin/end matching");
+    }
+
     static void LanguagesByExtension()
     {
+        Eq("pascal", LanguageDefinitions.ByExtension("C:\\x\\prog.pas")?.Id, ".pas");
+        Eq("pascal", LanguageDefinitions.ByExtension("C:\\x\\PROG.P")?.Id, ".p");
         Eq("algol60", LanguageDefinitions.ByExtension("C:\\x\\prog.a60")?.Id, ".a60");
         Eq("algol60", LanguageDefinitions.ByExtension("C:\\x\\PROG.ALG")?.Id, ".alg");
         Eq("simula1", LanguageDefinitions.ByExtension("C:\\x\\model.s1")?.Id, ".s1");
@@ -748,6 +833,13 @@ static class Program
             Eq("   ", d.ComputeIndent("   comment begin;", ""), d.DisplayName + ": begin inside a comment");
         }
         Eq("   ", LanguageDefinitions.SimulaI.ComputeIndent("SIMULA begin", ""), "after SIMULA begin");
+        var p = LanguageDefinitions.Pascal;
+        Eq("      ", p.ComputeIndent("   begin", ""), "Pascal: after begin");
+        Eq("   ", p.ComputeIndent("      x := 1", "end;"), "Pascal: end unindented");
+        Eq("   ", p.ComputeIndent("repeat", ""), "Pascal: after repeat");
+        Eq("", p.ComputeIndent("   x := 1", "until x > 3"), "Pascal: until unindented");
+        Eq("   ", p.ComputeIndent("point = record", ""), "Pascal: after record");
+        Eq("   ", p.ComputeIndent("   { begin }", ""), "Pascal: begin inside a comment");
     }
 
     /// <summary>Compiles and runs every sample of samples/&lt;sub&gt; with the real compiler and compares the
@@ -811,6 +903,16 @@ static class Program
         Check(a.IsCommentedLine(c2), "Algol commented");
         Eq(1, a.Tokenize(c2).Count, "a single comment");
         Eq(l2, a.UncommentLine(c2), "Algol round trip");
+        var pas = LanguageDefinitions.Pascal;
+        foreach (var line in new[] { "   x := 1;", "   if a then", "end.", "   writeln('a}b')", "   x := 1 { note }", "   y := 2 (* a *) { b }" })
+        {
+            var c = pas.CommentLine(line);
+            Check(pas.IsCommentedLine(c), "Pascal commented: " + c);
+            var toks = pas.Tokenize(c + "\nx := 2;");
+            Check(toks.Where(t => t.Start < c.Length).All(t => t.Kind == TokenKind.Comment), "Pascal line fully commented: " + c);
+            Check(toks.Any(t => t.Kind == TokenKind.Identifier && t.Start > c.Length), "Pascal next line not commented: " + c);
+            if (!(line.Contains('}') && line.Contains("*)"))) Eq(line, pas.UncommentLine(c), "Pascal round trip");
+        }
         // Algol 60 / Simula I: "comment ... ;" (reserved words) or "'COMMENT' ... ;" (quote stropping)
         foreach (var d in new LanguageDefinition[] { LanguageDefinitions.Algol60, LanguageDefinitions.SimulaI })
         {
@@ -852,7 +954,7 @@ static class Program
         Console.WriteLine("Samples with the real compilers:");
         var root = FindUp("samples");
         if (root == null) { Console.WriteLine("  (samples folder not found)"); return; }
-        foreach (var (sub, ext) in new[] { ("simula", ".sim"), ("algol68", ".a68"), ("algol60", ".a60"), ("simula1", ".s1") })
+        foreach (var (sub, ext) in new[] { ("simula", ".sim"), ("algol68", ".a68"), ("algol60", ".a60"), ("simula1", ".s1"), ("pascal", ".pas") })
         {
             var dir = Path.Combine(root, sub);
             if (!Directory.Exists(dir)) continue;

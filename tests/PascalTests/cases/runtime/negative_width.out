@@ -1,0 +1,2 @@
+runtime error (negative_width.pas:3:26): field width -1 must not be negative
+   at negwidth (negative_width.pas:3)

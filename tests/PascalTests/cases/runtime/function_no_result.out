@@ -1,0 +1,4 @@
+ 1
+runtime error (function_no_result.pas:5:1): function 'f' returned without assigning a result
+   at f (function_no_result.pas:5)
+   at noresult (function_no_result.pas:8)

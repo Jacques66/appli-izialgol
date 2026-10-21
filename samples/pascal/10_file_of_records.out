@@ -1,0 +1,7 @@
+code  name         price  quantity      value
+ 101  bolts         0.12       500      60.00
+ 102  nuts          0.08       750      60.00
+ 205  hinges        2.35        40      94.00
+ 310  locks        12.90        12     154.80
+4 items, total value 368.80
+sum of the squares 1..6 = 91

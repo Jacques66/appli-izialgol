@@ -10,13 +10,14 @@
     dist\a68c.exe             command-line Algol 68 compiler
     dist\a60c.exe             command-line Algol 60 compiler
     dist\s1c.exe              command-line Simula I compiler
+    dist\pasc.exe             command-line Pascal compiler
   then copies samples\ and docs\ into dist\.
 
 .PARAMETER Configuration
   Release (default) or Debug.
 
 .PARAMETER Test
-  Also runs the tests (tests\IdeTests) and the IDE startup test.
+  Also runs the tests (tests\SimulaTests, tests\PascalTests, tests\IdeTests) and the IDE startup test.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File .\build.ps1
@@ -62,6 +63,7 @@ Publish "src\SimC\SimC.csproj" "simc"
 Publish "src\A68C\A68C.csproj" "a68c"
 Publish "src\A60C\A60C.csproj" "a60c"
 Publish "src\S1C\S1C.csproj" "s1c"
+Publish "src\PasC\PasC.csproj" "pasc"
 Publish "src\Ide\Ide.csproj" "Simula67Studio"
 
 Step "Copying samples and documentation"
@@ -79,7 +81,7 @@ $runner = Join-Path $dist "Runner.exe"
 if ($LASTEXITCODE -ne 2) { throw "Runner.exe without a program should return exit code 2 (got $LASTEXITCODE)" }
 & (Join-Path $dist "simc.exe") --version
 if ($LASTEXITCODE -ne 0) { throw "simc --version failed" }
-foreach ($tool in "a68c", "a60c", "s1c") {
+foreach ($tool in "a68c", "a60c", "s1c", "pasc") {
     & (Join-Path $dist "$tool.exe") --version
     if ($LASTEXITCODE -ne 0) { throw "$tool --version failed" }
 }
@@ -88,6 +90,11 @@ if ($Test) {
     Step "Tests (tests\SimulaTests: Simula 67, Algol 60, Simula I)"
     # no --nologo here: dotnet run would pass it to the program as a file filter
     & dotnet run --project (Join-Path $root "tests\SimulaTests") -c $Configuration
+    if ($LASTEXITCODE -ne 0) { throw "some tests failed" }
+
+    Step "Tests (tests\PascalTests: Pascal)"
+    # no --nologo here either: the program reads its arguments
+    & dotnet run --project (Join-Path $root "tests\PascalTests") -c $Configuration
     if ($LASTEXITCODE -ne 0) { throw "some tests failed" }
 
     Step "Tests (tests\IdeTests)"

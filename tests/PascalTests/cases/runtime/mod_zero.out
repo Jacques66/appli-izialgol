@@ -1,0 +1,2 @@
+runtime error (mod_zero.pas:3:34): division by zero (mod)
+   at modzero (mod_zero.pas:3)

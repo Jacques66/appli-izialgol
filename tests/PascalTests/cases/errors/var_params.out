@@ -1,0 +1,6 @@
+var_params.pas(7,6): error: parameter 1 ('x') of 'q' is a var parameter: the actual parameter must be a variable
+var_params.pas(8,6): error: parameter 1 ('x') of 'q' is a var parameter: the actual parameter must be a variable
+var_params.pas(9,6): error: parameter 1 ('x') of 'q' is a var parameter of type integer: the variable s has type small (the types must be identical)
+var_params.pas(10,6): error: parameter 1 ('x') of 'q': a component of a packed structure cannot be passed as a var parameter
+var_params.pas(11,6): error: parameter 1 ('x') of 'q' is a var parameter of type integer: the variable r has type real (the types must be identical)
+var_params.pas(12,6): error: parameter 1 ('x') of 'q' is a var parameter of type integer: the variable rec.tag has type boolean (the types must be identical)

@@ -1,0 +1,11 @@
+files.pas(3,11): error: the component type of a file may not be or contain a file type
+files.pas(4,11): error: implementation restriction: the component type of a file may not contain pointers
+files.pas(6,16): error: a file (or a structure containing a file) can only be passed as a var parameter
+files.pas(8,6): error: files (and structures containing files) cannot be assigned
+files.pas(9,6): error: files (and structures containing files) cannot be assigned
+files.pas(10,4): error: writeln applies to text files only
+files.pas(11,16): error: the number of fraction digits (x:w:d) applies to real values only
+files.pas(12,13): error: ')' expected but ':' found
+files.pas(13,4): error: standard function 'eoln' cannot be used as a statement
+files.pas(14,8): error: get: a file variable is required (found integer)
+files.pas(15,10): error: reset: a file variable is required (found integer)

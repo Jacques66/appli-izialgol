@@ -1,0 +1,3 @@
+2
+runtime error (succ_last.pas:4:57): succ(blue): no successor
+   at succlast (succ_last.pas:4)

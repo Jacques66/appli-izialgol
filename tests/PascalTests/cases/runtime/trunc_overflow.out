@@ -1,0 +1,2 @@
+runtime error (trunc_overflow.pas:3:26): trunc(1E+20): result exceeds maxint
+   at truncoverflow (trunc_overflow.pas:3)

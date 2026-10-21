@@ -1,0 +1,2 @@
+runtime error (rewrite_input.pas:3:4): file input: rewrite of the input file is not possible
+   at rewriteinput (rewrite_input.pas:3)

@@ -1,0 +1,2 @@
+runtime error (real_div_zero.pas:3:35): division by zero (/)
+   at realdivzero (real_div_zero.pas:3)

@@ -1,0 +1,7 @@
+labels.pas(2,10): error: label 2 is used in a goto statement but prefixes no statement
+labels.pas(2,16): error: label 12345 too large (labels have at most 4 digits)
+labels.pas(2,16): warning: label 12345 is declared but not used
+labels.pas(5,9): error: label 4 is not declared
+labels.pas(8,1): error: label 1 prefixes more than one statement
+labels.pas(10,9): error: goto 3 leads into a structured statement (the labelled statement does not enclose the goto statement)
+labels.pas(11,4): error: label 5 is not declared in the label declaration part of this block

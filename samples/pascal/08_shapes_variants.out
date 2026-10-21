@@ -1,0 +1,6 @@
+name        kind          x     y     area  perimeter
+wheel       circle      0.0   0.0    7.069      9.425
+door        rectangle   2.0   0.0    1.890      6.000
+sail        triangle    5.0   1.0    6.000     12.000
+table       rectangle  -1.0   3.0    1.280      4.800
+total area:   16.239

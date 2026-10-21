@@ -1,0 +1,3 @@
+undeclared.pas(4,4): error: 'j' is not declared
+undeclared.pas(5,9): error: 'k' is not declared
+undeclared.pas(6,4): error: 'undefinedproc' is not declared

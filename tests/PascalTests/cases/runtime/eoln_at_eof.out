@@ -1,0 +1,3 @@
+      TRUE
+runtime error (eoln_at_eof.pas:6:12): file f: eoln at end of file
+   at eolneof (eoln_at_eof.pas:6)

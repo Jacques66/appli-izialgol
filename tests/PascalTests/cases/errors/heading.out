@@ -1,0 +1,2 @@
+heading.pas(1,16): error: '(' expected: the program heading lists the program parameters, e.g. program heading(input, output);
+heading.pas(3,4): error: 'output' must be listed in the program heading, e.g. program p(input, output); ('writeln' uses output)

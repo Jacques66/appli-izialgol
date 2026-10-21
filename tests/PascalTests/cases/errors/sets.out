@@ -1,0 +1,9 @@
+sets.pas(2,12): error: set base type 0..100 out of range: Pascal 6000 sets hold ordinal values 0..58 (only set of char and its subranges are allowed beyond)
+sets.pas(3,13): error: set base type integer out of range: Pascal 6000 sets hold ordinal values 0..58 (only set of char and its subranges are allowed beyond)
+sets.pas(4,12): error: set base type -1..5 out of range: Pascal 6000 sets hold ordinal values 0..58 (only set of char and its subranges are allowed beyond)
+sets.pas(6,14): error: the base type of a set must be an ordinal type (real is not)
+sets.pas(9,10): error: set element 60 out of range 0..58 (Pascal 6000 sets hold ordinal values 0..58)
+sets.pas(10,6): error: type mismatch: a value of type set of char cannot be assigned to s of type ok
+sets.pas(11,13): error: set elements of different types (integer and char)
+sets.pas(12,9): error: '<' and '>' are not defined for sets (use '<=' and '>=' for inclusion)
+sets.pas(13,9): error: the type integer of the left operand of 'in' does not match the base type char of the set

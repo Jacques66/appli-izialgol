@@ -1,0 +1,16 @@
+move disk 1 from left   to middle
+move disk 2 from left   to right 
+move disk 1 from middle to right 
+move disk 3 from left   to middle
+move disk 1 from right  to left  
+move disk 2 from right  to middle
+move disk 1 from left   to middle
+move disk 4 from left   to right 
+move disk 1 from middle to right 
+move disk 2 from middle to left  
+move disk 1 from right  to left  
+move disk 3 from middle to right 
+move disk 1 from left   to middle
+move disk 2 from left   to right 
+move disk 1 from middle to right 
+15 moves

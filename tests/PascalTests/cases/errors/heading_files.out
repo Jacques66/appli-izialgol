@@ -1,0 +1,3 @@
+heading_files.pas(1,36): error: program parameter 'missing' must be declared as a file variable of the program
+heading_files.pas(1,45): error: program parameter 'notafile' must be a file variable (implementation restriction: external files only)
+heading_files.pas(5,4): error: 'input' must be listed in the program heading, e.g. program p(input, output); ('readln' uses input)

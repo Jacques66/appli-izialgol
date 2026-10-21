@@ -1,0 +1,3 @@
+case_else.pas(7,10): error: case label 1 appears more than once
+case_else.pas(8,7): error: case label of type char is not compatible with the selector (type integer)
+case_else.pas(9,4): error: 'else' is not allowed in a case statement: Pascal has no default case (every selector value must appear as a case label)

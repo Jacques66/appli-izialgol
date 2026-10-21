@@ -1,0 +1,4 @@
+new_dispose.pas(6,8): error: new: a pointer variable is required (found integer)
+new_dispose.pas(7,11): error: new: tag value of type integer does not match the tag type k
+new_dispose.pas(8,14): error: new: the record type has no (further) variant part for the tag value
+new_dispose.pas(9,12): error: dispose: a pointer variable is required (found integer)

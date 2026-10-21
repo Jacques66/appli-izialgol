@@ -1,0 +1,5 @@
+duplicates.pas(3,5): error: 'a' is already declared in this block (line 2)
+duplicates.pas(3,20): error: 'b' is already declared in this block (line 3)
+duplicates.pas(4,1): error: the type definition part must precede the variable and procedure declarations and appear only once
+duplicates.pas(5,25): error: parameter 'x' declared twice
+duplicates.pas(6,11): error: 'p' is already declared in this block (line 5)

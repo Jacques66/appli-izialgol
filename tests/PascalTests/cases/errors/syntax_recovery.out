@@ -1,0 +1,6 @@
+syntax_recovery.pas(3,1): error: ';' expected but 'begin' found
+syntax_recovery.pas(5,4): error: ';' expected between statements but identifier 'j' found
+syntax_recovery.pas(6,13): error: 'then' expected but identifier 'writeln' found
+syntax_recovery.pas(8,14): error: ')' expected but identifier 'j' found
+syntax_recovery.pas(8,15): error: ':=' expected but ')' found
+syntax_recovery.pas(9,15): error: ')' expected but ';' found

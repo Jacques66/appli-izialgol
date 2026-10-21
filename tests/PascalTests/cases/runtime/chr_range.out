@@ -1,0 +1,3 @@
+255
+runtime error (chr_range.pas:3:61): chr(256): no character with this ordinal value (0..255)
+   at chrrange (chr_range.pas:3)

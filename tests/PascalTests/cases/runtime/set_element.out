@@ -1,0 +1,3 @@
+      TRUE
+runtime error (set_element.pas:5:18): set element 59 out of range 0..58 (Pascal 6000 sets hold ordinal values 0..58; set of char 0..255)
+   at setelement (set_element.pas:5)

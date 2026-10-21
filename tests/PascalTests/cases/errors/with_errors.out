@@ -1,0 +1,6 @@
+with_errors.pas(4,9): error: i is not a record variable (type integer)
+with_errors.pas(5,14): error: 'b' is not declared
+with_errors.pas(6,6): error: the record type of r has no field 'b'
+with_errors.pas(7,5): error: i is not a record (type integer): it has no field 'a'
+with_errors.pas(8,5): error: i is not an array (type integer): it cannot be indexed
+with_errors.pas(9,5): error: i is neither a pointer nor a file: '^' cannot be applied

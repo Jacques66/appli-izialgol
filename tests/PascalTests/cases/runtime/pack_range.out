@@ -1,0 +1,3 @@
+xxx
+runtime error (pack_range.pas:6:12): pack: index 4 leaves too few elements of the unpacked array (3 needed)
+   at packrange (pack_range.pas:6)

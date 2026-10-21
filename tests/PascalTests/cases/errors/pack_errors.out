@@ -1,0 +1,4 @@
+pack_errors.pas(4,15): error: pack: the packed array has more components (5) than the unpacked array (3)
+pack_errors.pas(5,9): error: pack: an unpacked array variable is required (found packed array[1..5] of char)
+pack_errors.pas(6,17): error: pack: the component types of the arrays differ (char and integer)
+pack_errors.pas(7,14): error: unpack: an unpacked array variable is required (found packed array[1..5] of char)

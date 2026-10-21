@@ -1,0 +1,2 @@
+runtime error (variant_tag_undefined.pas:5:6): access to the variant field f.n while the tag field 'k' is undefined
+   at tagundefined (variant_tag_undefined.pas:5)

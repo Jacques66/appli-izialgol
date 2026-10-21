@@ -1,0 +1,10 @@
+for_control.pas(6,8): error: the control variable 'g' must be a variable declared in the variable declaration part of this block
+for_control.pas(7,8): error: the control variable 'k' must be a variable declared in the variable declaration part of this block
+for_control.pas(8,23): error: assignment to 'j', the control variable of an enclosing for statement, is not allowed
+for_control.pas(12,8): error: the control variable 'r' must be of an ordinal type (found real)
+for_control.pas(13,8): error: the control variable of a for statement must be an entire variable declared in this block (a[1] is not)
+for_control.pas(14,18): error: the final value (type char) is not compatible with the control variable (type integer)
+for_control.pas(15,34): error: passing as a var parameter 'i', the control variable of an enclosing for statement, is not allowed
+for_control.pas(15,38): error: 'input' must be listed in the program heading, e.g. program p(input, output); ('read' uses input)
+for_control.pas(15,43): error: reading into 'i', the control variable of an enclosing for statement, is not allowed
+for_control.pas(15,51): error: 'i' is already the control variable of an enclosing for statement

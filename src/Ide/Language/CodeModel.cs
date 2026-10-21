@@ -202,9 +202,10 @@ public static class LanguageDefinitions
     public static readonly Algol68Definition Algol68 = new();
     public static readonly Algol60Definition Algol60 = new();
     public static readonly SimulaIDefinition SimulaI = new();
+    public static readonly PascalDefinition Pascal = new();
     public static readonly EchoDefinition Echo = new();
 
-    public static IReadOnlyList<LanguageDefinition> All { get; } = new LanguageDefinition[] { Simula, Algol68, Algol60, SimulaI, Echo };
+    public static IReadOnlyList<LanguageDefinition> All { get; } = new LanguageDefinition[] { Simula, Algol68, Algol60, SimulaI, Pascal, Echo };
 
     public static LanguageDefinition? ById(string id) =>
         All.FirstOrDefault(l => string.Equals(l.Id, id, StringComparison.OrdinalIgnoreCase));

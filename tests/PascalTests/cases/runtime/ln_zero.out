@@ -1,0 +1,2 @@
+runtime error (ln_zero.pas:3:23): ln(0.0): argument must be positive
+   at lnzero (ln_zero.pas:3)

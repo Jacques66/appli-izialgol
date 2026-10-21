@@ -1,0 +1,2 @@
+runtime error (variant_reset.pas:8:14): undefined value: f.r
+   at variantreset (variant_reset.pas:8)

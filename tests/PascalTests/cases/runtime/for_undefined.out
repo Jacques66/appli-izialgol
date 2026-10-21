@@ -1,0 +1,3 @@
+ 1 2 3
+runtime error (for_undefined.pas:6:12): undefined value: i
+   at forundefined (for_undefined.pas:6)

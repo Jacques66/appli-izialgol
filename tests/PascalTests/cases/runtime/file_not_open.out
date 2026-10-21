@@ -1,0 +1,2 @@
+runtime error (file_not_open.pas:4:4): file f: file not opened for writing (call rewrite first)
+   at filenotopen (file_not_open.pas:4)

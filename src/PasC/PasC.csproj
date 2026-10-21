@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Simula\Simula.csproj" />
+    <ProjectReference Include="..\Algol68\Algol68.csproj" />
+    <ProjectReference Include="..\Algol60\Algol60.csproj" />
+    <ProjectReference Include="..\SimulaI\SimulaI.csproj" />
+    <ProjectReference Include="..\Pascal\Pascal.csproj" />
+    <!-- Ensures Runner.exe (single file) is built for the -o option. -->
+    <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Runner\Shared\*.cs" Link="Shared\%(Filename)%(Extension)" />
+    <Compile Include="..\SimC\CliMain.cs" Link="CliMain.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>pasc</AssemblyName>
+    <RootNamespace>Studio.PasC</RootNamespace>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Product>Simula 67 &amp; Algol 68 Studio</Product>
+    <!-- Runner is referenced only for build ordering (no assembly reference). -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+
+</Project>

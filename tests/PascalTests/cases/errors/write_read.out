@@ -1,0 +1,7 @@
+write_read.pas(5,12): error: writeln: values of type color cannot be written to a text file (only integer, real, boolean, char and strings)
+write_read.pas(6,12): error: writeln: values of type ^integer cannot be written to a text file (only integer, real, boolean, char and strings)
+write_read.pas(6,15): error: writeln: values of type set of color cannot be written to a text file (only integer, real, boolean, char and strings)
+write_read.pas(7,9): error: read: values of type boolean cannot be read from a text file (only integer, real and char variables)
+write_read.pas(8,9): error: read: values of type color cannot be read from a text file (only integer, real and char variables)
+write_read.pas(9,9): error: a variable is required here
+write_read.pas(10,15): error: the number of fraction digits (x:w:d) applies to real values only

@@ -1,0 +1,8 @@
+types.pas(2,11): error: empty subrange: lower bound 10 is greater than upper bound 1
+types.pas(3,14): error: subrange bounds of different types (integer and char)
+types.pas(4,11): error: the bounds of a subrange must be ordinal constants (not real or string)
+types.pas(5,17): error: the index type of an array must be an ordinal type (real is not)
+types.pas(6,12): error: type 'undeclaredtype' is not declared (pointer domain type)
+types.pas(7,17): error: index type integer too large
+types.pas(8,17): error: 'a' is already declared in this block (line 8)
+types.pas(9,8): error: type 'unknowntype' is not declared

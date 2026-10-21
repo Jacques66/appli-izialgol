@@ -1,0 +1,3 @@
+      TRUE
+runtime error (set_assign_range.pas:5:18): set element 11 out of range 1..10
+   at setassign (set_assign_range.pas:5)

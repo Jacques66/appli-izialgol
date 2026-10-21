@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Algol68\Algol68.csproj" />
     <ProjectReference Include="..\Algol60\Algol60.csproj" />
     <ProjectReference Include="..\SimulaI\SimulaI.csproj" />
+    <ProjectReference Include="..\Pascal\Pascal.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

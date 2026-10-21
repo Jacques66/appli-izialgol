@@ -1,0 +1,2 @@
+runtime error (goto_inactive.pas:4:20): goto 1: the labelled statement is not active (a goto may not lead into a structured statement)
+   at gotoinactive (goto_inactive.pas:4)

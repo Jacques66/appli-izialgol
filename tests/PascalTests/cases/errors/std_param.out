@@ -1,0 +1,6 @@
+std_param.pas(8,18): error: parameter 1 ('f') of 'apply': the standard function 'sin' cannot be passed as a parameter (declare a function that calls it)
+std_param.pas(9,18): error: parameter 1 ('f') of 'apply': 'g' does not match the parameter heading (parameter 1 has type integer instead of real)
+std_param.pas(10,18): error: parameter 1 ('f') of 'apply': 'h' does not match the parameter heading (parameter 1 is not of the same kind (value, var, procedure or function))
+std_param.pas(11,16): error: parameter 1 ('f') of 'old': 'h' does not match the parameter heading (a routine passed to a parameter without parameter list may only have value parameters ('x' is not))
+std_param.pas(12,18): error: parameter 1 ('f') of 'apply': 'pr' is a procedure, a function is required
+std_param.pas(13,18): error: parameter 1 ('f') of 'apply' is a function parameter: the name of a function is required

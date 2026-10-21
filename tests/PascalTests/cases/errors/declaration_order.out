@@ -1,0 +1,3 @@
+declaration_order.pas(3,1): error: the constant definition part must precede the type, variable and procedure declarations and appear only once
+declaration_order.pas(4,1): error: the type definition part must precede the variable and procedure declarations and appear only once
+declaration_order.pas(5,1): error: the variable declaration part must precede the procedure and function declarations and appear only once

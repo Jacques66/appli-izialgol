@@ -1,0 +1,4 @@
+red
+green
+runtime error (case_nomatch.pas:6:7): case selector value blue matches no case label
+   at casenomatch (case_nomatch.pas:6)

@@ -1,0 +1,5 @@
+1
+3
+6
+runtime error (read_eof.pas:5:11): file input: end of file reached while reading an integer
+   at readeof (read_eof.pas:5)

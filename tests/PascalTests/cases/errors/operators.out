@@ -1,0 +1,13 @@
+operators.pas(5,13): error: 'div' applies to integers only (use '/' for real division)
+operators.pas(6,11): error: 'mod' applies to integers only (use '/' for real division)
+operators.pas(7,11): error: operator '+' cannot be applied to operands of types boolean and integer
+operators.pas(8,11): error: operands of types rec and rec cannot be compared with '='
+operators.pas(9,11): error: pointers can only be compared with '=' and '<>'
+operators.pas(10,11): error: operands of types integer and char cannot be compared with '<'
+operators.pas(11,6): error: type mismatch: a value of type boolean cannot be assigned to i of type integer
+operators.pas(11,9): error: sign applied to a non-numeric operand (type boolean)
+operators.pas(12,9): error: 'not' requires a boolean operand (found integer)
+operators.pas(13,13): error: a sign may only start an expression: write the operand in parentheses, e.g. a * (-b)
+operators.pas(13,14): error: ';' expected between statements but number 2 found
+operators.pas(14,15): error: relational operators cannot be chained: use parentheses, e.g. (a < b) and (b < c)
+operators.pas(15,11): error: division by zero (div 0)

@@ -1,0 +1,4 @@
+ 1.0
+ 2.0
+runtime error (variant_inactive.pas:8:14): access to the variant field f.r of an inactive variant (k = square)
+   at variantinactive (variant_inactive.pas:8)

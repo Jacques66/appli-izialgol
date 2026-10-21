@@ -1,0 +1,2 @@
+runtime error (undefined_pointer.pas:4:12): undefined value: p
+   at undefpointer (undefined_pointer.pas:4)

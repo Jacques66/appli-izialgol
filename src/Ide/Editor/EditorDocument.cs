@@ -279,6 +279,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         "algol68" => w is "END" or "FI" or "OD" or "ESAC" or "ELSE" or "ELIF" or "THEN" or "OUT" or "OUSE",
         // Algol 60 / Simula I: also 'END (quote stropping)
         "algol60" or "simula1" => string.Equals(w.TrimStart('\''), "end", StringComparison.OrdinalIgnoreCase),
+        "pascal" => string.Equals(w, "end", StringComparison.OrdinalIgnoreCase) || string.Equals(w, "until", StringComparison.OrdinalIgnoreCase),
         _ => string.Equals(w, "end", StringComparison.OrdinalIgnoreCase),
     };
 

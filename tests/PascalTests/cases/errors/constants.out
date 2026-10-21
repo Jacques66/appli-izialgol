@@ -1,0 +1,6 @@
+constants.pas(2,11): error: a sign cannot precede a string constant
+constants.pas(2,23): error: a sign can only precede a numeric constant ('true' is of type boolean)
+constants.pas(5,6): error: constant 6 out of range 1..5
+constants.pas(6,4): error: 'n' is a constant: it cannot be assigned
+constants.pas(7,13): error: chr(300): no character with this ordinal value (0..255)
+constants.pas(8,14): error: succ(281474976710655): the value has no successor

@@ -1,0 +1,2 @@
+runtime error (fraction_digits.pas:3:29): number of fraction digits 0 must be at least 1
+   at fracdigits (fraction_digits.pas:3)

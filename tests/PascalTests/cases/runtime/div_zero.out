@@ -1,0 +1,3 @@
+3
+runtime error (div_zero.pas:6:14): division by zero (div)
+   at divzero (div_zero.pas:6)

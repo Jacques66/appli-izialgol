@@ -1,0 +1,2 @@
+runtime error (dispose_twice.pas:4:32): dispose of a variable that was already disposed (q)
+   at disposetwice (dispose_twice.pas:4)
