@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgolStudio</title>
+    <meta name="description" content="AlgolStudio in the browser: an IDE for Simula 67, Algol 68, Algol 60, Simula I and Pascal (editor, compilers, console, debugger).">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="app.css">
+    <!-- Cross-origin isolation (needed by the threads of the .NET runtime) on hosts that cannot send the
+         COOP/COEP headers, such as GitHub Pages: a service worker adds them (it reloads the page once). -->
+    <script src="coi-serviceworker.js"></script>
+    <link rel="modulepreload" href="main.js">
+</head>
+<body>
+    <div id="out">
+        <div id="splash">
+            <img src="favicon.png" alt="" width="96" height="96">
+            <h1>AlgolStudio</h1>
+            <p>Simula 67 · Algol 68 · Algol 60 · Simula I · Pascal</p>
+            <div class="bar"><div id="progress"></div></div>
+            <p id="status">Loading…</p>
+            <noscript><p>AlgolStudio needs JavaScript.</p></noscript>
+        </div>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>

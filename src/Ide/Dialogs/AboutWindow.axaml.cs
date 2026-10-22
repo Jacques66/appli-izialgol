@@ -5,7 +5,7 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-public partial class AboutWindow : Window
+public partial class AboutWindow : DialogWindow
 {
     public AboutWindow()
     {
@@ -15,7 +15,7 @@ public partial class AboutWindow : Window
         RuntimeText.Text =
             $"{RuntimeInformation.FrameworkDescription} — {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})\n" +
             $"Languages: {string.Join(", ", Studio.Tooling.LanguageRegistry.Languages.Select(l => l.DisplayName))}\n" +
-            $"Launcher: {App.Platform.FindRunner() ?? "not found"}\n" +
+            (App.Platform.SupportsExecutables ? $"Launcher: {App.Platform.FindRunner() ?? "not found"}\n" : "") +
             $"Settings: {IdeSettings.Directory}";
     }
 

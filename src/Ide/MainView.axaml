@@ -1,10 +1,10 @@
-<Window x:Class="Studio.Ide.MainWindow"
+<!-- Main view of the IDE: hosted by MainWindow on the desktop, the whole page in the browser. -->
+<UserControl x:Class="Studio.Ide.MainView"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:panels="using:Studio.Ide.Panels"
         xmlns:ae="using:AvaloniaEdit"
-        Title="AlgolStudio" Height="820" Width="1280" MinWidth="640" MinHeight="420"
-        Icon="/Assets/app.ico" DragDrop.AllowDrop="True"
+        DragDrop.AllowDrop="True"
         Background="{DynamicResource Brush.WindowBackground}" Foreground="{DynamicResource Brush.Text}"
         FontFamily="{StaticResource UiFont}" FontSize="12.5">
     <DockPanel>
@@ -31,7 +31,7 @@
                 <MenuItem Header="_Open…" Command="{Binding CmdOpen}" InputGesture="Ctrl+O">
                     <MenuItem.Icon><Path Theme="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/></MenuItem.Icon>
                 </MenuItem>
-                <MenuItem Header="Open _folder…" Command="{Binding CmdOpenFolder}"/>
+                <MenuItem x:Name="OpenFolderItem" Header="Open _folder…" Command="{Binding CmdOpenFolder}"/>
                 <MenuItem x:Name="RecentFilesMenu" Header="_Recent files" SubmenuOpened="OnRecentMenuOpened">
                     <MenuItem Header="(none)" IsEnabled="False"/>
                 </MenuItem>
@@ -46,10 +46,11 @@
                 <MenuItem Header="Save a_ll" Command="{Binding CmdSaveAll}" InputGesture="Ctrl+Shift+S">
                     <MenuItem.Icon><Path Theme="{StaticResource IconPath}" Data="{StaticResource Icon.SaveAll}" Fill="{DynamicResource Brush.IconBlue}"/></MenuItem.Icon>
                 </MenuItem>
+                <MenuItem x:Name="DownloadItem" Header="_Download to the computer…" Command="{Binding CmdDownload}" IsVisible="False"/>
                 <Separator/>
                 <MenuItem Header="_Close" Command="{Binding CmdClose}" InputGesture="Ctrl+W"/>
                 <MenuItem Header="Close all" Command="{Binding CmdCloseAll}"/>
-                <Separator/>
+                <Separator x:Name="ExitSeparator"/>
                 <MenuItem x:Name="ExitItem" Header="E_xit" Command="{Binding CmdExit}" InputGesture="Alt+F4"/>
             </MenuItem>
             <MenuItem Header="_Edit">
@@ -317,7 +318,7 @@
                         BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                            <Button Theme="{StaticResource ToolButton}" Padding="3" Command="{Binding CmdOpenFolder}" ToolTip.Tip="Open folder…">
+                            <Button x:Name="OpenFolderButton" Theme="{StaticResource ToolButton}" Padding="3" Command="{Binding CmdOpenFolder}" ToolTip.Tip="Open folder…">
                                 <Path Theme="{StaticResource IconPath}" Data="{StaticResource Icon.Open}" Fill="{DynamicResource Brush.IconYellow}"/>
                             </Button>
                             <Button Theme="{StaticResource ToolButton}" Padding="3" Click="OnExplorerRefresh" ToolTip.Tip="Refresh">
@@ -383,7 +384,7 @@
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdNewSimulaI}" Content="New Simula I program"/>
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdNewPascal}" Content="New Pascal program"/>
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdOpen}" Content="Open a file…"/>
-                                <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Open a folder…"/>
+                                <Button x:Name="OpenFolderLink" Theme="{StaticResource LinkButton}" Command="{Binding CmdOpenFolder}" Content="Open a folder…"/>
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="simula" Content="Simula 67 help"/>
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol68" Content="Algol 68 help"/>
                                 <Button Theme="{StaticResource LinkButton}" Command="{Binding CmdHelp}" CommandParameter="algol60" Content="Algol 60 help"/>
@@ -583,4 +584,4 @@
             </TabControl>
         </Grid>
     </DockPanel>
-</Window>
+</UserControl>

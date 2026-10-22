@@ -28,20 +28,17 @@ namespace Studio.Ide;
 
 public enum IdeState { Idle, Building, Running, Debugging, Paused, External }
 
-public partial class MainWindow : Window
+public partial class MainView : UserControl
 {
     readonly IdeSettings _settings;
     readonly ObservableCollection<EditorDocument> _documents = new();
     readonly List<OutlineEntry> _outlineAll = new();
     IdeState _state = IdeState.Idle;
-    bool _closingConfirmed;
     bool _checkingExternalChanges;
+    bool _loaded;
     Key _pendingChord = Key.None;
     /// <summary>Last text box that had the focus (target of the Edit menu instead of the editor).</summary>
     TextBox? _lastTextBox;
-    /// <summary>Position and size of the window in the normal state (saved when it is maximized).</summary>
-    PixelPoint _normalPosition;
-    Size _normalSize;
 
     /// <summary>Modifier of the command shortcuts: Ctrl (Windows, Linux) or Cmd (macOS).</summary>
     static KeyModifiers Cmd => Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
@@ -59,6 +56,7 @@ public partial class MainWindow : Window
     public ICommand CmdSave { get; }
     public ICommand CmdSaveAs { get; }
     public ICommand CmdSaveAll { get; }
+    public ICommand CmdDownload { get; }
     public ICommand CmdClose { get; }
     public ICommand CmdCloseAll { get; }
     public ICommand CmdExit { get; }
@@ -99,7 +97,17 @@ public partial class MainWindow : Window
     public ICommand CmdHelp { get; }
     public ICommand CmdAbout { get; }
 
-    public MainWindow()
+    /// <summary>Title of the main window (desktop) or of the page (browser).</summary>
+    public static readonly StyledProperty<string> TitleProperty =
+        AvaloniaProperty.Register<MainView, string>(nameof(Title), "AlgolStudio");
+
+    public string Title
+    {
+        get => GetValue(TitleProperty);
+        set => SetValue(TitleProperty, value);
+    }
+
+    public MainView()
     {
         _settings = IdeSettings.Load();
         if (App.Options.Theme != null) _settings.Theme = App.Options.Theme.StartsWith("s", StringComparison.OrdinalIgnoreCase) || App.Options.Theme.StartsWith("d", StringComparison.OrdinalIgnoreCase) ? "dark" : "light";
@@ -116,12 +124,13 @@ public partial class MainWindow : Window
         CmdNewEcho = new RelayCommand(_ => NewDocument(LanguageDefinitions.Echo));
         CmdOpen = new RelayCommand(async _ => await OpenWithDialogAsync());
         CmdOpenFolder = new RelayCommand(async _ => await OpenFolderWithDialogAsync());
-        CmdSave = new RelayCommand(_ => SaveDocument(ActiveDocument!), HasDoc);
-        CmdSaveAs = new RelayCommand(_ => SaveDocumentAs(ActiveDocument!), HasDoc);
-        CmdSaveAll = new RelayCommand(_ => SaveAll(), _ => _documents.Any(d => d.IsModified));
-        CmdClose = new RelayCommand(_ => CloseDocument(ActiveDocument!), HasDoc);
-        CmdCloseAll = new RelayCommand(_ => CloseAll(), _ => _documents.Count > 0);
-        CmdExit = new RelayCommand(_ => Close());
+        CmdSave = new RelayCommand(async _ => await SaveDocumentAsync(ActiveDocument!), HasDoc);
+        CmdSaveAs = new RelayCommand(async _ => await SaveDocumentAsAsync(ActiveDocument!), HasDoc);
+        CmdSaveAll = new RelayCommand(async _ => await SaveAllAsync(), _ => _documents.Any(d => d.IsModified));
+        CmdDownload = new RelayCommand(async _ => await DownloadAsync(ActiveDocument!), HasDoc);
+        CmdClose = new RelayCommand(async _ => await CloseDocumentAsync(ActiveDocument!), HasDoc);
+        CmdCloseAll = new RelayCommand(async _ => await CloseAllAsync(), _ => _documents.Count > 0);
+        CmdExit = new RelayCommand(_ => (TopLevel.GetTopLevel(this) as Window)?.Close());
         CmdUndo = new RelayCommand(_ => EditAction(t => t.Undo(), e => e.Undo()));
         CmdRedo = new RelayCommand(_ => EditAction(t => t.Redo(), e => e.Redo()));
         CmdCut = new RelayCommand(_ => EditAction(t => t.Cut(), e => e.Cut()));
@@ -164,8 +173,6 @@ public partial class MainWindow : Window
 
         if (LanguageRegistry.TestLanguageEnabled) NewEchoItem.IsVisible = true;
         ApplyPlatformTexts();
-        RegisterKeyBindings();
-        RestoreWindowPlacement();
         ApplyMenuChecks();
         ApplyPanelLayout();
 
@@ -185,19 +192,12 @@ public partial class MainWindow : Window
         StackList.AddHandler(KeyDownEvent, OnStackKeyDown, RoutingStrategies.Tunnel);
         UpdateErrorCounts();
 
-        Opened += OnLoaded;
-        Closing += OnClosing;
-        Activated += (_, _) => CheckExternalChanges();
+        Loaded += OnLoaded;
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DragOverEvent, OnPreviewDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(DragDrop.DropEvent, OnPreviewDrop, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(PointerWheelChangedEvent, OnPreviewMouseWheel, RoutingStrategies.Tunnel);
         AddHandler(GotFocusEvent, OnAnyGotFocus, RoutingStrategies.Bubble, handledEventsToo: true);
-        PositionChanged += (_, _) => { if (WindowState == WindowState.Normal) _normalPosition = Position; };
-        PropertyChanged += (_, e) =>
-        {
-            if (e.Property == ClientSizeProperty && WindowState == WindowState.Normal) _normalSize = ClientSize;
-        };
 
         _backgroundCheckTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(1200) };
         _backgroundCheckTimer.Tick += async (_, _) => { _backgroundCheckTimer.Stop(); await BackgroundCheckAsync(); };
@@ -208,6 +208,11 @@ public partial class MainWindow : Window
 
     void OnLoaded(object? sender, EventArgs e)
     {
+        if (_loaded) return;
+        _loaded = true;
+        // Shortcuts of the window (desktop) or of the page (browser)
+        RegisterKeyBindings(TopLevel.GetTopLevel(this)?.KeyBindings ?? KeyBindings);
+
         // Explorer folder
         var root = _settings.ExplorerRoot;
         if (root == null || !System.IO.Directory.Exists(root)) root = PathLocator.SamplesDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -251,7 +256,17 @@ public partial class MainWindow : Window
         ToolTip.SetTip(ExternalConsoleToggle, "Run in an external " + p.ExternalConsoleName);
         ExternalConsoleItem.IsVisible = ExternalConsoleToggle.IsVisible = p.SupportsExternalConsole;
         GenerateExeButton.IsVisible = p.SupportsExecutables;
+        GenerateExeItem.IsVisible = DebugInfoItem.IsVisible = p.SupportsExecutables;
         ExplorerRevealItem.Header = p.RevealInFileManagerText;
+        if (p.IsVirtualFileSystem)
+        {
+            // Browser: the files live in a virtual file system (no folder dialog, no file manager, no exit);
+            // Open uploads files from the computer and "Download" saves a copy on the computer.
+            OpenFolderItem.IsVisible = OpenFolderButton.IsVisible = OpenFolderLink.IsVisible = false;
+            ExplorerRevealItem.IsVisible = false;
+            ExitItem.IsVisible = ExitSeparator.IsVisible = false;
+            DownloadItem.IsVisible = true;
+        }
         if (Cmd != KeyModifiers.Control)
         {
             ReplaceControlGestures(MainMenu.Items);
@@ -312,7 +327,7 @@ public partial class MainWindow : Window
             Content = closeIcon,
         };
         ToolTip.SetTip(close, "Close (Ctrl+W)");
-        close.Click += (_, _) => CloseDocument(doc);
+        close.Click += (_, _) => _ = CloseDocumentAsync(doc);
         var header = new StackPanel { Orientation = Orientation.Horizontal, Children = { badge, title, close } };
         var tab = new TabItem
         {
@@ -322,7 +337,7 @@ public partial class MainWindow : Window
             Theme = (ControlTheme)this.FindResource("DocTabItem")!,
         };
         tab.Bind(ToolTip.TipProperty, new Binding(nameof(EditorDocument.CompilePath)) { Source = doc });
-        tab.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Middle) { CloseDocument(doc); e.Handled = true; } };
+        tab.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Middle) { _ = CloseDocumentAsync(doc); e.Handled = true; } };
         tab.ContextMenu = BuildTabContextMenu(doc);
         doc.Tab = tab;
 
@@ -351,12 +366,22 @@ public partial class MainWindow : Window
             if (enabled != null) cm.Opening += (_, _) => mi.IsEnabled = enabled();
             cm.Items.Add(mi);
         }
-        Add("Close", () => CloseDocument(doc));
-        Add("Close other tabs", () => { foreach (var d in _documents.Where(x => x != doc).ToList()) if (!CloseDocument(d)) break; });
+        Add("Close", () => _ = CloseDocumentAsync(doc));
+        Add("Close other tabs", async () => { foreach (var d in _documents.Where(x => x != doc).ToList()) if (!await CloseDocumentAsync(d)) break; });
         cm.Items.Add(new Separator());
-        Add("Copy full path", () => _ = Clipboard?.SetTextAsync(doc.CompilePath), () => doc.FilePath != null);
-        Add("Open containing folder", () => RevealInExplorer(doc.FilePath!), () => doc.FilePath != null);
+        Add("Copy full path", () => _ = TopLevel.GetTopLevel(this)?.Clipboard?.SetTextAsync(doc.CompilePath), () => doc.FilePath != null);
+        Add("Open containing folder", () => RevealInExplorer(doc.FilePath!), () => doc.FilePath != null && !App.Platform.IsVirtualFileSystem);
         return cm;
+    }
+
+    /// <summary>Brings the main window to the front (desktop; nothing to do in the browser).</summary>
+    public void Activate()
+    {
+        if (TopLevel.GetTopLevel(this) is Window w)
+        {
+            if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
+            w.Activate();
+        }
     }
 
     public void Activate(EditorDocument doc)
@@ -654,7 +679,7 @@ public partial class MainWindow : Window
     /// <summary>Undo, cut, copy… apply to the text box that has (or last had) the focus, otherwise to the editor.</summary>
     void EditAction(Action<TextBox> onTextBox, Action<TextEditor> onEditor)
     {
-        if (_lastTextBox is { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } tb && TopLevel.GetTopLevel(tb) == this)
+        if (_lastTextBox is { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } tb && TopLevel.GetTopLevel(tb) == TopLevel.GetTopLevel(this))
             onTextBox(tb);
         else if (ActiveDocument is { } doc)
         {
@@ -665,11 +690,11 @@ public partial class MainWindow : Window
 
     // ------------------------------------------------------------------ keyboard
 
-    void RegisterKeyBindings()
+    void RegisterKeyBindings(IList<KeyBinding> keyBindings)
     {
         var cmd = Cmd;
         void K(ICommand command, Key key, KeyModifiers mods = KeyModifiers.None, object? param = null) =>
-            KeyBindings.Add(new KeyBinding { Command = command, Gesture = new KeyGesture(key, mods), CommandParameter = param! });
+            keyBindings.Add(new KeyBinding { Command = command, Gesture = new KeyGesture(key, mods), CommandParameter = param! });
 
         K(CmdNewSimula, Key.N, cmd);
         K(CmdNewAlgol, Key.N, cmd | KeyModifiers.Shift);
@@ -756,10 +781,20 @@ public partial class MainWindow : Window
         foreach (var item in files)
         {
             var f = item.TryGetLocalPath();
-            if (f == null) continue;
+            if (f == null)
+            {
+                // Browser: the dropped file is copied into the virtual file system.
+                if (App.Platform.IsVirtualFileSystem) _ = ImportAndOpenAsync(item);
+                continue;
+            }
             if (System.IO.Directory.Exists(f)) SetExplorerRoot(f);
             else if (File.Exists(f)) OpenFile(f);
         }
+    }
+
+    async Task ImportAndOpenAsync(IStorageItem item)
+    {
+        if (await ImportAsync(item) is { } path) OpenFile(path);
     }
 
     // ------------------------------------------------------------------ explorer
@@ -998,46 +1033,29 @@ public partial class MainWindow : Window
 
     // ------------------------------------------------------------------ window
 
-    void RestoreWindowPlacement()
+    /// <summary>Desktop: the main window is closing. Returns false when the user cancels.</summary>
+    public bool CanClose()
     {
-        if (App.Options.Automated) { Width = 1280; Height = 800; WindowStartupLocation = WindowStartupLocation.CenterScreen; return; }
-        Width = Math.Max(MinWidth, _settings.WindowWidth);
-        Height = Math.Max(MinHeight, _settings.WindowHeight);
-        _normalSize = new Size(Width, Height);
-        if (!double.IsNaN(_settings.WindowLeft) && !double.IsNaN(_settings.WindowTop))
-        {
-            var pos = new PixelPoint((int)_settings.WindowLeft, (int)_settings.WindowTop);
-            // Only on a connected screen (title bar visible)
-            bool onScreen = Screens.All.Any(s => s.Bounds.Contains(new PixelPoint(pos.X + 50, pos.Y + 10)));
-            if (onScreen)
-            {
-                WindowStartupLocation = WindowStartupLocation.Manual;
-                Position = pos;
-                _normalPosition = pos;
-            }
-            else WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        }
-        else WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        if (_settings.WindowMaximized) WindowState = WindowState.Maximized;
-    }
-
-    void OnClosing(object? sender, WindowClosingEventArgs e)
-    {
-        if (_closingConfirmed) return;
         if (_state is IdeState.Running or IdeState.Debugging or IdeState.Paused or IdeState.External && !App.Options.Automated)
         {
             var r = MessageBox.Show(this, "A program is running. Stop it and exit?", "AlgolStudio",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (r != MessageBoxResult.Yes) { e.Cancel = true; return; }
+            if (r != MessageBoxResult.Yes) return false;
         }
         if (_state != IdeState.Idle) StopExecution();
-        if (!App.Options.Automated && !ConfirmSaveModified(_documents.ToList())) { e.Cancel = true; return; }
-        SaveSession();
-        _closingConfirmed = true;
+        if (!App.Options.Automated && !ConfirmSaveModified(_documents.ToList())) return false;
+        return true;
+    }
+
+    /// <summary>Closes the find and help dialogs (the main window is closed).</summary>
+    public void CloseDialogs()
+    {
         _findWindow?.Close();
         _helpWindow?.Close();
     }
 
+    /// <summary>Saves the session (open files, carets, layout) in the settings; the main window
+    /// stores its placement in <see cref="Settings"/> before.</summary>
     public void SaveSession()
     {
         CapturePanelSizes();
@@ -1045,21 +1063,11 @@ public partial class MainWindow : Window
         _settings.ActiveFile = ActiveDocument?.FilePath;
         foreach (var d in _documents.Where(d => d.FilePath != null))
             _settings.CaretOffsets[d.FilePath!] = d.Editor.CaretOffset;
-        _settings.WindowMaximized = WindowState == WindowState.Maximized;
-        var position = WindowState == WindowState.Normal ? Position : _normalPosition;
-        var size = WindowState == WindowState.Normal ? ClientSize : _normalSize;
-        if (size.Width > 0 && size.Height > 0)
-        {
-            _settings.WindowLeft = position.X;
-            _settings.WindowTop = position.Y;
-            _settings.WindowWidth = size.Width;
-            _settings.WindowHeight = size.Height;
-        }
         _settings.Save();
     }
 
-    /// <summary>Reloads files changed on disk by another program.</summary>
-    void CheckExternalChanges()
+    /// <summary>Reloads files changed on disk by another program (desktop: the window is activated).</summary>
+    public void CheckExternalChanges()
     {
         if (_checkingExternalChanges) return;
         _checkingExternalChanges = true;

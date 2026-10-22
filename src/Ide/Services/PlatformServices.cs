@@ -25,7 +25,7 @@ public sealed class ExternalRun
 
 /// <summary>
 /// Operations that depend on the platform the IDE runs on. The desktop head (src/Ide.Desktop) implements
-/// them for Windows, macOS and Linux; a browser head would provide its own implementation.
+/// them for Windows, macOS and Linux; the browser head (src/Ide.Browser) provides its own implementation.
 /// File dialogs and the clipboard go through Avalonia (StorageProvider, Clipboard) and are not part of it.
 /// </summary>
 public interface IPlatformServices
@@ -62,6 +62,13 @@ public interface IPlatformServices
 
     /// <summary>Shows a file (selected) or a folder in the file manager.</summary>
     void RevealInFileManager(string path);
+
+    /// <summary>The files live in a virtual file system kept by the application (browser): there is no folder
+    /// dialog and no file manager; Open uploads files from the computer and "Download" saves a copy on it.</summary>
+    bool IsVirtualFileSystem => false;
+
+    /// <summary>Folder of the virtual file system where uploaded files are copied (null on the desktop).</summary>
+    string? ImportDirectory => null;
 }
 
 /// <summary>Platform without external processes (default until a head sets <see cref="App.Platform"/>).</summary>

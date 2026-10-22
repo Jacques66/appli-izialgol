@@ -7,15 +7,15 @@ using Studio.Ide.Services;
 namespace Studio.Ide.Dialogs;
 
 /// <summary>Find / replace (modeless) in the active editor.</summary>
-public partial class FindReplaceWindow : Window
+public partial class FindReplaceWindow : DialogWindow
 {
-    readonly MainWindow _main;
+    readonly MainView _main;
     readonly SearchOptions _options;
 
     // Constructor for the XAML previewer.
     public FindReplaceWindow() : this(null!, new SearchOptions()) { }
 
-    public FindReplaceWindow(MainWindow main, SearchOptions options)
+    public FindReplaceWindow(MainView main, SearchOptions options)
     {
         InitializeComponent();
         _main = main;

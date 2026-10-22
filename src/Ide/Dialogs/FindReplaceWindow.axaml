@@ -1,6 +1,7 @@
-<Window x:Class="Studio.Ide.Dialogs.FindReplaceWindow"
+<dialogs:DialogWindow x:Class="Studio.Ide.Dialogs.FindReplaceWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:Studio.Ide.Dialogs"
         Title="Find" SizeToContent="Height" Width="460" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Icon="/Assets/app.ico" Background="{DynamicResource Brush.PanelBackground}"
         Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
@@ -24,4 +25,4 @@
         <TextBlock x:Name="StatusText" Grid.Row="3" Grid.ColumnSpan="3" Margin="0,10,0,0" TextWrapping="Wrap"
                    Foreground="{DynamicResource Brush.TextDim}"/>
     </Grid>
-</Window>
+</dialogs:DialogWindow>

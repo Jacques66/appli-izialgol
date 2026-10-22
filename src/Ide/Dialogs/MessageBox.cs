@@ -17,11 +17,12 @@ public enum MessageBoxImage { None, Error, Warning, Question, Information }
 
 /// <summary>
 /// Modal dialogs with a synchronous result, like the WPF ones: the caller waits in a nested dispatcher
-/// frame (supported by the desktop platforms; a browser head needs asynchronous dialogs).
+/// frame (supported by the desktop platforms; the browser cannot wait: it uses the asynchronous methods).
 /// </summary>
 public static class Modal
 {
-    /// <summary>Waits for a task started on the UI thread while the user interface keeps running.</summary>
+    /// <summary>Waits for a task started on the UI thread while the user interface keeps running
+    /// (a completed task, such as a save without dialog, returns at once on every platform).</summary>
     public static T Wait<T>(Task<T> task)
     {
         if (!task.IsCompleted)
@@ -32,26 +33,26 @@ public static class Modal
         }
         return task.GetAwaiter().GetResult();
     }
-
-    /// <summary>Shows a dialog (modal when there is an owner) and waits until it is closed.</summary>
-    public static T? ShowDialog<T>(Window dialog, Window? owner)
-    {
-        if (owner != null && owner.IsVisible) return Wait(dialog.ShowDialog<T>(owner));
-        var tcs = new TaskCompletionSource<T?>();
-        T? result = default;
-        dialog.Closed += (_, _) => tcs.TrySetResult(result);
-        dialog.Show();
-        return Wait(tcs.Task);
-    }
 }
 
 /// <summary>Message box (Avalonia has none): text, icon, OK / Yes-No / Yes-No-Cancel buttons.</summary>
 public static class MessageBox
 {
-    public static MessageBoxResult Show(Window? owner, string text, string title,
+    /// <summary>Shows the message and waits for the answer. In the browser, which cannot wait, the message is shown
+    /// and the method returns at once (OK, or No / Cancel for a question: questions use <see cref="ShowAsync"/>).</summary>
+    public static MessageBoxResult Show(Visual? owner, string text, string title,
         MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.None)
     {
-        var dialog = new Window
+        var task = ShowAsync(owner, text, title, buttons, image);
+        if (DialogWindow.UsesOverlays && !task.IsCompleted)
+            return buttons == MessageBoxButton.OK ? MessageBoxResult.OK : buttons == MessageBoxButton.YesNo ? MessageBoxResult.No : MessageBoxResult.Cancel;
+        return Modal.Wait(task);
+    }
+
+    public static async Task<MessageBoxResult> ShowAsync(Visual? owner, string text, string title,
+        MessageBoxButton buttons = MessageBoxButton.OK, MessageBoxImage image = MessageBoxImage.None)
+    {
+        var dialog = new DialogWindow
         {
             Title = title,
             SizeToContent = SizeToContent.WidthAndHeight,
@@ -64,7 +65,6 @@ public static class MessageBox
         };
         dialog.Bind(TemplatedControl.BackgroundProperty, dialog.GetResourceObservable("Brush.PanelBackground"));
         dialog.Bind(TemplatedControl.ForegroundProperty, dialog.GetResourceObservable("Brush.Text"));
-        if (owner?.Icon != null) dialog.Icon = owner.Icon;
 
         var result = buttons == MessageBoxButton.OK ? MessageBoxResult.OK : buttons == MessageBoxButton.YesNo ? MessageBoxResult.No : MessageBoxResult.Cancel;
         var buttonRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
@@ -126,7 +126,49 @@ public static class MessageBox
             if (e.Key == Key.Escape) dialog.Close();
         };
         dialog.Opened += (_, _) => first?.Focus();
-        Modal.ShowDialog<object>(dialog, owner);
+        await dialog.ShowDialog(owner);
+        return result;
+    }
+
+    /// <summary>Asks for a line of text (OK / Cancel); returns null when cancelled.</summary>
+    public static async Task<string?> PromptAsync(Visual? owner, string text, string title, string value)
+    {
+        var dialog = new DialogWindow
+        {
+            Title = title,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            CanResize = false,
+            ShowInTaskbar = owner == null,
+            WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
+            FontSize = 12.5,
+        };
+        dialog.Bind(TemplatedControl.BackgroundProperty, dialog.GetResourceObservable("Brush.PanelBackground"));
+        dialog.Bind(TemplatedControl.ForegroundProperty, dialog.GetResourceObservable("Brush.Text"));
+        string? result = null;
+        var box = new TextBox { Text = value, Width = 460 };
+        var buttonRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
+        foreach (var (label, ok) in new[] { ("OK", true), ("Cancel", false) })
+        {
+            var b = new Button { Content = label, IsDefault = ok, IsCancel = !ok };
+            if (Application.Current?.TryGetResource("DialogButton", null, out var theme) == true && theme is ControlTheme ct) b.Theme = ct;
+            b.Click += (_, _) => { if (ok) result = box.Text; dialog.Close(); };
+            buttonRow.Children.Add(b);
+        }
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(16),
+            Children = { new TextBlock { Text = text, Margin = new Thickness(0, 0, 0, 6) }, box, buttonRow },
+        };
+        dialog.Opened += (_, _) =>
+        {
+            box.Focus();
+            // Select the file name without its extension
+            var name = System.IO.Path.GetFileNameWithoutExtension(value);
+            int at = value.LastIndexOf(name, StringComparison.Ordinal);
+            if (name.Length > 0 && at >= 0) { box.SelectionStart = at; box.SelectionEnd = at + name.Length; }
+            else box.SelectAll();
+        };
+        await dialog.ShowDialog(owner);
         return result;
     }
 }

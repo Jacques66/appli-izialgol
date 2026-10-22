@@ -29,6 +29,9 @@ The project contains:
 The compilers produce a program that is interpreted by the language's runtime; a "standalone
 executable" is a copy of `Runner.exe` with the compiled program appended to it.
 
+The IDE also runs **in the browser** (WebAssembly), with nothing to install:
+<https://jacques66.github.io/appli-izialgol/> (see [Browser version](#browser-version)).
+
 ## Requirements
 
 * Windows 10 or 11 (x64); the IDE (Avalonia user interface) also runs on macOS and Linux.
@@ -166,6 +169,54 @@ The **Help** menu shows `docs/simula.md`, `docs/algol68.md`, `docs/algol60.md`,
 `docs/simula1.md` and `docs/pascal.md` (looked up next to the executable, then in the parent folders), the list of
 keyboard shortcuts and a guide to the environment.
 
+## Browser version
+
+<https://jacques66.github.io/appli-izialgol/> — the same IDE (`src/Ide`) started by a browser head
+(`src/Ide.Browser`, Avalonia.Browser on the .NET 8 WebAssembly runtime): editor, build, integrated console
+(live output, ANSI animations, input), debugger (breakpoints, stepping, call stack, variables), examples and help.
+
+* **Files** live in a virtual file system kept in the browser: `/AlgolStudio/samples` (the examples),
+  `/AlgolStudio/docs` (the help) and `/AlgolStudio/My programs`. **Save as** asks for a file name in it,
+  **Open** uploads files from the computer into `My programs`, **File › Download to the computer** saves a
+  copy on the computer; files can also be dropped on the page. New and modified files, the open tabs and the
+  settings are kept in the browser storage (`localStorage`, about 5 MB per site) and restored at the next
+  visit; clearing the site data of the browser resets everything.
+* **Not available in the browser**: the external console, the generation of standalone executables, the
+  folder dialog (*Open folder*) and the file manager. Programs written with these features in mind run in the
+  integrated console.
+* **Limits**: Algol 68 and Pascal programs are interpreted with a smaller stack than on the desktop (recursion
+  of a few thousand levels; deeper recursion stops with "stack overflow"); Simula 67, Algol 60 and Simula I are
+  not affected. An Algol 68 `PAR` clause can run about ten units at the same time (the threads come from a
+  fixed pool of 16 web workers). Programs run more
+  slowly than on the desktop (interpreted .NET). Some shortcuts belong to the browser (Ctrl+N, Ctrl+W,
+  Ctrl+T…): use the menus.
+* **Requirements**: a recent Chrome, Edge, Firefox or Safari. The page needs *cross-origin isolation*
+  (`SharedArrayBuffer`, used by the threads of .NET); GitHub Pages cannot send the COOP/COEP headers, so
+  `wwwroot/coi-serviceworker.js` (MIT, by Guido Zuidhof, vendored) adds them with a service worker: the
+  first visit reloads the page once. Private windows that block service workers cannot run it.
+
+Building it needs the **wasm-tools** workload of the .NET 8 SDK (`dotnet workload install wasm-tools`,
+administrator rights for a machine-wide SDK; a user-local SDK installed with `dotnet-install` works too).
+`src/Ide.Browser` is therefore not part of `AlgolStudio.sln` (which builds with a plain SDK):
+
+```
+dotnet publish src/Ide.Browser/Ide.Browser.csproj -c Release -o out/browser
+```
+
+The site is `out/browser/wwwroot` (about 22 MB; the web server compresses it, GitHub Pages does);
+serve it with any static web server, for example under `http://localhost:8000/appli-izialgol/` (every path is
+relative). A file can be opened at start-up with `?arg=/AlgolStudio/samples/simula67/01_hello.sim`.
+
+Deployment: `.github/workflows/pages.yml` publishes it on every push to `master` (or by hand, *Run workflow*)
+and deploys it to GitHub Pages (*Settings › Pages › Source: GitHub Actions*).
+
+How it works: the compilers and their runtimes use threads (program thread, debugger pauses, console input,
+Algol 68 `PAR`), so the browser head enables the multithreaded WebAssembly runtime (`WasmEnableThreads`).
+Avalonia 11.3 keeps its user interface on the main browser thread (its own multithreaded mode needs .NET 9);
+`ThreadedRuntime.cs` lets the other threads post to it. `VirtualFiles.cs` fills the in-memory file system of
+.NET at start-up, so the IDE and the runtimes use `System.IO` as on the desktop. The dialogs of `src/Ide`
+(`DialogWindow`) are windows on the desktop and panels over the page in the browser.
+
 ## Command line
 
 ```
@@ -230,6 +281,9 @@ src\Ide         cross-platform IDE library (Avalonia 11, AvaloniaEdit, Markdig):
                 panels, dialogs, services; IPlatformServices = operations provided by each head
 src\Ide.Desktop desktop head (Windows, macOS, Linux): AlgolStudio(.exe), Program.cs, DesktopPlatform
                 (external console, executables, file manager), SelfTest.cs (--smoke-test, --self-test)
+src\Ide.Browser browser head (WebAssembly, not in AlgolStudio.sln): Program.cs, BrowserPlatform,
+                VirtualFiles (examples, help and user files), ThreadedRuntime, wwwroot\ (page, start-up,
+                coi-serviceworker.js); deployed by .github\workflows\pages.yml
 tests\          tests of the compilers and of the tooling
 samples\        samples; docs\ language documentation
 ```

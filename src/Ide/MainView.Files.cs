@@ -10,7 +10,7 @@ using Studio.Tooling;
 
 namespace Studio.Ide;
 
-public partial class MainWindow
+public partial class MainView
 {
     const string FileFilter =
         "All programs (*.sim;*.a68;*.a60;*.alg;*.s1;*.pas;*.p)|*.sim;*.a68;*.a60;*.alg;*.s1;*.pas;*.p|Simula 67 (*.sim)|*.sim|Algol 68 (*.a68)|*.a68|" +
@@ -42,8 +42,12 @@ public partial class MainWindow
         return list;
     }
 
+    /// <summary>File dialogs of the window (desktop) or of the page (browser).</summary>
+    IStorageProvider StorageProvider => TopLevel.GetTopLevel(this)!.StorageProvider;
+
     async Task<IStorageFolder?> FolderAsync(string? path) =>
-        string.IsNullOrEmpty(path) || !System.IO.Directory.Exists(path) ? null : await StorageProvider.TryGetFolderFromPathAsync(path);
+        string.IsNullOrEmpty(path) || !System.IO.Directory.Exists(path) || App.Platform.IsVirtualFileSystem
+            ? null : await StorageProvider.TryGetFolderFromPathAsync(path);
 
     async Task OpenWithDialogAsync()
     {
@@ -55,7 +59,58 @@ public partial class MainWindow
             SuggestedStartLocation = await FolderAsync(ActiveDocument?.Directory ?? _settings.ExplorerRoot),
         });
         foreach (var f in files)
-            if (f.TryGetLocalPath() is { } path) OpenFile(path);
+            if ((f.TryGetLocalPath() ?? await ImportAsync(f)) is { } path) OpenFile(path);
+    }
+
+    /// <summary>Browser: copies a file of the computer (upload) into the virtual file system and returns its path
+    /// (null on the desktop, where the files have a local path).</summary>
+    async Task<string?> ImportAsync(IStorageItem item)
+    {
+        var dir = App.Platform.ImportDirectory;
+        if (dir == null || item is not IStorageFile file) return null;
+        try
+        {
+            System.IO.Directory.CreateDirectory(dir);
+            var name = System.IO.Path.GetFileName(file.Name);
+            var path = System.IO.Path.Combine(dir, name);
+            for (int i = 2; System.IO.File.Exists(path); i++)
+                path = System.IO.Path.Combine(dir, $"{System.IO.Path.GetFileNameWithoutExtension(name)} ({i}){System.IO.Path.GetExtension(name)}");
+            await using (var input = await file.OpenReadAsync())
+            await using (var output = System.IO.File.Create(path))
+                await input.CopyToAsync(output);
+            AppendOutput($"Imported from the computer: {path}");
+            OnExplorerRefresh(null, new RoutedEventArgs());
+            return path;
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Cannot import {file.Name}:\n{ex.Message}", "Open");
+            return null;
+        }
+    }
+
+    /// <summary>Browser: saves a copy of the document on the computer (download).</summary>
+    async Task DownloadAsync(EditorDocument doc)
+    {
+        try
+        {
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Download to the computer",
+                SuggestedFileName = doc.DisplayName,
+                DefaultExtension = doc.Language.DefaultExtension,
+                ShowOverwritePrompt = true,
+            });
+            if (file == null) return;
+            var bytes = doc.Encoding.GetPreamble().Concat(doc.Encoding.GetBytes(doc.Editor.Document.Text)).ToArray();
+            await using (var stream = await file.OpenWriteAsync())
+                await stream.WriteAsync(bytes);
+            SetStatusMessage($"Downloaded: {file.Name}");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Cannot download {doc.DisplayName}:\n{ex.Message}", "Download");
+        }
     }
 
     async Task OpenFolderWithDialogAsync()
@@ -127,9 +182,11 @@ public partial class MainWindow
         return algol > simula ? LanguageDefinitions.Algol68 : LanguageDefinitions.Simula;
     }
 
-    public bool SaveDocument(EditorDocument doc)
+    public bool SaveDocument(EditorDocument doc) => Modal.Wait(SaveDocumentAsync(doc));
+
+    public async Task<bool> SaveDocumentAsync(EditorDocument doc)
     {
-        if (doc.FilePath == null) return SaveDocumentAs(doc);
+        if (doc.FilePath == null) return await SaveDocumentAsAsync(doc);
         try
         {
             doc.Save(doc.FilePath);
@@ -144,23 +201,28 @@ public partial class MainWindow
         }
     }
 
-    public bool SaveDocumentAs(EditorDocument doc, string? path = null)
+    public bool SaveDocumentAs(EditorDocument doc, string? path = null) => Modal.Wait(SaveDocumentAsAsync(doc, path));
+
+    public async Task<bool> SaveDocumentAsAsync(EditorDocument doc, string? path = null)
     {
         if (path == null)
         {
-            // Synchronous result (callers such as ConfirmSaveModified need it): nested dispatcher frame.
-            var types = FileTypes(FileFilterWithEcho);
-            int typeIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "pascal" => 6, "echo" => 8, _ => 1 };
-            var file = Modal.Wait(SaveFilePickerAsync(new FilePickerSaveOptions
+            if (App.Platform.IsVirtualFileSystem) path = await AskVirtualPathAsync(doc);
+            else
             {
-                FileTypeChoices = types,
-                SuggestedFileType = types[Math.Min(typeIndex, types.Count) - 1],
-                SuggestedFileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
-                DefaultExtension = doc.Language.DefaultExtension,
-                ShowOverwritePrompt = true,
-                Title = "Save as",
-            }, doc.Directory ?? _settings.ExplorerRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
-            path = file?.TryGetLocalPath();
+                var types = FileTypes(FileFilterWithEcho);
+                int typeIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "pascal" => 6, "echo" => 8, _ => 1 };
+                var file = await SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    FileTypeChoices = types,
+                    SuggestedFileType = types[Math.Min(typeIndex, types.Count) - 1],
+                    SuggestedFileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
+                    DefaultExtension = doc.Language.DefaultExtension,
+                    ShowOverwritePrompt = true,
+                    Title = "Save as",
+                }, doc.Directory ?? _settings.ExplorerRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+                path = file?.TryGetLocalPath();
+            }
             if (path == null) return false;
         }
         var oldPath = doc.FilePath;
@@ -179,7 +241,42 @@ public partial class MainWindow
         UpdateStatusBar();
         UpdateTitle();
         UpdateOutline();
+        if (App.Platform.IsVirtualFileSystem) OnExplorerRefresh(null, new RoutedEventArgs());
         return true;
+    }
+
+    /// <summary>Browser: asks for the path of the file in the virtual file system ("Save as").</summary>
+    async Task<string?> AskVirtualPathAsync(EditorDocument doc)
+    {
+        var dir = doc.Directory ?? App.Platform.ImportDirectory ?? _settings.ExplorerRoot ?? "/";
+        var suggested = System.IO.Path.Combine(dir, doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName);
+        while (true)
+        {
+            var answer = await MessageBox.PromptAsync(this, "File name (the files are kept in this browser):", "Save as", suggested);
+            if (string.IsNullOrWhiteSpace(answer)) return null;
+            var path = answer.Trim();
+            if (!System.IO.Path.IsPathRooted(path)) path = System.IO.Path.Combine(dir, path);
+            if (!System.IO.Path.HasExtension(path)) path += doc.Language.DefaultExtension;
+            try
+            {
+                path = System.IO.Path.GetFullPath(path);
+                if (System.IO.Directory.Exists(path)) throw new IOException("This is a folder.");
+                if (System.IO.File.Exists(path) && !PathLocator.SamePath(path, doc.FilePath) &&
+                    await MessageBox.ShowAsync(this, $"{path}\nalready exists. Replace it?", "Save as",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    suggested = path;
+                    continue;
+                }
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+                return path;
+            }
+            catch (Exception ex)
+            {
+                await MessageBox.ShowAsync(this, $"Invalid file name\n{path}\n\n{ex.Message}", "Save as", MessageBoxButton.OK, MessageBoxImage.Error);
+                suggested = answer;
+            }
+        }
     }
 
     async Task<IStorageFile?> SaveFilePickerAsync(FilePickerSaveOptions options, string? directory)
@@ -188,33 +285,37 @@ public partial class MainWindow
         return await StorageProvider.SaveFilePickerAsync(options);
     }
 
-    void SaveAll()
+    async Task SaveAllAsync()
     {
         foreach (var d in _documents.Where(d => d.IsModified).ToList())
-            if (!SaveDocument(d)) break;
+            if (!await SaveDocumentAsync(d)) break;
     }
 
     /// <summary>Asks to save modified files. Returns false when the user cancels.</summary>
-    bool ConfirmSaveModified(IList<EditorDocument> docs)
+    bool ConfirmSaveModified(IList<EditorDocument> docs) => Modal.Wait(ConfirmSaveModifiedAsync(docs));
+
+    async Task<bool> ConfirmSaveModifiedAsync(IList<EditorDocument> docs)
     {
         var modified = docs.Where(d => d.IsModified).ToList();
         if (modified.Count == 0) return true;
         var names = string.Join("\n", modified.Select(d => "  • " + d.DisplayName));
-        var r = MessageBox.Show(this, $"Save changes to the following files?\n\n{names}",
+        var r = await MessageBox.ShowAsync(this, $"Save changes to the following files?\n\n{names}",
             "AlgolStudio", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
         if (r == MessageBoxResult.Cancel) return false;
         if (r == MessageBoxResult.Yes)
             foreach (var d in modified)
             {
                 Activate(d);
-                if (!SaveDocument(d)) return false;
+                if (!await SaveDocumentAsync(d)) return false;
             }
         return true;
     }
 
-    public bool CloseDocument(EditorDocument doc, bool force = false)
+    public bool CloseDocument(EditorDocument doc, bool force = false) => Modal.Wait(CloseDocumentAsync(doc, force));
+
+    public async Task<bool> CloseDocumentAsync(EditorDocument doc, bool force = false)
     {
-        if (!force && !App.Options.Automated && !ConfirmSaveModified(new[] { doc })) return false;
+        if (!force && !App.Options.Automated && !await ConfirmSaveModifiedAsync(new[] { doc })) return false;
         if (doc.FilePath != null) _settings.CaretOffsets[doc.FilePath] = doc.Editor.CaretOffset;
         int idx = DocTabs.Items.IndexOf(doc.Tab);
         DocTabs.Items.Remove(doc.Tab);
@@ -228,10 +329,10 @@ public partial class MainWindow
         return true;
     }
 
-    void CloseAll()
+    async Task CloseAllAsync()
     {
-        if (!App.Options.Automated && !ConfirmSaveModified(_documents.ToList())) return;
-        foreach (var d in _documents.ToList()) CloseDocument(d, force: true);
+        if (!App.Options.Automated && !await ConfirmSaveModifiedAsync(_documents.ToList())) return;
+        foreach (var d in _documents.ToList()) await CloseDocumentAsync(d, force: true);
     }
 
     // ------------------------------------------------------------------ dynamic menus

@@ -13,7 +13,7 @@ using Studio.Tooling;
 
 namespace Studio.Ide;
 
-public partial class MainWindow
+public partial class MainView
 {
     static readonly SemaphoreSlim CompileLock = new(1, 1);
     readonly List<ErrorItem> _allErrors = new();

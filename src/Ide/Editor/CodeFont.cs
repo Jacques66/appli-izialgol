@@ -14,10 +14,15 @@ public static class CodeFont
     static readonly Dictionary<string, FontFamily> Cache = new(StringComparer.Ordinal);
     const uint FvarTag = 0x66766172; // 'fvar': font variations table
 
+    /// <summary>Font used when none of the families is installed (the browser has no system fonts: its head
+    /// embeds a monospace font).</summary>
+    public static FontFamily? Fallback { get; set; }
+
     public static FontFamily Resolve(string families)
     {
         if (Cache.TryGetValue(families, out var cached)) return cached;
         var names = families.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (Fallback != null && !names.Any(IsInstalled)) return Cache[families] = Fallback;
         int first = 0;
         try
         {

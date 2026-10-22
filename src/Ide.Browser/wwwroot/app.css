@@ -1,0 +1,77 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #f7f8fa;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: #1e1e1e;
+}
+
+/* Fixed and clipped, not scrollable: the hidden text input of Avalonia follows the caret, and the browser
+   must not scroll the view when the caret is outside it (Avalonia sets overflow: hidden on this element,
+   which can still be scrolled; main.js also cancels such a scroll). */
+#out {
+    position: fixed;
+    inset: 0;
+    overflow: clip !important;
+}
+
+#splash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #f7f8fa;
+    z-index: 10;
+    transition: opacity 0.3s;
+}
+
+#splash.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#splash h1 {
+    margin: 8px 0 0;
+    font-size: 30px;
+    font-weight: 300;
+}
+
+#splash p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+#splash .bar {
+    width: 260px;
+    height: 4px;
+    margin: 14px 0 6px;
+    background: #dde2ea;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+#progress {
+    width: 0;
+    height: 100%;
+    background: #0063b1;
+    transition: width 0.2s;
+}
+
+#status.error {
+    color: #c42b1c;
+    max-width: 560px;
+    text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+    html, body, #splash { background: #25262a; color: #e6e6e6; }
+    #splash p { color: #a0a0a0; }
+    #splash .bar { background: #3a3c42; }
+    #progress { background: #3b8eea; }
+}

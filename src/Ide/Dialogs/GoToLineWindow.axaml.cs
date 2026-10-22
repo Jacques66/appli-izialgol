@@ -4,7 +4,7 @@ using Avalonia.Interactivity;
 namespace Studio.Ide.Dialogs;
 
 /// <summary>Go to line: ShowDialog&lt;bool&gt; returns true when a valid line was entered (<see cref="Line"/>).</summary>
-public partial class GoToLineWindow : Window
+public partial class GoToLineWindow : DialogWindow
 {
     readonly int _max;
 

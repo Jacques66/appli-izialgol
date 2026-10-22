@@ -12,7 +12,7 @@ namespace Studio.Ide;
 
 public enum StepKind { Into, Over, Out }
 
-public partial class MainWindow
+public partial class MainView
 {
     RunSession? _session;
     ExternalRun? _externalProcess;
@@ -182,11 +182,7 @@ public partial class MainWindow
         }
         else if (!ConsoleView.IsWaiting)
             ShowBottomPanel("variables");
-        if (!App.Options.Automated)
-        {
-            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
-            Activate();
-        }
+        if (!App.Options.Automated) Activate();
         DebuggerPaused?.Invoke(info);
     }
 

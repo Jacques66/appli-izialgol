@@ -1,6 +1,7 @@
-<Window x:Class="Studio.Ide.Dialogs.GoToLineWindow"
+<dialogs:DialogWindow x:Class="Studio.Ide.Dialogs.GoToLineWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:Studio.Ide.Dialogs"
         Title="Go to Line" SizeToContent="WidthAndHeight" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Icon="/Assets/app.ico" Background="{DynamicResource Brush.PanelBackground}"
         Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
@@ -13,4 +14,4 @@
             <Button Theme="{StaticResource DialogButton}" Content="Cancel" IsCancel="True" Click="OnCancel"/>
         </StackPanel>
     </StackPanel>
-</Window>
+</dialogs:DialogWindow>

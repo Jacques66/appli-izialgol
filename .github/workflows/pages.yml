@@ -1,0 +1,61 @@
+# Browser version of AlgolStudio (src/Ide.Browser, WebAssembly) on GitHub Pages:
+# https://jacques66.github.io/appli-izialgol/
+# Settings › Pages › Source must be "GitHub Actions".
+
+name: Deploy the browser version to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time (a deployment in progress is not cancelled).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+        env:
+          # A user-writable SDK: the workload can then be installed without sudo.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+
+      - name: Install the WebAssembly tools
+        run: dotnet workload install wasm-tools
+
+      - name: Publish the browser head
+        run: dotnet publish src/Ide.Browser/Ide.Browser.csproj -c Release -o out/browser
+
+      - name: Prepare the site
+        run: |
+          touch out/browser/wwwroot/.nojekyll
+          du -sh out/browser/wwwroot
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out/browser/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

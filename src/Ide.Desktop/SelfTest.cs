@@ -62,6 +62,13 @@ public static class SelfTest
     /// <summary>Standalone executable name for the platform (test.exe on Windows, test elsewhere).</summary>
     static string ExeName(string baseName) => baseName + App.Platform.ExecutableExtension;
 
+    /// <summary>Renders the window of a view (main view, dialog) to a PNG file.</summary>
+    public static void Capture(Visual view, string path)
+    {
+        if (TopLevel.GetTopLevel(view) is Window w) Capture(w, path);
+        else Info("capture failed: no window");
+    }
+
     /// <summary>Renders a window (client area) to a PNG file, with its open popups (menus) on top.</summary>
     public static void Capture(Window w, string path)
     {
@@ -113,7 +120,7 @@ public static class SelfTest
         bitmap.Save(path);
     }
 
-    static void Finish(MainWindow w, string name)
+    static void Finish(MainView w, string name)
     {
         if (App.UnhandledErrors > 0)
         {
@@ -214,7 +221,7 @@ public static class SelfTest
         "   until p.x < 1\r\n" +                                                 // 18
         "end.\r\n";                                                              // 19
 
-    public static async Task RunSmokeAsync(MainWindow w)
+    public static async Task RunSmokeAsync(MainView w)
     {
         try
         {
@@ -257,7 +264,7 @@ public static class SelfTest
         "  print in p {x}\n" +           // 10
         "end\n";                         // 11
 
-    public static async Task RunAsync(MainWindow w)
+    public static async Task RunAsync(MainView w)
     {
         var dir = OutDir;
         try
@@ -493,7 +500,8 @@ public static class SelfTest
             sim.Editor.TextArea.Focus();
 
             // ---- 10b. Menus (drop-down menu rendering, screen capture)
-            w.Topmost = true;
+            var window = (Window)TopLevel.GetTopLevel(w)!;
+            window.Topmost = true;
             w.Activate();
             var debugMenu = w.DebugMenuItem.Parent as MenuItem;
             if (debugMenu != null)
@@ -515,7 +523,7 @@ public static class SelfTest
             }
             Capture(w, Path.Combine(dir, "7b-examples-menu.png"));
             w.ExamplesMenu.Close();
-            w.Topmost = false;
+            window.Topmost = false;
 
             // ---- 11. Dark theme
             w.SetTheme(true);
@@ -533,7 +541,7 @@ public static class SelfTest
             await RealAnsiScenario(w);
 
             // ---- 12b. Samples (information)
-            foreach (var sample in MainWindow.ListSamples().Take(300))
+            foreach (var sample in MainView.ListSamples().Take(300))
             {
                 var d = w.OpenFile(sample);
                 if (d == null) continue;
@@ -547,7 +555,7 @@ public static class SelfTest
             // ---- 12c. Help (Markdown rendered with Avalonia controls)
             w.CmdHelp.Execute("simula");
             await Task.Delay(2500);
-            var help = App.Windows.OfType<Dialogs.HelpWindow>().FirstOrDefault();
+            var help = App.Windows.Select(x => x.Content).OfType<Dialogs.HelpWindow>().FirstOrDefault();
             Check(help != null && help.IsVisible, "help window open");
             if (help != null)
             {
@@ -671,7 +679,7 @@ public static class SelfTest
         return true;
     }
 
-    static async Task RealCompilerScenario(MainWindow w, LanguageDefinition lang, string source, string expected, int bpLine, string localVar)
+    static async Task RealCompilerScenario(MainView w, LanguageDefinition lang, string source, string expected, int bpLine, string localVar)
     {
         var doc = w.NewDocument(lang, source);
         var path = Path.Combine(OutDir, "real" + lang.DefaultExtension);
@@ -729,7 +737,7 @@ public static class SelfTest
     const string Esc = "\u001b";
 
     /// <summary>Program output with escape sequences: clear, home, colours, erase; the screen is redrawn in place.</summary>
-    static async Task AnsiConsoleScenario(MainWindow w, string dir)
+    static async Task AnsiConsoleScenario(MainView w, string dir)
     {
         var console = w.ConsoleView;
         bool clearOnRun = console.ClearOnRun;
@@ -768,7 +776,7 @@ public static class SelfTest
         "end\r\n";
 
     /// <summary>Real Simula 67 program that redraws a counter in place 20 times.</summary>
-    static async Task RealAnsiScenario(MainWindow w)
+    static async Task RealAnsiScenario(MainView w)
     {
         var doc = w.NewDocument(LanguageDefinitions.Simula, RealSimulaAnsi);
         var path = Path.Combine(OutDir, "ansi.sim");

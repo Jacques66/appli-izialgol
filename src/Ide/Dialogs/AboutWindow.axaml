@@ -1,6 +1,7 @@
-<Window x:Class="Studio.Ide.Dialogs.AboutWindow"
+<dialogs:DialogWindow x:Class="Studio.Ide.Dialogs.AboutWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:dialogs="using:Studio.Ide.Dialogs"
         Title="About" SizeToContent="Height" Width="520" CanResize="False" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Icon="/Assets/app.ico" Background="{DynamicResource Brush.PanelBackground}"
         Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
@@ -22,4 +23,4 @@
         <Button Theme="{StaticResource DialogButton}" Content="Close" IsCancel="True" IsDefault="True"
                 HorizontalAlignment="Right" Margin="0,18,0,0" Click="OnClose"/>
     </StackPanel>
-</Window>
+</dialogs:DialogWindow>

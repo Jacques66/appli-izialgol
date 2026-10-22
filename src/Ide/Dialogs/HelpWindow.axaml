@@ -1,4 +1,4 @@
-<Window x:Class="Studio.Ide.Dialogs.HelpWindow"
+<dialogs:DialogWindow x:Class="Studio.Ide.Dialogs.HelpWindow"
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:dialogs="using:Studio.Ide.Dialogs"
@@ -38,4 +38,4 @@
         <GridSplitter Grid.Column="1" ResizeDirection="Columns"/>
         <dialogs:MarkdownView x:Name="Viewer" Grid.Column="2"/>
     </Grid>
-</Window>
+</dialogs:DialogWindow>

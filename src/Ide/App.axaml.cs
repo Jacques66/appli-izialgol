@@ -58,8 +58,8 @@ public partial class App : Application
     public static AppOptions Options { get; set; } = new();
     /// <summary>Platform operations (set by the platform head before the application starts).</summary>
     public static IPlatformServices Platform { get; set; } = new NoPlatformServices();
-    /// <summary>Automated scenario (smoke test, self-test) started once the main window is shown; set by the head.</summary>
-    public static Func<MainWindow, Task>? AutomatedScenario { get; set; }
+    /// <summary>Automated scenario (smoke test, self-test) started once the main view is shown; set by the head.</summary>
+    public static Func<MainView, Task>? AutomatedScenario { get; set; }
 
     public static int UnhandledErrors { get; private set; }
     public static readonly List<string> ErrorMessages = new();
@@ -92,6 +92,11 @@ public partial class App : Application
             var window = new MainWindow();
             desktop.MainWindow = window;
         }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            // Browser: the main view is the whole page; dialogs float over it (see DialogWindow).
+            singleView.MainView = new MainView();
+        }
         base.OnFrameworkInitializationCompleted();
     }
 
@@ -105,18 +110,23 @@ public partial class App : Application
         {
             var message = "An unexpected error occurred:\n\n" + e.Exception.Message +
                           "\n\nDetails were written to " + Path.Combine(IdeSettings.Directory, "ide.log");
-            Dispatcher.UIThread.Post(() => MessageBox.Show(MainWindowOrNull, message, "AlgolStudio",
+            Dispatcher.UIThread.Post(() => MessageBox.Show(MainViewOrNull, message, "AlgolStudio",
                 MessageBoxButton.OK, MessageBoxImage.Error));
         }
     }
 
     void OnNativeAbout(object? sender, EventArgs e)
     {
-        if (MainWindowOrNull is { } owner) _ = new AboutWindow().ShowDialog(owner);
+        if (MainViewOrNull is { } owner) _ = new AboutWindow().ShowDialog(owner);
     }
 
-    static Window? MainWindowOrNull =>
-        (Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    /// <summary>Main window (desktop) or main view (browser).</summary>
+    static Visual? MainViewOrNull => Current?.ApplicationLifetime switch
+    {
+        IClassicDesktopStyleApplicationLifetime desktop => desktop.MainWindow,
+        ISingleViewApplicationLifetime singleView => singleView.MainView,
+        _ => null,
+    };
 
     /// <summary>Open windows of the application.</summary>
     public static IReadOnlyList<Window> Windows =>

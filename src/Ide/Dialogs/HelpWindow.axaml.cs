@@ -11,7 +11,7 @@ namespace Studio.Ide.Dialogs;
 
 /// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md, docs/simula1.md and docs/pascal.md
 /// (Markdig → Avalonia controls, see <see cref="MarkdownView"/>).</summary>
-public partial class HelpWindow : Window
+public partial class HelpWindow : DialogWindow
 {
     public sealed record TocEntry(string Title, string Id, int Level)
     {
@@ -260,6 +260,15 @@ A program starts with its heading, e.g. `program hello(input, output);`, and end
 * <kbd>F11</kbd> steps into procedures, <kbd>F10</kbd> steps over them, <kbd>Shift+F11</kbd> steps out of the current procedure.
 * The **call stack** (double-click to show a caller) and the **variables** (expandable tree) are refreshed at each stop.
 * A runtime error stops the program on the faulty line (option **Break on runtime error**).
+
+## Browser version
+
+AlgolStudio also runs in a web browser (https://jacques66.github.io/appli-izialgol/), with the same editor, console and debugger.
+
+* The files are kept in the browser: `/AlgolStudio/samples` (examples), `/AlgolStudio/docs` (help) and `/AlgolStudio/My programs`. **Save as** asks for a file name there; **Open** copies files of the computer into `My programs`; **File › Download to the computer** saves a copy on the computer. New and modified files, the open tabs and the settings come back at the next visit (browser storage, about 5 MB).
+* Not available: the external console, standalone executables, *Open folder* and the file manager.
+* Algol 68 and Pascal programs can recurse a few thousand levels deep (more on the desktop); an Algol 68 `PAR` clause runs at most about ten units at the same time.
+* Some shortcuts belong to the browser (<kbd>Ctrl+N</kbd>, <kbd>Ctrl+W</kbd>, <kbd>Ctrl+T</kbd>…): use the menus.
 
 ## Command line
 
