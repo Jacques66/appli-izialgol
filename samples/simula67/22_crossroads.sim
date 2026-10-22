@@ -8,8 +8,12 @@ comment Crossroads: an operating-system style round-robin scheduler, written in
 
         Driving on the right, traffic in both directions, four lanes on every
         arm: three entry lanes (left, straight, right) and one exit lane. The
-        lights stand on the right of each approach, one head per entry lane:
-        [<0>] = left arrow, straight, right arrow, drawn in green, amber or red.
+        lights stand on the right of each approach, a few cells before the
+        box, where the cars stop: a bar perpendicular to the road, one head
+        per entry lane, in the order of the lanes. Each head is an arrow
+        pointing where its lane goes on the screen (for a car coming from the
+        top, its right turn is the observer's left: <v>), drawn in green,
+        amber or red.
         A car is drawn as ^ v < > in the direction it is heading, in the colour
         of the arm it comes from: North blue, East green, South red, West
         yellow, so a turning car still shows where it came from. Four phases:
@@ -25,6 +29,7 @@ comment Crossroads: an operating-system style round-robin scheduler, written in
 begin
    integer B = 8;                    ! first row and column of the box;
    integer GRID = 20;                ! size of the grid (2 arms of B cells + 4);
+   integer LIGHTPOS = B - 3;         ! cell of an approach where the lights stand;
    integer Q = 2;                    ! quantum, in CPU units;
    integer TICKS = 200;              ! length of the run;
    integer GENSTOP = 170;            ! generators stop creating cars;
@@ -202,7 +207,7 @@ begin
          else if arm = 1 then begin lane := B + 2 - m; for i := GRID - 1 step -1 until B + 4 do add(lane, i) end
          else if arm = 2 then begin lane := B + 1 + m; for i := GRID - 1 step -1 until B + 4 do add(i, lane) end
          else begin lane := B + 1 + m; for i := 0 step 1 until B - 1 do add(lane, i) end;
-         stopidx := len - 1;
+         stopidx := LIGHTPOS - 1;            ! cars stop just before the lights;
          for i := 0 step 1 until boxn(h) - 1 do add(B + boxr(h, i), B + boxc(h, i));
          d := mod(arm + 1 + m, 4);
          if d = 0 then begin for i := B - 1 step -1 until 0 do add(i, B + 3) end
@@ -227,7 +232,7 @@ begin
       Boolean procedure conflict;
       begin
          integer i; ref(Car) o;
-         for i := stopidx + 1 step 1 until stopidx + boxn(h) do
+         for i := B step 1 until B + boxn(h) - 1 do
          begin
             o :- cell(pr(i), pc(i));
             if o =/= none and then (o.arm <> arm or o.m <> m) then conflict := true
@@ -254,7 +259,11 @@ begin
                lightq(h).put(this Proc);
                block("red light");
                goto loop
-            end;
+            end
+         end;
+         ! entering the box: wait until no other flow is still in our path;
+         if pos = B - 1 then
+         begin
             if conflict then begin sleep(1); goto loop end
          end;
          if cell(nr, nc) =/= none then
@@ -449,15 +458,18 @@ begin
                    else "done";
 
    ! ---------------------------------------------------------------- render;
-   ! the heads keep their shape (< left arrow, 0 straight, > right arrow),
-     their colour gives the state;
-   procedure lightat(a, col); integer a, col;
+   ! a light head (h = arm * 3 + manoeuvre): an arrow pointing where its
+     lane goes on the screen, coloured by its state;
+   text procedure headglyph(h); integer h;
+      headglyph :- if h = 0 then ">" else if h = 1 then "v" else if h = 2 then "<"
+                   else if h = 3 then "v" else if h = 4 then "<" else if h = 5 then "^"
+                   else if h = 6 then "<" else if h = 7 then "^" else if h = 8 then ">"
+                   else if h = 9 then "^" else if h = 10 then ">" else "v";
+
+   procedure head(h, col); integer h, col;
    begin
-      cx := col;
-      w("[<0>]");
-      paint(col + 1, lightcolour(a * 3));
-      paint(col + 2, lightcolour(a * 3 + 1));
-      paint(col + 3, lightcolour(a * 3 + 2))
+      putat(col, headglyph(h));
+      paint(col, lightcolour(h))
    end;
 
    Boolean procedure isroad(r, c); integer r, c;
@@ -478,8 +490,16 @@ begin
          end
          else if isroad(r, c) and not isbox(r, c) then putat(2 * c + 1, ".")
       end;
-      if r = B - 1 then begin lightat(0, 2 * (B - 3) + 1); lightat(1, 2 * (B + 4) + 1) end;
-      if r = B + 4 then begin lightat(3, 2 * (B - 3) + 1); lightat(2, 2 * (B + 4) + 1) end
+      ! lights beside each approach, perpendicular to the road, in the order
+        of the lanes: North (west of the road: right, straight, left), South
+        (east of the road: left, straight, right), West (south of the road,
+        top to bottom: left, straight, right), East (north of the road, top
+        to bottom: right, straight, left);
+      if r = LIGHTPOS then begin head(2, 2 * B - 3); head(1, 2 * B - 2); head(0, 2 * B - 1) end;
+      if r = GRID - 1 - LIGHTPOS then
+      begin head(6, 2 * (B + 4) + 2); head(7, 2 * (B + 4) + 3); head(8, 2 * (B + 4) + 4) end;
+      if r >= B + 4 and r <= B + 6 then head(9 + r - (B + 4), 2 * LIGHTPOS + 1);
+      if r >= B - 3 and r <= B - 1 then head(5 - (r - (B - 3)), 2 * (GRID - 1 - LIGHTPOS) + 1)
    end;
 
    procedure procrow(p); ref(Proc) p;
@@ -536,7 +556,7 @@ begin
 
       cx := 1;
       w("Lights: phase "); w(phasename(controller.phase));
-      w("   lights <0> green/amber/red   cars ^v<> from N blue, E green, S red, W yellow   quantum "); wi(Q);
+      w("   lights: arrows green/amber/red   cars ^v<> from N blue, E green, S red, W yellow   quantum "); wi(Q);
       emit(false);
 
       cx := 1; w("Woken by the timer: "); w(wokenline.strip); emit(false);
