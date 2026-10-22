@@ -13,6 +13,22 @@ function showError(message) {
 const out = document.getElementById('out');
 out.addEventListener('scroll', () => { if (out.scrollTop || out.scrollLeft) out.scrollTop = out.scrollLeft = 0; });
 
+// Text inserted by the browser without a key press (TextInput.cs): Avalonia only reads the text of the keydown
+// events of its hidden input element, and ignores "insertText" input events (on-screen keyboards, emoji panel,
+// dictation, browser automation). A key typed normally is handled at keydown and cancelled, so it produces no
+// such event; when it does (cancelled too late), its text is already taken: it is recognised and left alone.
+let textInput = null;
+let lastKey = null;
+document.addEventListener('keydown', e => { lastKey = e.key; }, true);
+document.addEventListener('keyup', () => { lastKey = null; }, true);
+document.addEventListener('beforeinput', e => {
+    const key = lastKey;
+    lastKey = null;
+    if (e.inputType !== 'insertText' || !e.data || e.data === key || !textInput) return;
+    if (!e.target.classList || !e.target.classList.contains('avalonia-input-element')) return;
+    if (textInput.Insert(e.data)) e.preventDefault();
+}, true);
+
 let unsaved = false;
 window.addEventListener('beforeunload', e => {
     if (unsaved) { e.preventDefault(); e.returnValue = ''; }
@@ -53,6 +69,8 @@ if (!globalThis.crossOriginIsolated) {
             .withConfig({ pthreadPoolSize: 16 })
             .create();
         status.textContent = 'Starting…';
+        const exports = await runtime.getAssemblyExports(runtime.getConfig().mainAssemblyName);
+        textInput = exports.Studio.Ide.Browser.TextInput;
         // Arguments of Main: the "arg" parameters of the address (files to open).
         const args = new URLSearchParams(location.search).getAll('arg');
         await runtime.runMain(runtime.getConfig().mainAssemblyName, args);
