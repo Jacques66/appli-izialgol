@@ -1,0 +1,25 @@
+<Window x:Class="Studio.Ide.Dialogs.AboutWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="About" SizeToContent="Height" Width="520" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Icon="/Assets/app.ico" Background="{DynamicResource Brush.PanelBackground}"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
+    <StackPanel Margin="22">
+        <StackPanel Orientation="Horizontal">
+            <Image Source="/Assets/app256.png" Width="72" Height="72"/>
+            <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="AlgolStudio" FontSize="22" FontWeight="Light"/>
+                <TextBlock x:Name="VersionText" Foreground="{DynamicResource Brush.TextDim}"/>
+            </StackPanel>
+        </StackPanel>
+        <TextBlock TextWrapping="Wrap" Margin="0,18,0,0"
+                   Text="Integrated development environment for Simula 67 (Dahl and Nygaard, 1967 — the first object-oriented language: classes, inheritance, coroutines, simulation) and Algol 68 (van Wijngaarden et al., 1968 — modes, operators, orthogonality), with their ancestors Algol 60 (Revised Report, 1963) and Simula I (Dahl and Nygaard, 1965 — discrete event simulation), and their contemporary Pascal (Wirth, 1970 — the Revised Report of Jensen and Wirth as implemented by Pascal 6000 on the CDC 6600)."/>
+        <TextBlock TextWrapping="Wrap" Margin="0,10,0,0"
+                   Text="Editor with syntax highlighting, folding and completion; compilation, error list, integrated console, debugger (breakpoints, stepping, call stack, variables) and generation of standalone executables. Command-line tools: simc (Simula 67), a68c (Algol 68), a60c (Algol 60), s1c (Simula I) and pasc (Pascal)."/>
+        <SelectableTextBlock x:Name="RuntimeText" TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{DynamicResource Brush.TextDim}"/>
+        <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{DynamicResource Brush.TextDim}"
+                   Text="User interface: Avalonia (MIT license). Text editor: AvaloniaEdit (MIT license). Help rendering: Markdig (BSD-2 license)."/>
+        <Button Theme="{StaticResource DialogButton}" Content="Close" IsCancel="True" IsDefault="True"
+                HorizontalAlignment="Right" Margin="0,18,0,0" Click="OnClose"/>
+    </StackPanel>
+</Window>

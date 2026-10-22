@@ -1,9 +1,11 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using Studio.Ide.Editor;
 
 namespace Studio.Ide.Panels;
@@ -42,16 +44,19 @@ public partial class ConsolePanel : UserControl
         Output.TextArea.TextView.LineTransformers.Add(new Colorizer(this));
         Output.Options.EnableHyperlinks = false;
         Output.Options.EnableEmailHyperlinks = false;
+        Output.Options.AllowScrollBelowDocument = false;
         Output.TextArea.Caret.CaretBrush = Brushes.Transparent;
         // Typing in the output area sends the keystrokes to the input box
-        Output.TextArea.PreviewTextInput += (_, e) =>
+        Output.TextArea.AddHandler(TextInputEvent, (_, e) =>
         {
-            if (!Input.IsEnabled) return;
+            if (!Input.IsEnabled || string.IsNullOrEmpty(e.Text)) return;
             Input.Focus();
-            Input.AppendText(e.Text);
+            Input.Text = (Input.Text ?? "") + e.Text;
             Input.CaretIndex = Input.Text.Length;
             e.Handled = true;
-        };
+        }, RoutingStrategies.Tunnel);
+        Input.AddHandler(KeyDownEvent, OnInputKeyDown, RoutingStrategies.Tunnel);
+        Prompt.Bind(TextBlock.ForegroundProperty, Prompt.GetResourceObservable("Brush.TextDim"));
         ApplyTheme();
     }
 
@@ -112,7 +117,7 @@ public partial class ConsolePanel : UserControl
             if (_terminal.ScreenMode && Output.WordWrap)
             {
                 Output.WordWrap = false;
-                Output.HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto;
+                Output.HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
         }
         else AppendRaw(text, kind);
@@ -164,7 +169,7 @@ public partial class ConsolePanel : UserControl
         {
             _terminal.Reset();
             Output.WordWrap = true;
-            Output.HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Disabled;
+            Output.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
         }
         Input.IsEnabled = running;
         SendButton.IsEnabled = running;
@@ -181,7 +186,7 @@ public partial class ConsolePanel : UserControl
         if (!_running) waiting = false;
         IsWaiting = waiting;
         StatusText.Text = waiting ? "Waiting for input…" : _running ? "Program running" : "";
-        Prompt.Foreground = waiting ? (Brush)FindResource("Brush.Accent") : (Brush)FindResource("Brush.TextDim");
+        Prompt.Bind(TextBlock.ForegroundProperty, Prompt.GetResourceObservable(waiting ? "Brush.Accent" : "Brush.TextDim"));
         if (waiting && IsVisible) Input.Focus();
     }
 
@@ -204,27 +209,27 @@ public partial class ConsolePanel : UserControl
         InputSubmitted?.Invoke(line);
     }
 
-    void OnSend(object sender, RoutedEventArgs e)
+    void OnSend(object? sender, RoutedEventArgs e)
     {
-        var line = Input.Text;
-        Input.Clear();
+        var line = Input.Text ?? "";
+        Input.Text = "";
         Submit(line);
         Input.Focus();
     }
 
-    void OnEof(object sender, RoutedEventArgs e) => Submit(null);
-    void OnStop(object sender, RoutedEventArgs e) => StopRequested?.Invoke();
-    void OnClear(object sender, RoutedEventArgs e) => Clear();
-    void OnClearOnRunChanged(object sender, RoutedEventArgs e) => ClearOnRunChanged?.Invoke(ClearOnRun);
+    void OnEof(object? sender, RoutedEventArgs e) => Submit(null);
+    void OnStop(object? sender, RoutedEventArgs e) => StopRequested?.Invoke();
+    void OnClear(object? sender, RoutedEventArgs e) => Clear();
+    void OnClearOnRunChanged(object? sender, RoutedEventArgs e) => ClearOnRunChanged?.Invoke(ClearOnRun);
 
-    void OnInputKeyDown(object sender, KeyEventArgs e)
+    void OnInputKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
             OnSend(sender, e);
             e.Handled = true;
         }
-        else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+        else if (e.Key == Key.Z && e.KeyModifiers == KeyModifiers.Control)
         {
             Submit(null);
             e.Handled = true;
@@ -271,12 +276,12 @@ public partial class ConsolePanel : UserControl
                     if (seg.Kind == ConsoleTextKind.Input)
                     {
                         var tf = el.TextRunProperties.Typeface;
-                        el.TextRunProperties.SetTypeface(new Typeface(tf.FontFamily, tf.Style, FontWeights.SemiBold, tf.Stretch));
+                        el.TextRunProperties.SetTypeface(new Typeface(tf.FontFamily, tf.Style, FontWeight.SemiBold, tf.Stretch));
                     }
                     else if (seg.Kind == ConsoleTextKind.Info)
                     {
                         var tf = el.TextRunProperties.Typeface;
-                        el.TextRunProperties.SetTypeface(new Typeface(tf.FontFamily, FontStyles.Italic, tf.Weight, tf.Stretch));
+                        el.TextRunProperties.SetTypeface(new Typeface(tf.FontFamily, FontStyle.Italic, tf.Weight, tf.Stretch));
                     }
                 });
             }
@@ -285,22 +290,17 @@ public partial class ConsolePanel : UserControl
 
     // ------------------------------------------------------------------ ANSI colours
 
-    static readonly Brush[] DarkPalette = Palette(
+    static readonly IBrush[] DarkPalette = Palette(
         "#000000", "#CD3131", "#0DBC79", "#E5E510", "#2472C8", "#BC3FBC", "#11A8CD", "#E5E5E5",
         "#666666", "#F14C4C", "#23D18B", "#F5F543", "#3B8EEA", "#D670D6", "#29B8DB", "#FFFFFF");
 
-    static readonly Brush[] LightPalette = Palette(
+    static readonly IBrush[] LightPalette = Palette(
         "#000000", "#CD3131", "#00BC00", "#949800", "#0451A5", "#BC05BC", "#0598BC", "#555555",
         "#666666", "#CD3131", "#14CE14", "#B5BA00", "#0451A5", "#BC05BC", "#0598BC", "#A5A5A5");
 
-    static Brush[] Palette(params string[] colors) => colors.Select(c =>
-    {
-        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(c));
-        b.Freeze();
-        return (Brush)b;
-    }).ToArray();
+    static IBrush[] Palette(params string[] colors) => colors.Select(c => (IBrush)new ImmutableSolidColorBrush(Color.Parse(c))).ToArray();
 
-    static Brush? AnsiBrush(int color, bool dark) =>
+    static IBrush? AnsiBrush(int color, bool dark) =>
         color is >= 0 and < 16 ? (dark ? DarkPalette : LightPalette)[color] : null;
 
     /// <summary><see cref="ITerminalBuffer"/> over the AvalonEdit document; colours are Program segments.</summary>

@@ -1,22 +1,26 @@
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit.Editing;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Rendering;
+using AvaloniaEdit.Editing;
+using AvaloniaEdit.Rendering;
 
 namespace Studio.Ide.Editor;
 
 /// <summary>Breakpoint margin (click = toggle) and current-line arrow.</summary>
-public sealed class BreakpointMargin : AbstractMargin
+public sealed class BreakpointMargin : AbstractMargin, ICustomHitTest
 {
+    static readonly IPen ArrowPen = new ImmutablePen(Brushes.DimGray.ToImmutable(), 0.7);
     readonly EditorDocument _doc;
     int _hoverLine = -1;
 
     public BreakpointMargin(EditorDocument doc)
     {
         _doc = doc;
-        Cursor = Cursors.Hand;
-        ToolTip = "Click to add or remove a breakpoint (F9)";
+        Cursor = new Cursor(StandardCursorType.Hand);
+        ToolTip.SetTip(this, "Click to add or remove a breakpoint (F9)");
     }
 
     protected override Size MeasureOverride(Size availableSize) => new(18, 0);
@@ -31,11 +35,11 @@ public sealed class BreakpointMargin : AbstractMargin
 
     void OnVisualLinesChanged(object? sender, EventArgs e) => InvalidateVisual();
 
-    protected override void OnRender(DrawingContext dc)
+    public override void Render(DrawingContext dc)
     {
         var tv = TextView;
         var theme = EditorTheme.Current;
-        dc.DrawRectangle(theme.Background, null, new Rect(0, 0, RenderSize.Width, RenderSize.Height));
+        dc.DrawRectangle(theme.Background, null, new Rect(0, 0, Bounds.Width, Bounds.Height));
         if (tv == null || !tv.VisualLinesValid) return;
         var bps = _doc.BreakpointLineSet();
         foreach (var vl in tv.VisualLines)
@@ -47,33 +51,29 @@ public sealed class BreakpointMargin : AbstractMargin
             var center = new Point(9, top + h / 2);
             if (bps.Contains(line))
                 dc.DrawEllipse(theme.BreakpointFill, null, center, size / 2, size / 2);
-            else if (line == _hoverLine)
-            {
-                var b = theme.BreakpointFill.Clone();
-                b.Opacity = 0.3;
-                dc.DrawEllipse(b, null, center, size / 2, size / 2);
-            }
+            else if (line == _hoverLine && theme.BreakpointFill is ISolidColorBrush fill)
+                dc.DrawEllipse(new ImmutableSolidColorBrush(fill.Color, 0.3), null, center, size / 2, size / 2);
             if (_doc.ExecutionLine == line)
             {
                 var g = new StreamGeometry();
                 using (var ctx = g.Open())
                 {
                     double l = 2, r = 16, cy = center.Y, hh = size / 2;
-                    ctx.BeginFigure(new Point(l, cy - hh / 2), true, true);
-                    ctx.LineTo(new Point(l + 7, cy - hh / 2), true, false);
-                    ctx.LineTo(new Point(l + 7, cy - hh), true, false);
-                    ctx.LineTo(new Point(r, cy), true, false);
-                    ctx.LineTo(new Point(l + 7, cy + hh), true, false);
-                    ctx.LineTo(new Point(l + 7, cy + hh / 2), true, false);
-                    ctx.LineTo(new Point(l, cy + hh / 2), true, false);
+                    ctx.BeginFigure(new Point(l, cy - hh / 2), true);
+                    ctx.LineTo(new Point(l + 7, cy - hh / 2));
+                    ctx.LineTo(new Point(l + 7, cy - hh));
+                    ctx.LineTo(new Point(r, cy));
+                    ctx.LineTo(new Point(l + 7, cy + hh));
+                    ctx.LineTo(new Point(l + 7, cy + hh / 2));
+                    ctx.LineTo(new Point(l, cy + hh / 2));
+                    ctx.EndFigure(true);
                 }
-                g.Freeze();
-                dc.DrawGeometry(_doc.ExecutionIsTopFrame ? theme.ArrowFill : theme.CallerLine, new Pen(Brushes.DimGray, 0.7), g);
+                dc.DrawGeometry(_doc.ExecutionIsTopFrame ? theme.ArrowFill : theme.CallerLine, ArrowPen, g);
             }
         }
     }
 
-    int LineAt(MouseEventArgs e)
+    int LineAt(PointerEventArgs e)
     {
         var tv = TextView;
         if (tv == null) return -1;
@@ -81,9 +81,10 @@ public sealed class BreakpointMargin : AbstractMargin
         return vl?.FirstDocumentLine.LineNumber ?? -1;
     }
 
-    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
-        base.OnMouseLeftButtonDown(e);
+        base.OnPointerPressed(e);
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         int line = LineAt(e);
         if (line > 0)
         {
@@ -92,22 +93,21 @@ public sealed class BreakpointMargin : AbstractMargin
         }
     }
 
-    protected override void OnMouseMove(MouseEventArgs e)
+    protected override void OnPointerMoved(PointerEventArgs e)
     {
-        base.OnMouseMove(e);
+        base.OnPointerMoved(e);
         int line = LineAt(e);
         if (line != _hoverLine) { _hoverLine = line; InvalidateVisual(); }
     }
 
-    protected override void OnMouseLeave(MouseEventArgs e)
+    protected override void OnPointerExited(PointerEventArgs e)
     {
-        base.OnMouseLeave(e);
+        base.OnPointerExited(e);
         _hoverLine = -1;
         InvalidateVisual();
     }
 
-    protected override HitTestResult HitTestCore(PointHitTestParameters hitTestParameters) =>
-        new PointHitTestResult(this, hitTestParameters.HitPoint);
+    public bool HitTest(Point point) => true;
 }
 
 /// <summary>Line backgrounds: current execution line, lines with a breakpoint.</summary>
@@ -126,12 +126,12 @@ public sealed class LineBackgroundRenderer : IBackgroundRenderer
         foreach (var vl in textView.VisualLines)
         {
             int line = vl.FirstDocumentLine.LineNumber;
-            Brush? brush = null;
+            IBrush? brush = null;
             if (_doc.ExecutionLine == line) brush = _doc.ExecutionIsTopFrame ? theme.ExecutionLine : theme.CallerLine;
             else if (bps.Contains(line)) brush = theme.BreakpointLine;
             if (brush == null) continue;
             double top = vl.VisualTop - textView.VerticalOffset;
-            dc.DrawRectangle(brush, null, new Rect(0, top, Math.Max(textView.ActualWidth, 1), vl.Height));
+            dc.DrawRectangle(brush, null, new Rect(0, top, Math.Max(textView.Bounds.Width, 1), vl.Height));
         }
     }
 }
@@ -170,7 +170,7 @@ public sealed class BracketHighlighter : IBackgroundRenderer
         foreach (var (s, l) in new[] { _a.Value, _b.Value })
         {
             if (s + l > len) return;
-            builder.AddSegment(textView, new ICSharpCode.AvalonEdit.Document.TextSegment { StartOffset = s, Length = l });
+            builder.AddSegment(textView, new AvaloniaEdit.Document.TextSegment { StartOffset = s, Length = l });
         }
         var geo = builder.CreateGeometry();
         if (geo != null) dc.DrawGeometry(theme.BracketMatch, theme.BracketMatchBorder, geo);

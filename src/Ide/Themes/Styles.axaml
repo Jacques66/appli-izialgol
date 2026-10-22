@@ -1,0 +1,128 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Adjustments of the Fluent theme: compact menus, lists and trees, colours of the IDE themes. -->
+
+    <!-- ===================== Menus ===================== -->
+    <Style Selector="Menu">
+        <Setter Property="Background" Value="{DynamicResource Brush.WindowBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+        <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="Menu > MenuItem">
+        <Setter Property="Padding" Value="9,4"/>
+        <Setter Property="CornerRadius" Value="3"/>
+    </Style>
+    <Style Selector="MenuItem">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+    </Style>
+    <Style Selector="MenuItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="MinHeight" Value="26"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem, MenuFlyoutPresenter MenuItem, MenuItem MenuItem">
+        <Setter Property="Padding" Value="10,3"/>
+    </Style>
+    <Style Selector="Separator">
+        <Setter Property="Background" Value="{DynamicResource Brush.Border}"/>
+    </Style>
+    <Style Selector="MenuItem > Separator, ContextMenu > Separator">
+        <Setter Property="Margin" Value="30,3,6,3"/>
+    </Style>
+
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource Brush.MenuBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.MenuBorder}"/>
+        <Setter Property="Padding" Value="6,3"/>
+        <Setter Property="FontSize" Value="12.5"/>
+    </Style>
+
+    <!-- ===================== Input ===================== -->
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}"/>
+        <Setter Property="Opacity" Value="0.55"/>
+    </Style>
+    <Style Selector="CheckBox">
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Padding" Value="6,0,0,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+    </Style>
+
+    <!-- ===================== Lists and trees ===================== -->
+    <Style Selector="TreeView">
+        <Setter Property="Background" Value="{DynamicResource Brush.PanelBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+    </Style>
+    <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Padding" Value="2,0"/>
+        <Setter Property="FontSize" Value="12.5"/>
+    </Style>
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="{DynamicResource Brush.PanelBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+    </Style>
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="FontSize" Value="12.5"/>
+    </Style>
+
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="{DynamicResource Brush.PanelBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="RowHeight" Value="23"/>
+        <Setter Property="ColumnHeaderHeight" Value="24"/>
+        <Setter Property="GridLinesVisibility" Value="None"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="IsReadOnly" Value="True"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="CanUserReorderColumns" Value="False"/>
+        <Setter Property="CanUserSortColumns" Value="False"/>
+        <Setter Property="CanUserResizeColumns" Value="True"/>
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextDim}"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.PanelHeader}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="6,0"/>
+        <Setter Property="MinHeight" Value="24"/>
+    </Style>
+    <Style Selector="DataGridCell">
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="MinHeight" Value="0"/>
+    </Style>
+    <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
+        <Setter Property="IsVisible" Value="False"/>
+    </Style>
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{DynamicResource Brush.Selection}"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{DynamicResource Brush.Hover}"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:selected:pointerover /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{DynamicResource Brush.Selection}"/>
+    </Style>
+    <Style Selector="DataGridRow:selected">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+    </Style>
+
+    <Style Selector="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource Brush.WindowBackground}"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+    </Style>
+</Styles>

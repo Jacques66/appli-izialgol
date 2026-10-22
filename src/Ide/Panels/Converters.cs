@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Windows.Data;
+using Avalonia.Data.Converters;
 
 namespace Studio.Ide.Panels;
 
@@ -7,14 +7,14 @@ public sealed class FileNameConverter : IValueConverter
 {
     public static readonly FileNameConverter Instance = new();
 
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var s = value as string ?? "";
         var dir = System.IO.Path.GetDirectoryName(s) ?? "";
         return $"{System.IO.Path.GetFileName(s)}   —   {dir}";
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
 /// <summary>Display name of a sample: "Algol 68 — classics/primes.a68" (path relative to
@@ -29,7 +29,7 @@ public sealed class SampleNameConverter : IValueConverter
         ["simula67"] = "Simula 67", ["algol68"] = "Algol 68", ["algol60"] = "Algol 60", ["simula1"] = "Simula I", ["pascal"] = "Pascal",
     };
 
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var s = value as string ?? "";
         var parts = s.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
@@ -47,5 +47,5 @@ public sealed class SampleNameConverter : IValueConverter
         return $"{lang} — {relative}";
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

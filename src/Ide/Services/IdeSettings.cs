@@ -3,7 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace Studio.Ide.Services;
 
-/// <summary>Persistent settings (%APPDATA%\AlgolStudio\settings.json).</summary>
+/// <summary>Persistent settings: AlgolStudio/settings.json in the application data folder
+/// (%APPDATA% on Windows, ~/.config on Linux and macOS).</summary>
 public sealed class IdeSettings
 {
     public List<string> RecentFiles { get; set; } = new();
@@ -15,7 +16,12 @@ public sealed class IdeSettings
     public string? ExplorerRoot { get; set; }
 
     public double FontSize { get; set; } = 14;
-    public string FontFamily { get; set; } = "Cascadia Mono, Consolas, Courier New";
+    public string FontFamily { get; set; } = DefaultFontFamily;
+
+    /// <summary>Editor font: the first one installed (Windows, macOS, Linux, then the generic monospace font).</summary>
+    public const string DefaultFontFamily = "Cascadia Mono, Consolas, Menlo, DejaVu Sans Mono, monospace";
+    /// <summary>Default font of the previous versions (Windows only), replaced by <see cref="DefaultFontFamily"/>.</summary>
+    const string OldDefaultFontFamily = "Cascadia Mono, Consolas, Courier New";
     /// <summary>"light" or "dark".</summary>
     public string Theme { get; set; } = "light";
     public bool WordWrap { get; set; }
@@ -88,6 +94,7 @@ public sealed class IdeSettings
                     if (s.IndentSize < 1 || s.IndentSize > 8) s.IndentSize = 3;
                     // Older settings files used French theme names ("sombre" = dark).
                     s.Theme = s.Theme is "dark" or "sombre" ? "dark" : "light";
+                    if (string.IsNullOrWhiteSpace(s.FontFamily) || s.FontFamily == OldDefaultFontFamily) s.FontFamily = DefaultFontFamily;
                     return s;
                 }
             }

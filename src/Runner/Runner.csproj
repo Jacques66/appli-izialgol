@@ -16,22 +16,27 @@
     <Nullable>enable</Nullable>
     <AssemblyName>Runner</AssemblyName>
     <RootNamespace>Studio.Runner</RootNamespace>
-    <!-- Required for the win-x64 single-file publish (standalone executables). -->
+    <!-- Single-file Runner published after each build for the development machine: win-x64 on Windows,
+         the runtime identifier of the SDK (osx-arm64, linux-x64…) on macOS and Linux. -->
+    <RunnerSingleFileRid Condition="'$(OS)' == 'Windows_NT'">win-x64</RunnerSingleFileRid>
+    <RunnerSingleFileRid Condition="'$(OS)' != 'Windows_NT'">$(NETCoreSdkRuntimeIdentifier)</RunnerSingleFileRid>
+    <!-- Required for the single-file publish (standalone executables). -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(RunnerSingleFileRid)' != 'win-x64'">win-x64;$(RunnerSingleFileRid)</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <Product>AlgolStudio</Product>
   </PropertyGroup>
 
   <!--
     After every "normal" build, also publishes Runner as a framework-dependent single file in
-    bin\$(Configuration)\single\Runner.exe: this is the file that simc, a68c and the IDE copy
+    bin\$(Configuration)\single\Runner.exe (Runner on macOS and Linux): this is the file that simc, a68c and the IDE copy
     (with the compiled program appended at the end) to produce a standalone .exe.
     build.ps1 publishes directly as a single file (PublishSingleFile=true): the target is then skipped.
   -->
   <Target Name="PublishSingleFileRunner" AfterTargets="Build"
           Condition="'$(_RunnerSinglePublish)' != 'true' and '$(PublishSingleFile)' != 'true'">
     <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=false;PublishSingleFile=true;PublishDir=$(MSBuildProjectDirectory)\bin\$(Configuration)\single\;_RunnerSinglePublish=true;BuildProjectReferences=false" />
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RunnerSingleFileRid);SelfContained=false;PublishSingleFile=true;PublishDir=$(MSBuildProjectDirectory)\bin\$(Configuration)\single\;_RunnerSinglePublish=true;BuildProjectReferences=false" />
   </Target>
 
 </Project>

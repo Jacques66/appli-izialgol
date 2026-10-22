@@ -1,0 +1,35 @@
+<Application x:Class="Studio.Ide.App"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Name="AlgolStudio" RequestedThemeVariant="Light">
+    <!-- macOS application menu (the IDE menus stay in the window on every platform). -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="About AlgolStudio" Click="OnNativeAbout"/>
+        </NativeMenu>
+    </NativeMenu.Menu>
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Theme brushes: Light.axaml or Dark.axaml, selected by RequestedThemeVariant (App.ApplyTheme). -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceInclude x:Key="Light" Source="/Themes/Light.axaml"/>
+                <ResourceInclude x:Key="Dark" Source="/Themes/Dark.axaml"/>
+            </ResourceDictionary.ThemeDictionaries>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Themes/Icons.axaml"/>
+                <ResourceInclude Source="/Themes/Controls.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+    <Application.Styles>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#0063B1" RegionColor="#F7F8FA"/>
+                <ColorPaletteResources x:Key="Dark" Accent="#3B8EEA" RegionColor="#25262A"/>
+            </FluentTheme.Palettes>
+        </FluentTheme>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml"/>
+        <StyleInclude Source="/Themes/Styles.axaml"/>
+    </Application.Styles>
+</Application>

@@ -1,37 +1,37 @@
-using System.Windows;
-using System.Windows.Media;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Studio.Ide.Language;
 
 namespace Studio.Ide.Editor;
 
-public sealed record TokenStyle(Brush Brush, bool Bold = false, bool Italic = false);
+public sealed record TokenStyle(IBrush Brush, bool Bold = false, bool Italic = false);
 
 /// <summary>Editor colors (syntax highlighting, margins, highlights) for one theme.</summary>
 public sealed class EditorTheme
 {
     public required bool IsDark { get; init; }
-    public required Brush Background { get; init; }
-    public required Brush Foreground { get; init; }
-    public required Brush LineNumbers { get; init; }
-    public required Brush CurrentLine { get; init; }
-    public required Brush Selection { get; init; }
-    public required Brush SelectionText { get; init; }
-    public required Brush BracketMatch { get; init; }
-    public required Pen BracketMatchBorder { get; init; }
-    public required Brush ExecutionLine { get; init; }
-    public required Brush CallerLine { get; init; }
-    public required Brush BreakpointFill { get; init; }
-    public required Brush BreakpointLine { get; init; }
-    public required Brush ArrowFill { get; init; }
-    public required Brush ErrorSquiggle { get; init; }
-    public required Brush WarningSquiggle { get; init; }
-    public required Brush InfoSquiggle { get; init; }
-    public required Brush SearchHighlight { get; init; }
-    public required Brush ConsoleInput { get; init; }
-    public required Brush ConsoleInfo { get; init; }
-    public required Brush ConsoleError { get; init; }
-    public required Brush FoldingMarker { get; init; }
-    public required Brush FoldingBackground { get; init; }
+    public required IBrush Background { get; init; }
+    public required IBrush Foreground { get; init; }
+    public required IBrush LineNumbers { get; init; }
+    public required IBrush CurrentLine { get; init; }
+    public required IBrush Selection { get; init; }
+    public required IBrush SelectionText { get; init; }
+    public required IBrush BracketMatch { get; init; }
+    public required IPen BracketMatchBorder { get; init; }
+    public required IBrush ExecutionLine { get; init; }
+    public required IBrush CallerLine { get; init; }
+    public required IBrush BreakpointFill { get; init; }
+    public required IBrush BreakpointLine { get; init; }
+    public required IBrush ArrowFill { get; init; }
+    public required IBrush ErrorSquiggle { get; init; }
+    public required IBrush WarningSquiggle { get; init; }
+    public required IBrush InfoSquiggle { get; init; }
+    public required IBrush SearchHighlight { get; init; }
+    public required IBrush ConsoleInput { get; init; }
+    public required IBrush ConsoleInfo { get; init; }
+    public required IBrush ConsoleError { get; init; }
+    public required IBrush FoldingMarker { get; init; }
+    public required IBrush FoldingBackground { get; init; }
     public required Dictionary<TokenKind, TokenStyle> Simula { get; init; }
     public required Dictionary<TokenKind, TokenStyle> Algol { get; init; }
 
@@ -41,19 +41,9 @@ public sealed class EditorTheme
         return map.TryGetValue(kind, out var s) ? s : null;
     }
 
-    static SolidColorBrush B(string hex)
-    {
-        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-        b.Freeze();
-        return b;
-    }
+    static ImmutableSolidColorBrush B(string hex) => new(Color.Parse(hex));
 
-    static Pen P(string hex, double w)
-    {
-        var p = new Pen(B(hex), w);
-        p.Freeze();
-        return p;
-    }
+    static ImmutablePen P(string hex, double w) => new(B(hex), w);
 
     public static EditorTheme Light { get; } = new()
     {

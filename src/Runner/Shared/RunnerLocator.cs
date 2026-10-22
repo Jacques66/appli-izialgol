@@ -1,10 +1,11 @@
-// Locates Runner.exe (single-file standalone launcher) used to generate .exe files.
+// Locates Runner.exe (Runner on macOS and Linux), the single-file standalone launcher used to generate executables.
 
 namespace Studio.Tooling;
 
 public static class RunnerLocator
 {
-    public const string RunnerFileName = "Runner.exe";
+    /// <summary>File name of the launcher: Runner.exe on Windows, Runner on macOS and Linux.</summary>
+    public static string RunnerFileName => OperatingSystem.IsWindows() ? "Runner.exe" : "Runner";
 
     /// <summary>
     /// Looks for Runner.exe: ALGOLSTUDIO_RUNNER variable, next to the tool, then walking up
@@ -61,6 +62,6 @@ public static class RunnerLocator
     }
 
     public static string NotFoundMessage =>
-        "Runner.exe not found: build the solution (dotnet build) or run build.ps1 " +
-        "(Runner.exe must be next to the tool).";
+        $"{RunnerFileName} not found: build the solution (dotnet build) or run build.ps1 " +
+        $"({RunnerFileName} must be next to the tool).";
 }

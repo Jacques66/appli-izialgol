@@ -1,15 +1,17 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Folding;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using Avalonia.Threading;
+using AvaloniaEdit;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Folding;
 using Studio.Common;
 using Studio.Ide.Language;
 using Studio.Ide.Services;
@@ -44,6 +46,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
             ShowLineNumbers = true,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            FontFamily = CodeFont.Resolve(IdeSettings.DefaultFontFamily),
             Padding = new Thickness(2, 0, 0, 0),
         };
         Editor.Options.HighlightCurrentLine = true;
@@ -53,6 +56,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.Options.EnableRectangularSelection = true;
         Editor.Options.CutCopyWholeLine = true;
         Editor.Options.AllowToggleOverstrikeMode = true;
+        Editor.Options.AllowScrollBelowDocument = false;
         Editor.Document.Text = text;
         Editor.Document.UndoStack.ClearAll();
         Editor.Document.FileName = filePath;
@@ -84,8 +88,9 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.TextArea.TextEntered += OnTextEntered;
         Editor.TextArea.TextEntering += OnTextEntering;
 
-        // Ctrl+Space: completion (bound on the text area so it runs before any other handling)
-        Editor.TextArea.InputBindings.Add(new KeyBinding(new RelayCommand(_ => ShowCompletion()), Key.Space, ModifierKeys.Control));
+        // Ctrl+Space: completion (bound on the text area so it runs before any other handling;
+        // Ctrl on every platform: Cmd+Space is the system search on macOS)
+        Editor.TextArea.KeyBindings.Add(new KeyBinding { Command = new RelayCommand(_ => ShowCompletion()), Gesture = new KeyGesture(Key.Space, KeyModifiers.Control) });
 
         _analysisTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(350) };
         _analysisTimer.Tick += (_, _) => { _analysisTimer.Stop(); RefreshAnalysis(); };
@@ -229,7 +234,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
 
     public void RedrawMarkers()
     {
-        Editor.TextArea.TextView.InvalidateLayer(ICSharpCode.AvalonEdit.Rendering.KnownLayer.Selection);
+        Editor.TextArea.TextView.InvalidateLayer(AvaloniaEdit.Rendering.KnownLayer.Selection);
         BreakpointMarginControl.InvalidateVisual();
     }
 
@@ -257,15 +262,15 @@ public sealed class EditorDocument : INotifyPropertyChanged
 
     // ------------------------------------------------------------------ editing
 
-    void OnTextEntering(object sender, TextCompositionEventArgs e)
+    void OnTextEntering(object? sender, TextInputEventArgs e)
     {
-        if (_completion != null && e.Text.Length > 0 && !char.IsLetterOrDigit(e.Text[0]) && e.Text[0] != '_')
+        if (_completion != null && !string.IsNullOrEmpty(e.Text) && !char.IsLetterOrDigit(e.Text[0]) && e.Text[0] != '_')
             _completion.CompletionList.RequestInsertion(e);
     }
 
-    void OnTextEntered(object sender, TextCompositionEventArgs e)
+    void OnTextEntered(object? sender, TextInputEventArgs e)
     {
-        if (e.Text.Length != 1 || !char.IsLetter(e.Text[0])) return;
+        if (e.Text is not { Length: 1 } || !char.IsLetter(e.Text[0])) return;
         var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
         var text = Editor.Document.GetText(line).Trim();
         if (text.Length == 0 || text.Length > 9 || text.Contains(' ')) return;
@@ -299,12 +304,14 @@ public sealed class EditorDocument : INotifyPropertyChanged
             StartOffset = start,
             EndOffset = caret,
             CloseWhenCaretAtBeginning = true,
-            Background = (Brush)Application.Current.Resources["Brush.MenuBackground"],
-            Foreground = (Brush)Application.Current.Resources["Brush.Text"],
-            BorderBrush = (Brush)Application.Current.Resources["Brush.MenuBorder"],
         };
-        _completion.CompletionList.ListBox.Background = _completion.Background;
-        _completion.CompletionList.ListBox.Foreground = _completion.Foreground;
+        var background = App.Resource<IBrush>("Brush.MenuBackground");
+        var foreground = App.Resource<IBrush>("Brush.Text");
+        _completion.CompletionList.Background = background;
+        _completion.CompletionList.Foreground = foreground;
+        _completion.CompletionList.BorderBrush = App.Resource<IBrush>("Brush.MenuBorder");
+        _completion.CompletionList.ListBox.Background = background;
+        _completion.CompletionList.ListBox.Foreground = foreground;
         var data = _completion.CompletionList.CompletionData;
         var seen = new HashSet<string>(_language.CaseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
         var currentWord = prefix;
@@ -356,7 +363,7 @@ public sealed class EditorDocument : INotifyPropertyChanged
 
     public void ApplySettings(IdeSettings s)
     {
-        try { Editor.FontFamily = new FontFamily(s.FontFamily); } catch { }
+        try { Editor.FontFamily = CodeFont.Resolve(s.FontFamily); } catch { }
         Editor.FontSize = s.FontSize;
         Editor.WordWrap = s.WordWrap;
         Editor.ShowLineNumbers = s.ShowLineNumbers;
@@ -377,12 +384,15 @@ public sealed class EditorDocument : INotifyPropertyChanged
         Editor.TextArea.SelectionForeground = null;
         Editor.TextArea.SelectionBorder = null;
         Editor.TextArea.TextView.CurrentLineBackground = t.CurrentLine;
-        Editor.TextArea.TextView.CurrentLineBorder = new Pen(t.CurrentLine, 1);
+        Editor.TextArea.TextView.CurrentLineBorder = new ImmutablePen(t.CurrentLine.ToImmutable(), 1);
         Editor.TextArea.Caret.CaretBrush = t.Foreground;
-        Editor.SetValue(FoldingMargin.FoldingMarkerBrushProperty, t.FoldingMarker);
-        Editor.SetValue(FoldingMargin.FoldingMarkerBackgroundBrushProperty, t.FoldingBackground);
-        Editor.SetValue(FoldingMargin.SelectedFoldingMarkerBrushProperty, t.Foreground);
-        Editor.SetValue(FoldingMargin.SelectedFoldingMarkerBackgroundBrushProperty, t.FoldingBackground);
+        foreach (var margin in Editor.TextArea.LeftMargins.OfType<FoldingMargin>())
+        {
+            margin.FoldingMarkerBrush = t.FoldingMarker;
+            margin.FoldingMarkerBackgroundBrush = t.FoldingBackground;
+            margin.SelectedFoldingMarkerBrush = t.Foreground;
+            margin.SelectedFoldingMarkerBackgroundBrush = t.FoldingBackground;
+        }
         Editor.TextArea.TextView.Redraw();
         BreakpointMarginControl.InvalidateVisual();
     }

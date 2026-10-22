@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Dark theme -->
     <SolidColorBrush x:Key="Brush.WindowBackground" Color="#1F2023"/>
@@ -37,9 +37,4 @@
     <SolidColorBrush x:Key="Brush.IconOrange" Color="#EE9A4D"/>
     <SolidColorBrush x:Key="Brush.Welcome" Color="#1E1F22"/>
     <SolidColorBrush x:Key="Brush.Link" Color="#5EA4EE"/>
-
-    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#264F78"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#37393F"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#DCDFE4"/>
 </ResourceDictionary>

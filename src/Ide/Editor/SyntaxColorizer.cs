@@ -1,7 +1,6 @@
-using System.Windows;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia.Media;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 
 namespace Studio.Ide.Editor;
 
@@ -34,8 +33,8 @@ public sealed class SyntaxColorizer : DocumentColorizingTransformer
                 {
                     var tf = el.TextRunProperties.Typeface;
                     el.TextRunProperties.SetTypeface(new Typeface(tf.FontFamily,
-                        style.Italic ? FontStyles.Italic : tf.Style,
-                        style.Bold ? FontWeights.Bold : tf.Weight,
+                        style.Italic ? FontStyle.Italic : tf.Style,
+                        style.Bold ? FontWeight.Bold : tf.Weight,
                         tf.Stretch));
                 }
             });

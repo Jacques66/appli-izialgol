@@ -1,7 +1,7 @@
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit.CodeCompletion;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Editing;
+using Avalonia.Media;
+using AvaloniaEdit.CodeCompletion;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 
 namespace Studio.Ide.Editor;
 
@@ -12,7 +12,7 @@ public sealed class CompletionData : ICompletionData
         Text = text; Description = description; Priority = priority;
     }
 
-    public ImageSource? Image => null;
+    public IImage? Image => null;
     public string Text { get; }
     public object Content => Text;
     public object Description { get; }

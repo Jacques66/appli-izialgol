@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
-using System.Windows.Threading;
+using Avalonia.Threading;
 using Studio.Common;
 using Studio.Tooling;
 
@@ -43,7 +43,7 @@ public sealed class IdeProgramIO : IProgramIO
             if (!_flushScheduled)
             {
                 _flushScheduled = true;
-                _ui.BeginInvoke(DispatcherPriority.Background, new Action(Flush));
+                _ui.Post(Flush, DispatcherPriority.Background);
             }
             if (_pending.Length > MaxPending) { _drained.Reset(); wait = true; }
         }
@@ -68,7 +68,7 @@ public sealed class IdeProgramIO : IProgramIO
     public string? ReadLine()
     {
         if (_eof || _token.IsCancellationRequested) return null;
-        _ui.BeginInvoke(new Action(() => { Flush(); _onWaiting(true); }));
+        _ui.Post(() => { Flush(); _onWaiting(true); });
         try
         {
             var line = _input.Take(_token);
@@ -81,7 +81,7 @@ public sealed class IdeProgramIO : IProgramIO
         }
         finally
         {
-            _ui.BeginInvoke(new Action(() => _onWaiting(false)));
+            _ui.Post(() => _onWaiting(false));
         }
     }
 

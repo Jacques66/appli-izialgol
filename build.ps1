@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   Publishes as framework-dependent single files (.NET 8, win-x64):
-    dist\AlgolStudio.exe   the integrated development environment (IDE)
+    dist\AlgolStudio.exe   the integrated development environment (IDE, src\Ide.Desktop)
     dist\Runner.exe           the launcher used as the base of standalone .exe files
     dist\simc.exe             command-line Simula 67 compiler
     dist\a68c.exe             command-line Algol 68 compiler
@@ -64,7 +64,7 @@ Publish "src\A68C\A68C.csproj" "a68c"
 Publish "src\A60C\A60C.csproj" "a60c"
 Publish "src\S1C\S1C.csproj" "s1c"
 Publish "src\PasC\PasC.csproj" "pasc"
-Publish "src\Ide\Ide.csproj" "AlgolStudio"
+Publish "src\Ide.Desktop\Ide.Desktop.csproj" "AlgolStudio"
 
 Step "Copying samples and documentation"
 foreach ($dir in "samples", "docs") {

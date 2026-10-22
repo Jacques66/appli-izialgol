@@ -1,6 +1,8 @@
-using System.Windows;
-using System.Windows.Controls;
-using Microsoft.Win32;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Studio.Ide.Dialogs;
 using Studio.Ide.Editor;
 using Studio.Ide.Language;
 using Studio.Ide.Services;
@@ -30,25 +32,42 @@ public partial class MainWindow
         return doc;
     }
 
-    void OpenWithDialog()
+    /// <summary>File types of the file dialogs, from a "description|patterns|…" filter string.</summary>
+    static List<FilePickerFileType> FileTypes(string filter)
     {
-        var dlg = new OpenFileDialog
-        {
-            Filter = FileFilterWithEcho,
-            Multiselect = true,
-            Title = "Open a program",
-            InitialDirectory = ActiveDocument?.Directory ?? _settings.ExplorerRoot ?? "",
-        };
-        if (dlg.ShowDialog(this) == true)
-            foreach (var f in dlg.FileNames) OpenFile(f);
+        var parts = filter.Split('|');
+        var list = new List<FilePickerFileType>();
+        for (int i = 0; i + 1 < parts.Length; i += 2)
+            list.Add(new FilePickerFileType(parts[i]) { Patterns = parts[i + 1].Split(';') });
+        return list;
     }
 
-    void OpenFolderWithDialog()
+    async Task<IStorageFolder?> FolderAsync(string? path) =>
+        string.IsNullOrEmpty(path) || !System.IO.Directory.Exists(path) ? null : await StorageProvider.TryGetFolderFromPathAsync(path);
+
+    async Task OpenWithDialogAsync()
     {
-        var dlg = new OpenFolderDialog { Title = "Open a folder in the explorer", InitialDirectory = _settings.ExplorerRoot ?? "" };
-        if (dlg.ShowDialog(this) == true)
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            SetExplorerRoot(dlg.FolderName);
+            FileTypeFilter = FileTypes(FileFilterWithEcho),
+            AllowMultiple = true,
+            Title = "Open a program",
+            SuggestedStartLocation = await FolderAsync(ActiveDocument?.Directory ?? _settings.ExplorerRoot),
+        });
+        foreach (var f in files)
+            if (f.TryGetLocalPath() is { } path) OpenFile(path);
+    }
+
+    async Task OpenFolderWithDialogAsync()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Open a folder in the explorer",
+            SuggestedStartLocation = await FolderAsync(_settings.ExplorerRoot),
+        });
+        if (folders.Count > 0 && folders[0].TryGetLocalPath() is { } path)
+        {
+            SetExplorerRoot(path);
             if (!_settings.ShowExplorer) { _settings.ShowExplorer = true; ApplyPanelLayout(); }
         }
     }
@@ -75,7 +94,7 @@ public partial class MainWindow
             if (_settings.CaretOffsets.TryGetValue(path, out var caret) && caret <= doc.Editor.Document.TextLength)
             {
                 doc.Editor.CaretOffset = caret;
-                Dispatcher.BeginInvoke(new Action(() => doc.Editor.TextArea.Caret.BringCaretToView()), System.Windows.Threading.DispatcherPriority.Loaded);
+                Dispatcher.UIThread.Post(() => doc.Editor.TextArea.Caret.BringCaretToView(), DispatcherPriority.Loaded);
             }
             _settings.AddRecentFile(path);
             ScheduleBackgroundCheck();
@@ -129,18 +148,20 @@ public partial class MainWindow
     {
         if (path == null)
         {
-            var dlg = new SaveFileDialog
+            // Synchronous result (callers such as ConfirmSaveModified need it): nested dispatcher frame.
+            var types = FileTypes(FileFilterWithEcho);
+            int typeIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "pascal" => 6, "echo" => 8, _ => 1 };
+            var file = Modal.Wait(SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                Filter = FileFilterWithEcho,
-                FilterIndex = doc.Language.Id switch { "simula" => 2, "algol68" => 3, "algol60" => 4, "simula1" => 5, "pascal" => 6, "echo" => 8, _ => 1 },
-                FileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
-                DefaultExt = doc.Language.DefaultExtension,
-                AddExtension = true,
-                InitialDirectory = doc.Directory ?? _settings.ExplorerRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                FileTypeChoices = types,
+                SuggestedFileType = types[Math.Min(typeIndex, types.Count) - 1],
+                SuggestedFileName = doc.FilePath != null ? System.IO.Path.GetFileName(doc.FilePath) : doc.UntitledName,
+                DefaultExtension = doc.Language.DefaultExtension,
+                ShowOverwritePrompt = true,
                 Title = "Save as",
-            };
-            if (dlg.ShowDialog(this) != true) return false;
-            path = dlg.FileName;
+            }, doc.Directory ?? _settings.ExplorerRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
+            path = file?.TryGetLocalPath();
+            if (path == null) return false;
         }
         var oldPath = doc.FilePath;
         try
@@ -159,6 +180,12 @@ public partial class MainWindow
         UpdateTitle();
         UpdateOutline();
         return true;
+    }
+
+    async Task<IStorageFile?> SaveFilePickerAsync(FilePickerSaveOptions options, string? directory)
+    {
+        options.SuggestedStartLocation = await FolderAsync(directory);
+        return await StorageProvider.SaveFilePickerAsync(options);
     }
 
     void SaveAll()
@@ -197,6 +224,7 @@ public partial class MainWindow
         UpdateWelcome();
         UpdateStatusBar();
         UpdateOutline();
+        RelayCommand.InvalidateAll();
         return true;
     }
 
@@ -208,15 +236,16 @@ public partial class MainWindow
 
     // ------------------------------------------------------------------ dynamic menus
 
-    void OnRecentMenuOpened(object sender, RoutedEventArgs e)
+    void OnRecentMenuOpened(object? sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource != RecentFilesMenu) return;
+        if (e.Source != RecentFilesMenu) return;
         RecentFilesMenu.Items.Clear();
         var files = _settings.RecentFiles.Where(System.IO.File.Exists).ToList();
         int i = 1;
         foreach (var f in files)
         {
-            var mi = new MenuItem { Header = $"_{i++} {System.IO.Path.GetFileName(f)}", ToolTip = f, InputGestureText = ShortDir(f) };
+            var mi = new MenuItem { Header = $"_{i++} {System.IO.Path.GetFileName(f).Replace("_", "__")}     {ShortDir(f).Replace("_", "__")}" };
+            ToolTip.SetTip(mi, f);
             mi.Click += (_, _) => OpenFile(f);
             RecentFilesMenu.Items.Add(mi);
         }
@@ -230,9 +259,9 @@ public partial class MainWindow
         }
     }
 
-    void OnRecentFoldersMenuOpened(object sender, RoutedEventArgs e)
+    void OnRecentFoldersMenuOpened(object? sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource != RecentFoldersMenu) return;
+        if (e.Source != RecentFoldersMenu) return;
         RecentFoldersMenu.Items.Clear();
         var dirs = _settings.RecentFolders.Where(System.IO.Directory.Exists).ToList();
         foreach (var d in dirs)
@@ -293,7 +322,8 @@ public partial class MainWindow
         }
         foreach (var f in System.IO.Directory.GetFiles(dir, ext).OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
         {
-            var mi = new MenuItem { Header = System.IO.Path.GetFileName(f).Replace("_", "__"), ToolTip = FirstCommentLine(f) ?? f };
+            var mi = new MenuItem { Header = System.IO.Path.GetFileName(f).Replace("_", "__") };
+            ToolTip.SetTip(mi, FirstCommentLine(f) ?? f);
             mi.Click += (_, _) => OpenFile(f);
             group.Items.Add(mi);
             count++;
@@ -301,9 +331,9 @@ public partial class MainWindow
         return count;
     }
 
-    void OnExamplesMenuOpened(object sender, RoutedEventArgs e)
+    void OnExamplesMenuOpened(object? sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource != ExamplesMenu) return;
+        if (e.Source != ExamplesMenu) return;
         ExamplesMenu.Items.Clear();
         var root = PathLocator.SamplesDirectory;
         if (root == null)

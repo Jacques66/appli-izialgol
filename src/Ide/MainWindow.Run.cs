@@ -1,8 +1,8 @@
-using System.Diagnostics;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Threading;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Threading;
 using Studio.Common;
+using Studio.Ide.Dialogs;
 using Studio.Ide.Editor;
 using Studio.Ide.Panels;
 using Studio.Ide.Services;
@@ -15,7 +15,7 @@ public enum StepKind { Into, Over, Out }
 public partial class MainWindow
 {
     RunSession? _session;
-    Process? _externalProcess;
+    ExternalRun? _externalProcess;
     int _selectedFrame;
     readonly HashSet<string> _expandedVariablePaths = new();
     IReadOnlyList<StackFrameInfo> _currentStack = Array.Empty<StackFrameInfo>();
@@ -42,7 +42,7 @@ public partial class MainWindow
         if (ConsoleView.ClearOnRun) ConsoleView.Clear();
         var cts = new CancellationTokenSource();
         var workDir = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var io = new IdeProgramIO(Dispatcher, workDir, cts.Token,
+        var io = new IdeProgramIO(Dispatcher.UIThread, workDir, cts.Token,
             text => ConsoleView.Append(text),
             waiting =>
             {
@@ -81,7 +81,7 @@ public partial class MainWindow
                 foreach (var (file, lines) in _settings.Breakpoints)
                     if (!sent.Contains(file)) dbg.SetBreakpoints(file, lines);
                 // Paused is raised on the execution thread, which then blocks: marshal to the UI thread.
-                dbg.Paused += info => Dispatcher.BeginInvoke(new Action(() => OnPaused(session, info)));
+                dbg.Paused += info => Dispatcher.UIThread.Post(() => OnPaused(session, info));
             }
             catch (Exception ex)
             {
@@ -102,7 +102,7 @@ public partial class MainWindow
         AppendOutput($"{(debug ? "Debugging" : "Running")} {doc.DisplayName}…");
 
         var task = session.Start();
-        task.ContinueWith(t => Dispatcher.BeginInvoke(new Action(() => OnFinished(session, t.Result))), TaskScheduler.Default);
+        task.ContinueWith(t => Dispatcher.UIThread.Post(() => OnFinished(session, t.Result)), TaskScheduler.Default);
     }
 
     void OnFinished(RunSession session, ExecutionResult result)
@@ -237,7 +237,7 @@ public partial class MainWindow
     {
         if (_externalProcess != null)
         {
-            try { if (!_externalProcess.HasExited) _externalProcess.Kill(entireProcessTree: true); } catch { }
+            _externalProcess.Kill();
             return;
         }
         var s = _session;
@@ -276,7 +276,7 @@ public partial class MainWindow
 
     async Task RunExternalAsync()
     {
-        var runner = RunnerLocator.Find();
+        var runner = App.Platform.FindRunner();
         if (runner == null)
         {
             ShowError(RunnerLocator.NotFoundMessage, "Run");
@@ -290,29 +290,23 @@ public partial class MainWindow
             var dir = System.IO.Path.Combine(PathLocator.TempDirectory, "run");
             System.IO.Directory.CreateDirectory(dir);
             var baseName = System.IO.Path.GetFileNameWithoutExtension(doc.DisplayName);
-            var exe = System.IO.Path.Combine(dir, baseName + ".exe");
+            var ext = App.Platform.ExecutableExtension;
+            var exe = System.IO.Path.Combine(dir, baseName + ext);
             try { if (System.IO.File.Exists(exe)) System.IO.File.Delete(exe); }
-            catch { exe = System.IO.Path.Combine(dir, $"{baseName}-{Guid.NewGuid().ToString("N")[..6]}.exe"); }
-            ExePackage.Write(runner, exe, outcome.Service.Id, outcome.Result.Program.Serialize());
+            catch { exe = System.IO.Path.Combine(dir, $"{baseName}-{Guid.NewGuid().ToString("N")[..6]}{ext}"); }
+            App.Platform.WriteExecutable(runner, exe, outcome.Service.Id, outcome.Result.Program.Serialize());
             var workDir = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            var psi = new ProcessStartInfo("cmd.exe",
-                $"/v:on /c \"title {baseName} — AlgolStudio & \"{exe}\" & echo. & echo [Program finished with exit code !errorlevel!] & pause\"")
+            var run = App.Platform.StartInExternalConsole(exe, workDir, $"{baseName} — AlgolStudio");
+            _externalProcess = run;
+            _ = run.Completion.ContinueWith(_ => Dispatcher.UIThread.Post(() =>
             {
-                UseShellExecute = false,
-                CreateNoWindow = false,
-                WorkingDirectory = workDir,
-            };
-            var p = Process.Start(psi)!;
-            p.EnableRaisingEvents = true;
-            _externalProcess = p;
-            p.Exited += (_, _) => Dispatcher.BeginInvoke(new Action(() =>
-            {
+                if (_externalProcess != run) return;
                 _externalProcess = null;
                 AppendOutput("External console closed.");
                 SetState(IdeState.Idle, "External console closed.");
-            }));
+            }), TaskScheduler.Default);
             AppendOutput($"Running in an external console: {exe}");
-            SetState(IdeState.External, "The program is running in an external Windows console.");
+            SetState(IdeState.External, $"The program is running in an external {App.Platform.ExternalConsoleName}.");
         }
         catch (Exception ex)
         {
@@ -363,7 +357,7 @@ public partial class MainWindow
         _currentStack = Array.Empty<StackFrameInfo>();
         StackList.ItemsSource = null;
         VariablesTree.ItemsSource = null;
-        StackEmpty.Visibility = VariablesEmpty.Visibility = Visibility.Visible;
+        StackEmpty.IsVisible = VariablesEmpty.IsVisible = true;
         VariablesHeader.Text = "Name = value   (type)";
         StackList.Opacity = VariablesTree.Opacity = 1;
     }
@@ -377,7 +371,7 @@ public partial class MainWindow
         var items = _currentStack.Select((f, i) => new StackItem(i, f)).ToList();
         if (items.Count > 0) items[Math.Min(_selectedFrame, items.Count - 1)].IsSelectedFrame = true;
         StackList.ItemsSource = items;
-        StackEmpty.Visibility = items.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        StackEmpty.IsVisible = items.Count == 0;
     }
 
     public IReadOnlyList<StackItem> StackItems => (StackList.ItemsSource as IReadOnlyList<StackItem>) ?? Array.Empty<StackItem>();
@@ -405,16 +399,16 @@ public partial class MainWindow
         }
         VariablesTree.ItemsSource = nodes;
         foreach (var n in nodes) if (_expandedVariablePaths.Contains(n.Path)) n.IsExpanded = true;
-        VariablesEmpty.Visibility = nodes.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        VariablesEmpty.IsVisible = nodes.Count == 0;
         VariablesEmpty.Text = nodes.Count == 0 && _session?.IsPaused == true
             ? "No variables in this block."
             : "Variables are shown when the program is paused in the debugger.";
         VariablesHeader.Text = $"Variables of '{frameName}'   —   name = value   (type)";
     }
 
-    void OnStackDoubleClick(object sender, MouseButtonEventArgs e) => SelectFrameFromList();
+    void OnStackDoubleClick(object? sender, TappedEventArgs e) => SelectFrameFromList();
 
-    void OnStackKeyDown(object sender, KeyEventArgs e)
+    void OnStackKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) { SelectFrameFromList(); e.Handled = true; }
     }

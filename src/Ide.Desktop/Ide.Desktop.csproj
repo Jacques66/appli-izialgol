@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Desktop head of the IDE (Windows, macOS, Linux): AlgolStudio(.exe). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AlgolStudio</AssemblyName>
+    <RootNamespace>Studio.Ide.Desktop</RootNamespace>
+    <Product>AlgolStudio</Product>
+    <AssemblyTitle>AlgolStudio</AssemblyTitle>
+    <Version>1.0.0</Version>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ApplicationIcon>..\Ide\Assets\app.ico</ApplicationIcon>
+    <!-- Runner is referenced only for the build order (no assembly reference). -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ide\Ide.csproj" />
+    <!-- Single-file Runner (bin\...\single) for "Generate executable" and the external console. -->
+    <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+</Project>

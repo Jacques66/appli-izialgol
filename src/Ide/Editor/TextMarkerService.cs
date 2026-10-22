@@ -1,10 +1,11 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using ICSharpCode.AvalonEdit;
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Rendering;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Media.Immutable;
+using AvaloniaEdit;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using Studio.Common;
 
 namespace Studio.Ide.Editor;
@@ -24,16 +25,16 @@ public sealed class TextMarkerService : IBackgroundRenderer
 {
     readonly TextEditor _editor;
     readonly TextSegmentCollection<TextMarker> _markers;
-    readonly ToolTip _toolTip = new();
 
     public TextMarkerService(TextEditor editor)
     {
         _editor = editor;
         _markers = new TextSegmentCollection<TextMarker>(editor.Document);
-        editor.TextArea.TextView.BackgroundRenderers.Add(this);
-        editor.TextArea.TextView.MouseHover += OnMouseHover;
-        editor.TextArea.TextView.MouseHoverStopped += (_, _) => _toolTip.IsOpen = false;
-        editor.TextArea.TextView.MouseLeave += (_, _) => _toolTip.IsOpen = false;
+        var tv = editor.TextArea.TextView;
+        tv.BackgroundRenderers.Add(this);
+        tv.PointerHover += OnMouseHover;
+        tv.PointerHoverStopped += (_, _) => HideToolTip();
+        tv.PointerExited += (_, _) => HideToolTip();
     }
 
     public KnownLayer Layer => KnownLayer.Selection;
@@ -94,8 +95,7 @@ public sealed class TextMarkerService : IBackgroundRenderer
                 Severity.Warning => theme.WarningSquiggle,
                 _ => theme.InfoSquiggle,
             };
-            var pen = new Pen(brush, 1);
-            pen.Freeze();
+            var pen = new ImmutablePen(brush.ToImmutable(), 1);
             foreach (var r in BackgroundGeometryBuilder.GetRectsForSegment(textView, m))
             {
                 var geo = new StreamGeometry();
@@ -104,22 +104,29 @@ public sealed class TextMarkerService : IBackgroundRenderer
                     double y = r.Bottom - 1;
                     double x = r.Left;
                     double right = Math.Max(r.Right, r.Left + 6);
-                    ctx.BeginFigure(new Point(x, y), false, false);
+                    ctx.BeginFigure(new Point(x, y), false);
                     bool up = true;
                     while (x < right)
                     {
                         x += 2;
-                        ctx.LineTo(new Point(Math.Min(x, right), up ? y - 2 : y), true, false);
+                        ctx.LineTo(new Point(Math.Min(x, right), up ? y - 2 : y));
                         up = !up;
                     }
+                    ctx.EndFigure(false);
                 }
-                geo.Freeze();
                 dc.DrawGeometry(null, pen, geo);
             }
         }
     }
 
-    void OnMouseHover(object sender, MouseEventArgs e)
+    void HideToolTip()
+    {
+        var tv = _editor.TextArea.TextView;
+        ToolTip.SetIsOpen(tv, false);
+        ToolTip.SetTip(tv, null);
+    }
+
+    void OnMouseHover(object? sender, PointerEventArgs e)
     {
         var tv = _editor.TextArea.TextView;
         var pos = tv.GetPositionFloor(e.GetPosition(tv) + tv.ScrollOffset);
@@ -127,10 +134,9 @@ public sealed class TextMarkerService : IBackgroundRenderer
         int offset = _editor.Document.GetOffset(pos.Value.Location);
         var hits = _markers.FindSegmentsContaining(offset).ToList();
         if (hits.Count == 0) return;
-        _toolTip.PlacementTarget = tv;
-        _toolTip.Content = string.Join(Environment.NewLine, hits.Select(h =>
-            (h.Severity == Severity.Error ? "Error: " : h.Severity == Severity.Warning ? "Warning: " : "Info: ") + h.Message));
-        _toolTip.IsOpen = true;
+        ToolTip.SetTip(tv, string.Join(Environment.NewLine, hits.Select(h =>
+            (h.Severity == Severity.Error ? "Error: " : h.Severity == Severity.Warning ? "Warning: " : "Info: ") + h.Message)));
+        ToolTip.SetIsOpen(tv, true);
         e.Handled = true;
     }
 }

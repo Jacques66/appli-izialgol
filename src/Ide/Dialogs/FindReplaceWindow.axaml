@@ -1,0 +1,27 @@
+<Window x:Class="Studio.Ide.Dialogs.FindReplaceWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Find" SizeToContent="Height" Width="460" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Icon="/Assets/app.ico" Background="{DynamicResource Brush.PanelBackground}"
+        Foreground="{DynamicResource Brush.Text}" FontFamily="{StaticResource UiFont}" FontSize="12.5">
+    <Grid Margin="14" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+        <TextBlock Text="Find what:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <TextBox x:Name="FindBox" Grid.Column="1" FontFamily="{StaticResource CodeFont}"/>
+        <TextBlock x:Name="ReplaceLabel" Grid.Row="1" Text="Replace with:" VerticalAlignment="Center" Margin="0,6,8,0"/>
+        <TextBox x:Name="ReplaceBox" Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" FontFamily="{StaticResource CodeFont}"/>
+        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8,0,0">
+            <CheckBox x:Name="MatchCaseBox" Content="Match _case"/>
+            <CheckBox x:Name="WholeWordBox" Content="_Whole word"/>
+            <CheckBox x:Name="RegexBox" Content="Regular e_xpression"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Grid.RowSpan="3" Margin="10,0,0,0">
+            <Button Theme="{StaticResource DialogButton}" Content="Find _Next" IsDefault="True" Click="OnNext" Margin="0,0,0,4"/>
+            <Button Theme="{StaticResource DialogButton}" Content="Find _Previous" Click="OnPrevious" Margin="0,0,0,4"/>
+            <Button x:Name="ReplaceButton" Theme="{StaticResource DialogButton}" Content="_Replace" Click="OnReplace" Margin="0,0,0,4"/>
+            <Button x:Name="ReplaceAllButton" Theme="{StaticResource DialogButton}" Content="Replace _All" Click="OnReplaceAll" Margin="0,0,0,4"/>
+            <Button Theme="{StaticResource DialogButton}" Content="Close" IsCancel="True" Click="OnClose" Margin="0"/>
+        </StackPanel>
+        <TextBlock x:Name="StatusText" Grid.Row="3" Grid.ColumnSpan="3" Margin="0,10,0,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource Brush.TextDim}"/>
+    </Grid>
+</Window>

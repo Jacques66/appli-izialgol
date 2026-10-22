@@ -1,8 +1,7 @@
-using System.Diagnostics;
 using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
 using Markdig;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
@@ -10,7 +9,8 @@ using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
 
-/// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md, docs/simula1.md and docs/pascal.md (Markdig → HTML).</summary>
+/// <summary>Help: renders docs/simula.md, docs/algol68.md, docs/algol60.md, docs/simula1.md and docs/pascal.md
+/// (Markdig → Avalonia controls, see <see cref="MarkdownView"/>).</summary>
 public partial class HelpWindow : Window
 {
     public sealed record TocEntry(string Title, string Id, int Level)
@@ -20,24 +20,23 @@ public partial class HelpWindow : Window
 
     static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
     string _currentTopic = "";
-    string? _pendingAnchor;
 
     public HelpWindow()
     {
         InitializeComponent();
-        Browser.Loaded += (_, _) => SuppressScriptErrors();
+        Viewer.LinkClicked += OnLinkClicked;
     }
 
     public void ShowTopic(string topic)
     {
-        foreach (ListBoxItem item in TopicList.Items)
-            if ((string)item.Tag == topic) { TopicList.SelectedItem = item; return; }
+        foreach (var item in TopicList.Items.OfType<ListBoxItem>())
+            if ((string?)item.Tag == topic) { TopicList.SelectedItem = item; return; }
         TopicList.SelectedIndex = 0;
     }
 
-    void OnTopicChanged(object sender, SelectionChangedEventArgs e)
+    void OnTopicChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (TopicList.SelectedItem is ListBoxItem item) Load((string)item.Tag);
+        if (TopicList.SelectedItem is ListBoxItem { Tag: string topic }) Load(topic);
     }
 
     void Load(string topic)
@@ -83,8 +82,7 @@ public partial class HelpWindow : Window
             if (!string.IsNullOrEmpty(id)) toc.Add(new TocEntry(text, id, h.Level));
         }
         TocList.ItemsSource = toc;
-        var body = doc.ToHtml(Pipeline);
-        Browser.NavigateToString(WrapHtml(body, title));
+        Viewer.Render(doc, App.IsDarkTheme ? MarkdownColors.Dark : MarkdownColors.Light);
     }
 
     static string InlineText(HeadingBlock h)
@@ -97,79 +95,24 @@ public partial class HelpWindow : Window
         return sb.ToString();
     }
 
-    static string WrapHtml(string body, string title)
-    {
-        bool dark = App.IsDarkTheme;
-        string bg = dark ? "#1E1F22" : "#FFFFFF", fg = dark ? "#D4D4D4" : "#1E1E1E", dim = dark ? "#8B919B" : "#6B7280";
-        string codeBg = dark ? "#2A2C30" : "#F3F4F6", border = dark ? "#3C3F45" : "#D9DDE3", link = dark ? "#5EA4EE" : "#0063B1";
-        string h = dark ? "#9CDCFE" : "#0B4F8A";
-        var html = $@"<!DOCTYPE html>
-<html><head><meta http-equiv=""X-UA-Compatible"" content=""IE=edge""><meta charset=""utf-8"">
-<title>{title}</title>
-<style>
-body {{ background:{bg}; color:{fg}; font-family:'Segoe UI',sans-serif; font-size:14px; line-height:1.55; margin:18px 28px 60px 28px; }}
-h1,h2,h3,h4 {{ color:{h}; font-weight:600; margin-top:1.4em; }}
-h1 {{ font-size:26px; border-bottom:1px solid {border}; padding-bottom:6px; margin-top:0.4em; }}
-h2 {{ font-size:20px; border-bottom:1px solid {border}; padding-bottom:4px; }}
-h3 {{ font-size:16px; }}
-a {{ color:{link}; }}
-code {{ font-family:'Cascadia Mono',Consolas,monospace; font-size:13px; background:{codeBg}; padding:1px 4px; border-radius:3px; }}
-pre {{ background:{codeBg}; border:1px solid {border}; border-radius:4px; padding:10px 12px; overflow:auto; }}
-pre code {{ background:transparent; padding:0; }}
-table {{ border-collapse:collapse; margin:10px 0; }}
-th, td {{ border:1px solid {border}; padding:5px 10px; text-align:left; vertical-align:top; }}
-th {{ background:{codeBg}; }}
-blockquote {{ border-left:4px solid {border}; margin:0; padding:2px 14px; color:{dim}; }}
-kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{codeBg}; font-family:Consolas,monospace; }}
-</style>
-<script>function goTo(id) {{ var e = document.getElementById(id); if (e) {{ e.scrollIntoView(true); }} }}</script>
-</head><body>{body}</body></html>";
-        // WebBrowser.NavigateToString mishandles non-ASCII characters: use numeric entities.
-        var sb = new StringBuilder(html.Length + 1024);
-        foreach (var ch in html)
-            if (ch < 128) sb.Append(ch);
-            else sb.Append("&#").Append((int)ch).Append(';');
-        return sb.ToString();
-    }
+    void OnTocClick(object? sender, TappedEventArgs e) => GoToSelected();
 
-    void OnTocClick(object sender, MouseButtonEventArgs e) => GoToSelected();
-
-    void OnTocKey(object sender, KeyEventArgs e)
+    void OnTocKey(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) GoToSelected();
     }
 
     void GoToSelected()
     {
-        if (TocList.SelectedItem is TocEntry entry) ScrollTo(entry.Id);
+        if (TocList.SelectedItem is TocEntry entry) Viewer.ScrollTo(entry.Id);
     }
 
-    void ScrollTo(string id)
+    void OnLinkClicked(string s)
     {
-        try { Browser.InvokeScript("goTo", id); }
-        catch { _pendingAnchor = id; }
-    }
-
-    void OnLoadCompleted(object sender, System.Windows.Navigation.NavigationEventArgs e)
-    {
-        if (_pendingAnchor != null)
+        // Internal anchors (#id) and links to the other help files
+        if (s.StartsWith('#'))
         {
-            var a = _pendingAnchor;
-            _pendingAnchor = null;
-            ScrollTo(a);
-        }
-    }
-
-    void OnNavigating(object sender, System.Windows.Navigation.NavigatingCancelEventArgs e)
-    {
-        var uri = e.Uri;
-        if (uri == null) return;
-        // Internal anchors (#id) and links to the other help file
-        var s = uri.OriginalString;
-        if (s.StartsWith("about:", StringComparison.OrdinalIgnoreCase) && s.Contains('#'))
-        {
-            e.Cancel = true;
-            ScrollTo(s[(s.IndexOf('#') + 1)..]);
+            Viewer.ScrollTo(s[1..]);
             return;
         }
         foreach (var topic in new[] { "simula1", "simula", "algol68", "algol60", "pascal" })
@@ -180,30 +123,22 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
                 // "simula.md" must not match "…simula1.md": check the character before the file name
                 int at = s.LastIndexOf(file, StringComparison.OrdinalIgnoreCase);
                 if (at > 0 && char.IsLetterOrDigit(s[at - 1])) continue;
-                e.Cancel = true;
                 ShowTopic(topic);
+                int hash = s.IndexOf('#');
+                if (hash >= 0) Viewer.ScrollTo(s[(hash + 1)..]);
                 return;
             }
         }
-        if (uri.Scheme is "http" or "https" or "mailto")
+        if (Uri.TryCreate(s, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" or "mailto")
         {
-            e.Cancel = true;
-            try { Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true }); } catch { }
+            try { App.Platform.OpenUrl(uri.AbsoluteUri); } catch { }
         }
-    }
-
-    void SuppressScriptErrors()
-    {
-        try
-        {
-            var field = typeof(WebBrowser).GetField("_axIWebBrowser2", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            var ax = field?.GetValue(Browser);
-            ax?.GetType().InvokeMember("Silent", System.Reflection.BindingFlags.SetProperty, null, ax, new object[] { true });
-        }
-        catch { }
     }
 
     public const string ShortcutsMarkdown = @"# Keyboard shortcuts
+
+On macOS, <kbd>Cmd</kbd> replaces <kbd>Ctrl</kbd> in these shortcuts, except <kbd>Ctrl+Space</kbd> (completion),
+<kbd>Ctrl+Alt+Pause</kbd> and <kbd>Ctrl+Z</kbd> in the console input (end of file).
 
 ## Files
 
@@ -240,7 +175,7 @@ kbd {{ border:1px solid {border}; border-radius:3px; padding:0 4px; background:{
 | Shortcut | Action |
 |---|---|
 | <kbd>F7</kbd>, <kbd>Ctrl+Shift+B</kbd> | Build (compile the current file) |
-| <kbd>Ctrl+Shift+E</kbd> | Generate a standalone .exe |
+| <kbd>Ctrl+Shift+E</kbd> | Generate a standalone executable (.exe on Windows) |
 | <kbd>F5</kbd> | Start debugging / continue |
 | <kbd>Ctrl+F5</kbd> | Run without debugging |
 | <kbd>Shift+F5</kbd> | Stop |
@@ -315,8 +250,8 @@ A program starts with its heading, e.g. `program hello(input, output);`, and end
 * **Build** (<kbd>F7</kbd>) compiles the current file: diagnostics appear in the **Output**, in the **error list** (double-click to go to the line) and are underlined in the editor. A background check underlines errors while you type.
 * **Run** (<kbd>Ctrl+F5</kbd>) starts the program in the **integrated console**: output appears as it is produced, typed lines are sent to the program, <kbd>Ctrl+Z</kbd> sends end of file, **Stop** (<kbd>Shift+F5</kbd>) interrupts the run.
 * The console understands the usual **ANSI/VT escape sequences** (character 27, ESC), so a program can redraw a text screen in place (animations, games): `ESC[2J` clear screen (`ESC[J` to the end, `ESC[3J` ignored), `ESC[H` / `ESC[row;colH` (or `f`) cursor position (1-based, from the start of the program output), `ESC[A` `B` `C` `D` cursor moves, `ESC[K` clear to end of line (`ESC[1K`, `ESC[2K`), `ESC[s` / `ESC[u` save / restore the cursor, `ESC[?25l` / `ESC[?25h` (accepted), `ESC[…m` colours 30–37, 90–97, bold and reset 0 (other attributes are ignored). After a cursor move, text overwrites the characters in place; `\r` returns to column 1. In Simula 67: `outchar(char(27)); outtext(""[H"")`. The same sequences work in the external console and in the generated executables.
-* The **Run in external Windows console** option (toolbar button) opens a real console window.
-* **Generate a standalone .exe** produces a Windows executable that can be copied and run on its own (the .NET 8 runtime must be installed).
+* The **Run in external console** option (toolbar button) opens a real console window: a Windows console, a Terminal window on macOS, a terminal emulator on Linux (x-terminal-emulator, gnome-terminal, konsole or xterm).
+* **Generate a standalone executable** produces a program that can be copied and run on its own (the .NET 8 runtime must be installed): an `.exe` file on Windows, an executable file without extension on macOS and Linux.
 
 ## Debugging
 

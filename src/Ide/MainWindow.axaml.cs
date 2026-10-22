@@ -1,14 +1,23 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Threading;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Platform.Storage;
+using Shape = Avalonia.Controls.Shapes.Shape;
+using IconPath = Avalonia.Controls.Shapes.Path;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using AvaloniaEdit;
+using AvaloniaEdit.Editing;
+using Studio.Ide.Dialogs;
 using Studio.Ide.Editor;
 using Studio.Ide.Language;
 using Studio.Ide.Panels;
@@ -28,6 +37,14 @@ public partial class MainWindow : Window
     bool _closingConfirmed;
     bool _checkingExternalChanges;
     Key _pendingChord = Key.None;
+    /// <summary>Last text box that had the focus (target of the Edit menu instead of the editor).</summary>
+    TextBox? _lastTextBox;
+    /// <summary>Position and size of the window in the normal state (saved when it is maximized).</summary>
+    PixelPoint _normalPosition;
+    Size _normalSize;
+
+    /// <summary>Modifier of the command shortcuts: Ctrl (Windows, Linux) or Cmd (macOS).</summary>
+    static KeyModifiers Cmd => Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
 
     // ------------------------------------------------------------------ commands
 
@@ -45,6 +62,12 @@ public partial class MainWindow : Window
     public ICommand CmdClose { get; }
     public ICommand CmdCloseAll { get; }
     public ICommand CmdExit { get; }
+    public ICommand CmdUndo { get; }
+    public ICommand CmdRedo { get; }
+    public ICommand CmdCut { get; }
+    public ICommand CmdCopy { get; }
+    public ICommand CmdPaste { get; }
+    public ICommand CmdSelectAll { get; }
     public ICommand CmdFind { get; }
     public ICommand CmdReplace { get; }
     public ICommand CmdFindNext { get; }
@@ -91,19 +114,25 @@ public partial class MainWindow : Window
         CmdNewSimulaI = new RelayCommand(_ => NewDocument(LanguageDefinitions.SimulaI));
         CmdNewPascal = new RelayCommand(_ => NewDocument(LanguageDefinitions.Pascal));
         CmdNewEcho = new RelayCommand(_ => NewDocument(LanguageDefinitions.Echo));
-        CmdOpen = new RelayCommand(_ => OpenWithDialog());
-        CmdOpenFolder = new RelayCommand(_ => OpenFolderWithDialog());
+        CmdOpen = new RelayCommand(async _ => await OpenWithDialogAsync());
+        CmdOpenFolder = new RelayCommand(async _ => await OpenFolderWithDialogAsync());
         CmdSave = new RelayCommand(_ => SaveDocument(ActiveDocument!), HasDoc);
         CmdSaveAs = new RelayCommand(_ => SaveDocumentAs(ActiveDocument!), HasDoc);
         CmdSaveAll = new RelayCommand(_ => SaveAll(), _ => _documents.Any(d => d.IsModified));
         CmdClose = new RelayCommand(_ => CloseDocument(ActiveDocument!), HasDoc);
         CmdCloseAll = new RelayCommand(_ => CloseAll(), _ => _documents.Count > 0);
         CmdExit = new RelayCommand(_ => Close());
+        CmdUndo = new RelayCommand(_ => EditAction(t => t.Undo(), e => e.Undo()));
+        CmdRedo = new RelayCommand(_ => EditAction(t => t.Redo(), e => e.Redo()));
+        CmdCut = new RelayCommand(_ => EditAction(t => t.Cut(), e => e.Cut()));
+        CmdCopy = new RelayCommand(_ => EditAction(t => t.Copy(), e => e.Copy()));
+        CmdPaste = new RelayCommand(_ => EditAction(t => t.Paste(), e => e.Paste()));
+        CmdSelectAll = new RelayCommand(_ => EditAction(t => t.SelectAll(), e => e.SelectAll()));
         CmdFind = new RelayCommand(_ => ShowFind(false), HasDoc);
         CmdReplace = new RelayCommand(_ => ShowFind(true), HasDoc);
         CmdFindNext = new RelayCommand(_ => FindAgain(false), HasDoc);
         CmdFindPrevious = new RelayCommand(_ => FindAgain(true), HasDoc);
-        CmdGoToLine = new RelayCommand(_ => GoToLineDialog(), HasDoc);
+        CmdGoToLine = new RelayCommand(async _ => await GoToLineDialogAsync(), HasDoc);
         CmdComplete = new RelayCommand(_ => ActiveDocument!.ShowCompletion(), HasDoc);
         CmdComment = new RelayCommand(_ => ActiveDocument!.ToggleComment(true), HasDoc);
         CmdUncomment = new RelayCommand(_ => ActiveDocument!.ToggleComment(false), HasDoc);
@@ -116,7 +145,7 @@ public partial class MainWindow : Window
         CmdZoomOut = new RelayCommand(_ => Zoom(-1));
         CmdZoomReset = new RelayCommand(_ => Zoom(0));
         CmdBuild = new RelayCommand(async _ => await BuildAsync(), NotBusy);
-        CmdGenerateExe = new RelayCommand(async _ => await GenerateExeAsync(null), NotBusy);
+        CmdGenerateExe = new RelayCommand(async _ => await GenerateExeAsync(null), p => NotBusy(p) && App.Platform.SupportsExecutables);
         CmdDebug = new RelayCommand(async _ => await DebugOrContinueAsync(), _ => (_state == IdeState.Idle && ActiveDocument != null) || _state == IdeState.Paused);
         CmdRun = new RelayCommand(async _ => await RunAsync(false), NotBusy);
         CmdStop = new RelayCommand(_ => StopExecution(), _ => _state is IdeState.Running or IdeState.Debugging or IdeState.Paused or IdeState.External);
@@ -128,35 +157,47 @@ public partial class MainWindow : Window
         CmdToggleBreakpoint = new RelayCommand(_ => ActiveDocument!.ToggleBreakpoint(ActiveDocument.Editor.TextArea.Caret.Line), HasDoc);
         CmdClearBreakpoints = new RelayCommand(_ => ClearAllBreakpoints());
         CmdHelp = new RelayCommand(p => ShowHelp(p as string));
-        CmdAbout = new RelayCommand(_ => new Dialogs.AboutWindow { Owner = this }.ShowDialog());
+        CmdAbout = new RelayCommand(_ => new Dialogs.AboutWindow().ShowDialog(this));
 
         InitializeComponent();
         DataContext = this;
 
-        if (LanguageRegistry.TestLanguageEnabled) NewEchoItem.Visibility = Visibility.Visible;
+        if (LanguageRegistry.TestLanguageEnabled) NewEchoItem.IsVisible = true;
+        ApplyPlatformTexts();
         RegisterKeyBindings();
         RestoreWindowPlacement();
         ApplyMenuChecks();
         ApplyPanelLayout();
 
+        OutputBox.Document.UndoStack.SizeLimit = 0;
+        OutputBox.Options.EnableHyperlinks = false;
+        OutputBox.Options.EnableEmailHyperlinks = false;
+        OutputBox.Options.AllowScrollBelowDocument = false;
         ConsoleView.ClearOnRun = _settings.ClearConsoleOnRun;
         ConsoleView.ClearOnRunChanged += v => _settings.ClearConsoleOnRun = v;
         ConsoleView.InputSubmitted += line => _session?.IO.Submit(line);
         ConsoleView.StopRequested += StopExecution;
-        ConsoleView.SetFont(new FontFamily(_settings.FontFamily), _settings.FontSize);
+        ConsoleView.SetFont(CodeFont.Resolve(_settings.FontFamily), _settings.FontSize);
         ExternalConsoleToggle.IsChecked = _settings.ExternalConsole;
 
         ErrorList.ItemsSource = _visibleErrors;
+        ErrorList.AddHandler(KeyDownEvent, OnErrorKeyDown, RoutingStrategies.Tunnel);
+        StackList.AddHandler(KeyDownEvent, OnStackKeyDown, RoutingStrategies.Tunnel);
         UpdateErrorCounts();
 
-        Loaded += OnLoaded;
+        Opened += OnLoaded;
         Closing += OnClosing;
         Activated += (_, _) => CheckExternalChanges();
-        PreviewKeyDown += OnPreviewKeyDown;
-        PreviewDragOver += OnPreviewDragOver;
-        PreviewDrop += OnPreviewDrop;
-        PreviewMouseWheel += OnPreviewMouseWheel;
-        SourceInitialized += (_, _) => ApplyTitleBarTheme();
+        AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(DragDrop.DragOverEvent, OnPreviewDragOver, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(DragDrop.DropEvent, OnPreviewDrop, RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerWheelChangedEvent, OnPreviewMouseWheel, RoutingStrategies.Tunnel);
+        AddHandler(GotFocusEvent, OnAnyGotFocus, RoutingStrategies.Bubble, handledEventsToo: true);
+        PositionChanged += (_, _) => { if (WindowState == WindowState.Normal) _normalPosition = Position; };
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ClientSizeProperty && WindowState == WindowState.Normal) _normalSize = ClientSize;
+        };
 
         _backgroundCheckTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(1200) };
         _backgroundCheckTimer.Tick += async (_, _) => { _backgroundCheckTimer.Stop(); await BackgroundCheckAsync(); };
@@ -165,7 +206,7 @@ public partial class MainWindow : Window
         UpdateStatusBar();
     }
 
-    void OnLoaded(object sender, RoutedEventArgs e)
+    void OnLoaded(object? sender, EventArgs e)
     {
         // Explorer folder
         var root = _settings.ExplorerRoot;
@@ -188,12 +229,45 @@ public partial class MainWindow : Window
         }
 
         AppendOutput("AlgolStudio — " + DateTime.Now.ToString("dddd, MMMM d, yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture));
-        var runner = RunnerLocator.Find();
-        AppendOutput(runner != null ? $"Standalone executable launcher: {runner}" : "Warning: " + RunnerLocator.NotFoundMessage);
+        var runner = App.Platform.FindRunner();
+        if (App.Platform.SupportsExecutables)
+            AppendOutput(runner != null ? $"Standalone executable launcher: {runner}" : "Warning: " + RunnerLocator.NotFoundMessage);
         AppendOutput("Languages: " + string.Join(", ", LanguageRegistry.Languages.Select(l => $"{l.DisplayName} ({string.Join(", ", l.FileExtensions)})")));
 
-        if (App.Options.SmokeTest) _ = SelfTest.RunSmokeAsync(this);
-        else if (App.Options.SelfTest) _ = SelfTest.RunAsync(this);
+        if (App.AutomatedScenario != null) _ = App.AutomatedScenario(this);
+    }
+
+    /// <summary>Platform-dependent labels (external console, executables) and command shortcuts (Cmd on macOS).</summary>
+    void ApplyPlatformTexts()
+    {
+        var p = App.Platform;
+        bool windowsExe = p.ExecutableExtension == ".exe";
+        string exeLabel = windowsExe ? ".exe" : "executable";
+        GenerateExeItem.Header = $"_Generate standalone {exeLabel}…";
+        GenerateExeText.Text = windowsExe ? ".exe" : "Exe";
+        ToolTip.SetTip(GenerateExeButton, $"Generate standalone {exeLabel} (Ctrl+Shift+E)");
+        DebugInfoItem.Header = windowsExe ? "_Debug information in .exe files" : "_Debug information in executables";
+        ExternalConsoleItem.Header = "Run in e_xternal " + p.ExternalConsoleName;
+        ToolTip.SetTip(ExternalConsoleToggle, "Run in an external " + p.ExternalConsoleName);
+        ExternalConsoleItem.IsVisible = ExternalConsoleToggle.IsVisible = p.SupportsExternalConsole;
+        GenerateExeButton.IsVisible = p.SupportsExecutables;
+        ExplorerRevealItem.Header = p.RevealInFileManagerText;
+        if (Cmd != KeyModifiers.Control)
+        {
+            ReplaceControlGestures(MainMenu.Items);
+            WelcomeShortcuts.Text = WelcomeShortcuts.Text?.Replace("Ctrl+F5", "Cmd+F5").Replace("Ctrl+F", "Cmd+F");
+        }
+    }
+
+    /// <summary>macOS: the menu shows Cmd instead of Ctrl (completion keeps Ctrl+Space).</summary>
+    static void ReplaceControlGestures(ItemCollection items)
+    {
+        foreach (var item in items.OfType<MenuItem>())
+        {
+            if (item.InputGesture is { } g && g.KeyModifiers.HasFlag(KeyModifiers.Control) && g.Key != Key.Space)
+                item.InputGesture = new KeyGesture(g.Key, (g.KeyModifiers & ~KeyModifiers.Control) | Cmd);
+            ReplaceControlGestures(item.Items);
+        }
     }
 
     // ------------------------------------------------------------------ documents / tabs
@@ -209,30 +283,35 @@ public partial class MainWindow : Window
         _documents.Add(doc);
 
         var title = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-        title.SetBinding(TextBlock.TextProperty, new Binding(nameof(EditorDocument.Title)) { Source = doc });
+        title.Bind(TextBlock.TextProperty, new Binding(nameof(EditorDocument.Title)) { Source = doc });
         var badge = new TextBlock
         {
-            FontWeight = FontWeights.Bold,
+            FontWeight = FontWeight.Bold,
             FontSize = 10,
             Margin = new Thickness(0, 0, 6, 0),
             VerticalAlignment = VerticalAlignment.Center,
             Opacity = 0.8,
         };
-        badge.SetBinding(TextBlock.TextProperty, new Binding(nameof(EditorDocument.Language)) { Source = doc, Converter = LanguageBadgeConverter.Instance });
+        badge.Bind(TextBlock.TextProperty, new Binding(nameof(EditorDocument.Language)) { Source = doc, Converter = LanguageBadgeConverter.Instance });
+        var closeIcon = new IconPath
+        {
+            Data = App.Resource<Geometry>("Icon.Close"),
+            Width = 16, Height = 16,
+            Stretch = Stretch.None,
+            RenderTransform = new ScaleTransform(0.65, 0.65),
+        };
+        closeIcon.Bind(Shape.FillProperty, new Binding(nameof(Foreground))
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(TabItem) },
+        });
         var close = new Button
         {
-            Style = (Style)FindResource("ToolButton"),
+            Theme = (ControlTheme)this.FindResource("ToolButton")!,
             Padding = new Thickness(2),
             Margin = new Thickness(6, 0, 0, 0),
-            ToolTip = "Close (Ctrl+W)",
-            Content = new System.Windows.Shapes.Path
-            {
-                Data = (Geometry)FindResource("Icon.Close"),
-                Width = 16, Height = 16,
-                RenderTransform = new ScaleTransform(0.65, 0.65, 8, 8),
-            },
+            Content = closeIcon,
         };
-        ((System.Windows.Shapes.Path)close.Content).SetBinding(System.Windows.Shapes.Shape.FillProperty, new Binding(nameof(Foreground)) { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(TabItem), 1) });
+        ToolTip.SetTip(close, "Close (Ctrl+W)");
         close.Click += (_, _) => CloseDocument(doc);
         var header = new StackPanel { Orientation = Orientation.Horizontal, Children = { badge, title, close } };
         var tab = new TabItem
@@ -240,10 +319,10 @@ public partial class MainWindow : Window
             Header = header,
             Content = doc.Editor,
             Tag = doc,
-            Style = (Style)FindResource("DocTabItem"),
+            Theme = (ControlTheme)this.FindResource("DocTabItem")!,
         };
-        tab.SetBinding(ToolTipProperty, new Binding(nameof(EditorDocument.CompilePath)) { Source = doc });
-        tab.MouseUp += (_, e) => { if (e.ChangedButton == MouseButton.Middle) { CloseDocument(doc); e.Handled = true; } };
+        tab.Bind(ToolTip.TipProperty, new Binding(nameof(EditorDocument.CompilePath)) { Source = doc });
+        tab.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Middle) { CloseDocument(doc); e.Handled = true; } };
         tab.ContextMenu = BuildTabContextMenu(doc);
         doc.Tab = tab;
 
@@ -251,13 +330,14 @@ public partial class MainWindow : Window
         doc.ModelUpdated += d => { if (d == ActiveDocument) UpdateOutline(); };
         doc.BreakpointsChanged += OnDocumentBreakpointsChanged;
         doc.TextChangedSinceAnalysis += d => ScheduleBackgroundCheck();
-        DependencyPropertyDescriptor.FromProperty(ICSharpCode.AvalonEdit.Editing.TextArea.OverstrikeModeProperty, typeof(ICSharpCode.AvalonEdit.Editing.TextArea))
-            ?.AddValueChanged(doc.Editor.TextArea, (_, _) => UpdateStatusBar());
-        doc.Editor.TextArea.TextView.MouseDown += (_, e) => { if (e.ChangedButton == MouseButton.Left) ClearCallerHighlight(); };
+        doc.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(EditorDocument.IsModified)) RelayCommand.InvalidateAll(); };
+        doc.Editor.TextArea.PropertyChanged += (_, e) => { if (e.Property == TextArea.OverstrikeModeProperty) UpdateStatusBar(); };
+        doc.Editor.TextArea.TextView.PointerPressed += (_, e) => { if (e.GetCurrentPoint(null).Properties.IsLeftButtonPressed) ClearCallerHighlight(); };
 
         DocTabs.Items.Add(tab);
         if (activate) Activate(doc);
         UpdateWelcome();
+        RelayCommand.InvalidateAll();
         return doc;
     }
 
@@ -268,13 +348,13 @@ public partial class MainWindow : Window
         {
             var mi = new MenuItem { Header = header };
             mi.Click += (_, _) => action();
-            if (enabled != null) cm.Opened += (_, _) => mi.IsEnabled = enabled();
+            if (enabled != null) cm.Opening += (_, _) => mi.IsEnabled = enabled();
             cm.Items.Add(mi);
         }
         Add("Close", () => CloseDocument(doc));
         Add("Close other tabs", () => { foreach (var d in _documents.Where(x => x != doc).ToList()) if (!CloseDocument(d)) break; });
         cm.Items.Add(new Separator());
-        Add("Copy full path", () => Clipboard.SetText(doc.CompilePath), () => doc.FilePath != null);
+        Add("Copy full path", () => _ = Clipboard?.SetTextAsync(doc.CompilePath), () => doc.FilePath != null);
         Add("Open containing folder", () => RevealInExplorer(doc.FilePath!), () => doc.FilePath != null);
         return cm;
     }
@@ -282,16 +362,17 @@ public partial class MainWindow : Window
     public void Activate(EditorDocument doc)
     {
         if (doc.Tab != null) DocTabs.SelectedItem = doc.Tab;
-        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => doc.Editor.TextArea.Focus()));
+        Dispatcher.UIThread.Post(() => doc.Editor.TextArea.Focus(), DispatcherPriority.Input);
     }
 
-    void OnDocTabChanged(object sender, SelectionChangedEventArgs e)
+    void OnDocTabChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (e.OriginalSource != DocTabs) return;
+        if (e.Source != DocTabs) return;
         (DocTabs.SelectedItem as TabItem)?.BringIntoView();
         UpdateOutline();
         UpdateStatusBar();
         UpdateTitle();
+        RelayCommand.InvalidateAll();
     }
 
     void UpdateTitle()
@@ -303,25 +384,25 @@ public partial class MainWindow : Window
     void UpdateWelcome()
     {
         bool empty = _documents.Count == 0;
-        WelcomePanel.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
-        DocTabs.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        WelcomePanel.IsVisible = empty;
+        DocTabs.IsVisible = !empty;
         if (empty)
         {
             var recent = _settings.RecentFiles.Where(File.Exists).Take(8).ToList();
             WelcomeRecent.ItemsSource = recent;
-            WelcomeNoRecent.Visibility = recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            WelcomeNoRecent.IsVisible = recent.Count == 0;
             // Welcome page: main examples only (the Examples menu lists them all)
             var samples = ListSamples().Where(f => !IsWelcomeExcluded(f)).ToList();
             WelcomeSamples.ItemsSource = samples;
-            WelcomeNoSamples.Visibility = samples.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            WelcomeNoSamples.IsVisible = samples.Count == 0;
             UpdateOutline();
         }
         UpdateTitle();
     }
 
-    void OnWelcomeRecentClick(object sender, RoutedEventArgs e)
+    void OnWelcomeRecentClick(object? sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is string path) OpenFile(path);
+        if ((sender as Control)?.Tag is string path) OpenFile(path);
     }
 
     // ------------------------------------------------------------------ status bar
@@ -333,7 +414,7 @@ public partial class MainWindow : Window
         {
             StatusPosition.Text = StatusInsert.Text = StatusEncoding.Text = "";
             StatusLanguageText.Text = "";
-            StatusLanguage.Visibility = Visibility.Collapsed;
+            StatusLanguage.IsVisible = false;
         }
         else
         {
@@ -348,7 +429,7 @@ public partial class MainWindow : Window
                 var n => n.ToUpperInvariant(),
             };
             StatusLanguageText.Text = doc.Language.DisplayName;
-            StatusLanguage.Visibility = Visibility.Visible;
+            StatusLanguage.IsVisible = true;
         }
         StatusZoom.Text = $"{Math.Round(_settings.FontSize / 14.0 * 100)} %";
     }
@@ -367,21 +448,15 @@ public partial class MainWindow : Window
             _ => "",
         };
         if (message != null) StatusMessage.Text = message;
-        StatusBarBorder.Background = (Brush)FindResource(state switch
+        StatusBarBorder.Bind(Border.BackgroundProperty, StatusBarBorder.GetResourceObservable(state switch
         {
             IdeState.Running or IdeState.Debugging or IdeState.External => "Brush.StatusBarRunning",
             IdeState.Paused => "Brush.StatusBarPaused",
             _ => "Brush.StatusBar",
-        });
-        StatusBarBorder.SetResourceReference(Border.BackgroundProperty, state switch
-        {
-            IdeState.Running or IdeState.Debugging or IdeState.External => "Brush.StatusBarRunning",
-            IdeState.Paused => "Brush.StatusBarPaused",
-            _ => "Brush.StatusBar",
-        });
+        }));
         DebugButtonText.Text = state == IdeState.Paused ? "Continue" : "Debug";
         DebugMenuItem.Header = state == IdeState.Paused ? "_Continue" : "_Start debugging";
-        CommandManager.InvalidateRequerySuggested();
+        RelayCommand.InvalidateAll();
     }
 
     public void SetStatusMessage(string message) => StatusMessage.Text = message;
@@ -389,16 +464,16 @@ public partial class MainWindow : Window
     /// <summary>Dark theme selected in the settings (legacy values are normalized by IdeSettings.Load).</summary>
     bool IsDarkSetting => _settings.Theme == "dark";
 
-    void OnStatusLanguageClick(object sender, RoutedEventArgs e)
+    void OnStatusLanguageClick(object? sender, RoutedEventArgs e)
     {
-        var cm = new ContextMenu { PlacementTarget = StatusLanguage, Placement = System.Windows.Controls.Primitives.PlacementMode.Top };
+        var cm = new ContextMenu { Placement = PlacementMode.Top };
         FillLanguageItems(cm.Items);
-        cm.IsOpen = true;
+        cm.Open(StatusLanguage);
     }
 
-    void OnLanguageMenuOpened(object sender, RoutedEventArgs e)
+    void OnLanguageMenuOpened(object? sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource != LanguageMenu) return;
+        if (e.Source != LanguageMenu) return;
         LanguageMenu.Items.Clear();
         FillLanguageItems(LanguageMenu.Items);
     }
@@ -409,7 +484,7 @@ public partial class MainWindow : Window
         foreach (var lang in LanguageDefinitions.All)
         {
             if (lang.Id == "echo" && !LanguageRegistry.TestLanguageEnabled) continue;
-            var mi = new MenuItem { Header = lang.DisplayName, IsCheckable = true, IsChecked = doc?.Language == lang, IsEnabled = doc != null };
+            var mi = new MenuItem { Header = lang.DisplayName, ToggleType = MenuItemToggleType.CheckBox, IsChecked = doc?.Language == lang, IsEnabled = doc != null };
             mi.Click += (_, _) => { if (ActiveDocument != null) { ActiveDocument.Language = lang; UpdateStatusBar(); UpdateOutline(); ScheduleBackgroundCheck(); } };
             items.Add(mi);
         }
@@ -417,17 +492,24 @@ public partial class MainWindow : Window
 
     // ------------------------------------------------------------------ panels
 
+    ColumnDefinition LeftColumn => MainGrid.ColumnDefinitions[0];
+    ColumnDefinition LeftSplitterColumn => MainGrid.ColumnDefinitions[1];
+    ColumnDefinition RightSplitterColumn => MainGrid.ColumnDefinitions[3];
+    ColumnDefinition RightColumn => MainGrid.ColumnDefinitions[4];
+    RowDefinition BottomSplitterRow => MainGrid.RowDefinitions[1];
+    RowDefinition BottomRow => MainGrid.RowDefinitions[2];
+
     void ApplyPanelLayout()
     {
         LeftColumn.Width = _settings.ShowExplorer ? new GridLength(Math.Max(120, _settings.LeftPanelWidth)) : new GridLength(0);
         LeftSplitterColumn.Width = _settings.ShowExplorer ? new GridLength(5) : new GridLength(0);
-        ExplorerPanel.Visibility = LeftSplitter.Visibility = _settings.ShowExplorer ? Visibility.Visible : Visibility.Collapsed;
+        ExplorerPanel.IsVisible = LeftSplitter.IsVisible = _settings.ShowExplorer;
         RightColumn.Width = _settings.ShowOutline ? new GridLength(Math.Max(120, _settings.RightPanelWidth)) : new GridLength(0);
         RightSplitterColumn.Width = _settings.ShowOutline ? new GridLength(5) : new GridLength(0);
-        OutlinePanel.Visibility = RightSplitter.Visibility = _settings.ShowOutline ? Visibility.Visible : Visibility.Collapsed;
+        OutlinePanel.IsVisible = RightSplitter.IsVisible = _settings.ShowOutline;
         BottomRow.Height = _settings.ShowBottomPanel ? new GridLength(Math.Max(80, _settings.BottomPanelHeight)) : new GridLength(0);
         BottomSplitterRow.Height = _settings.ShowBottomPanel ? new GridLength(5) : new GridLength(0);
-        BottomTabs.Visibility = BottomSplitter.Visibility = _settings.ShowBottomPanel ? Visibility.Visible : Visibility.Collapsed;
+        BottomTabs.IsVisible = BottomSplitter.IsVisible = _settings.ShowBottomPanel;
         ShowExplorerItem.IsChecked = _settings.ShowExplorer;
         ShowOutlineItem.IsChecked = _settings.ShowOutline;
         ShowBottomItem.IsChecked = _settings.ShowBottomPanel;
@@ -440,7 +522,7 @@ public partial class MainWindow : Window
         if (_settings.ShowBottomPanel && BottomRow.ActualHeight > 50) _settings.BottomPanelHeight = BottomRow.ActualHeight;
     }
 
-    void OnTogglePanels(object sender, RoutedEventArgs e)
+    void OnTogglePanels(object? sender, RoutedEventArgs e)
     {
         CapturePanelSizes();
         _settings.ShowExplorer = ShowExplorerItem.IsChecked;
@@ -483,7 +565,7 @@ public partial class MainWindow : Window
         ExternalConsoleItem.IsChecked = _settings.ExternalConsole;
     }
 
-    void OnEditorOptionChanged(object sender, RoutedEventArgs e)
+    void OnEditorOptionChanged(object? sender, RoutedEventArgs e)
     {
         _settings.WordWrap = WordWrapItem.IsChecked;
         _settings.ShowLineNumbers = LineNumbersItem.IsChecked;
@@ -491,14 +573,14 @@ public partial class MainWindow : Window
         foreach (var d in _documents) d.ApplySettings(_settings);
     }
 
-    void OnBuildOptionChanged(object sender, RoutedEventArgs e)
+    void OnBuildOptionChanged(object? sender, RoutedEventArgs e)
     {
         _settings.BackgroundCheck = BackgroundCheckItem.IsChecked;
         _settings.GenerateDebugInfo = DebugInfoItem.IsChecked;
         if (_settings.BackgroundCheck) ScheduleBackgroundCheck();
     }
 
-    void OnDebugOptionChanged(object sender, RoutedEventArgs e)
+    void OnDebugOptionChanged(object? sender, RoutedEventArgs e)
     {
         _settings.StopOnEntry = StopOnEntryItem.IsChecked;
         _settings.BreakOnError = BreakOnErrorItem.IsChecked;
@@ -506,46 +588,32 @@ public partial class MainWindow : Window
         ExternalConsoleToggle.IsChecked = _settings.ExternalConsole;
     }
 
-    void OnExternalConsoleToggle(object sender, RoutedEventArgs e)
+    void OnExternalConsoleToggle(object? sender, RoutedEventArgs e)
     {
         _settings.ExternalConsole = ExternalConsoleToggle.IsChecked == true;
         ExternalConsoleItem.IsChecked = _settings.ExternalConsole;
         SetStatusMessage(_settings.ExternalConsole
-            ? "Programs will run in an external Windows console (Ctrl+F5)."
+            ? $"Programs will run in an external {App.Platform.ExternalConsoleName} (Ctrl+F5)."
             : "Programs will run in the integrated console.");
     }
 
-    void OnThemeLight(object sender, RoutedEventArgs e) => SetTheme(false);
-    void OnThemeDark(object sender, RoutedEventArgs e) => SetTheme(true);
+    void OnThemeLight(object? sender, RoutedEventArgs e) => SetTheme(false);
+    void OnThemeDark(object? sender, RoutedEventArgs e) => SetTheme(true);
 
     public void SetTheme(bool dark)
     {
         _settings.Theme = dark ? "dark" : "light";
+        // The window title bar follows the theme variant (Avalonia sets the Windows dark title bar).
         App.ApplyTheme(dark);
         ThemeLightItem.IsChecked = !dark;
         ThemeDarkItem.IsChecked = dark;
         foreach (var d in _documents) d.ApplyTheme();
         ConsoleView.ApplyTheme();
         SetState(_state);
-        ApplyTitleBarTheme();
         // Refresh resource-bound icons (error list, outline)
-        ErrorList.Items.Refresh();
+        ErrorList.ItemsSource = null;
+        ErrorList.ItemsSource = _visibleErrors;
         UpdateOutline();
-    }
-
-    [DllImport("dwmapi.dll")]
-    static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
-
-    void ApplyTitleBarTheme()
-    {
-        try
-        {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            if (hwnd == IntPtr.Zero) return;
-            int dark = App.IsDarkTheme ? 1 : 0;
-            DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
-        }
-        catch { }
     }
 
     void Zoom(int direction)
@@ -554,87 +622,102 @@ public partial class MainWindow : Window
         size = direction switch { > 0 => Math.Min(48, size + 1), < 0 => Math.Max(7, size - 1), _ => 14 };
         _settings.FontSize = size;
         foreach (var d in _documents) d.Editor.FontSize = size;
-        ConsoleView.SetFont(new FontFamily(_settings.FontFamily), size);
+        ConsoleView.SetFont(CodeFont.Resolve(_settings.FontFamily), size);
         UpdateStatusBar();
     }
 
-    void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    void OnPreviewMouseWheel(object? sender, PointerWheelEventArgs e)
     {
-        if (Keyboard.Modifiers != ModifierKeys.Control) return;
-        if (e.OriginalSource is DependencyObject d && IsInsideEditor(d))
+        if (e.KeyModifiers != Cmd) return;
+        if (e.Source is Visual v && IsInsideEditor(v))
         {
-            Zoom(e.Delta > 0 ? 1 : -1);
+            Zoom(e.Delta.Y > 0 ? 1 : -1);
             e.Handled = true;
         }
     }
 
-    static bool IsInsideEditor(DependencyObject d)
+    static bool IsInsideEditor(Visual? v)
     {
-        for (var cur = d; cur != null; cur = cur is Visual || cur is System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(cur) : LogicalTreeHelper.GetParent(cur))
-            if (cur is ICSharpCode.AvalonEdit.TextEditor) return true;
+        for (var cur = v; cur != null; cur = cur.GetVisualParent())
+            if (cur is TextEditor) return true;
         return false;
+    }
+
+    // ------------------------------------------------------------------ editing commands (Edit menu, toolbar)
+
+    void OnAnyGotFocus(object? sender, GotFocusEventArgs e)
+    {
+        if (e.Source is TextBox tb) _lastTextBox = tb;
+        else if (e.Source is Visual v && IsInsideEditor(v)) _lastTextBox = null;
+    }
+
+    /// <summary>Undo, cut, copy… apply to the text box that has (or last had) the focus, otherwise to the editor.</summary>
+    void EditAction(Action<TextBox> onTextBox, Action<TextEditor> onEditor)
+    {
+        if (_lastTextBox is { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } tb && TopLevel.GetTopLevel(tb) == this)
+            onTextBox(tb);
+        else if (ActiveDocument is { } doc)
+        {
+            onEditor(doc.Editor);
+            doc.Editor.TextArea.Focus();
+        }
     }
 
     // ------------------------------------------------------------------ keyboard
 
     void RegisterKeyBindings()
     {
-        void K(ICommand cmd, Key key, ModifierKeys mods = ModifierKeys.None, object? param = null) =>
-            InputBindings.Add(new KeyBinding(cmd, key, mods) { CommandParameter = param });
+        var cmd = Cmd;
+        void K(ICommand command, Key key, KeyModifiers mods = KeyModifiers.None, object? param = null) =>
+            KeyBindings.Add(new KeyBinding { Command = command, Gesture = new KeyGesture(key, mods), CommandParameter = param! });
 
-        K(CmdNewSimula, Key.N, ModifierKeys.Control);
-        K(CmdNewAlgol, Key.N, ModifierKeys.Control | ModifierKeys.Shift);
-        K(CmdOpen, Key.O, ModifierKeys.Control);
-        K(CmdSave, Key.S, ModifierKeys.Control);
-        K(CmdSaveAll, Key.S, ModifierKeys.Control | ModifierKeys.Shift);
-        K(CmdClose, Key.W, ModifierKeys.Control);
-        K(CmdClose, Key.F4, ModifierKeys.Control);
-        K(CmdFind, Key.F, ModifierKeys.Control);
-        K(CmdReplace, Key.H, ModifierKeys.Control);
+        K(CmdNewSimula, Key.N, cmd);
+        K(CmdNewAlgol, Key.N, cmd | KeyModifiers.Shift);
+        K(CmdOpen, Key.O, cmd);
+        K(CmdSave, Key.S, cmd);
+        K(CmdSaveAll, Key.S, cmd | KeyModifiers.Shift);
+        K(CmdClose, Key.W, cmd);
+        K(CmdClose, Key.F4, cmd);
+        K(CmdFind, Key.F, cmd);
+        K(CmdReplace, Key.H, cmd);
         K(CmdFindNext, Key.F3);
-        K(CmdFindPrevious, Key.F3, ModifierKeys.Shift);
-        K(CmdGoToLine, Key.G, ModifierKeys.Control);
-        K(CmdComment, Key.K, ModifierKeys.Control);
-        K(CmdUncomment, Key.K, ModifierKeys.Control | ModifierKeys.Shift);
-        K(CmdReindent, Key.I, ModifierKeys.Control);
-        K(CmdZoomIn, Key.OemPlus, ModifierKeys.Control);
-        K(CmdZoomIn, Key.Add, ModifierKeys.Control);
-        K(CmdZoomOut, Key.OemMinus, ModifierKeys.Control);
-        K(CmdZoomOut, Key.Subtract, ModifierKeys.Control);
-        K(CmdZoomReset, Key.D0, ModifierKeys.Control);
-        K(CmdZoomReset, Key.NumPad0, ModifierKeys.Control);
+        K(CmdFindPrevious, Key.F3, KeyModifiers.Shift);
+        K(CmdGoToLine, Key.G, cmd);
+        K(CmdComment, Key.K, cmd);
+        K(CmdUncomment, Key.K, cmd | KeyModifiers.Shift);
+        K(CmdReindent, Key.I, cmd);
+        K(CmdZoomIn, Key.OemPlus, cmd);
+        K(CmdZoomIn, Key.Add, cmd);
+        K(CmdZoomOut, Key.OemMinus, cmd);
+        K(CmdZoomOut, Key.Subtract, cmd);
+        K(CmdZoomReset, Key.D0, cmd);
+        K(CmdZoomReset, Key.NumPad0, cmd);
         K(CmdBuild, Key.F7);
-        K(CmdBuild, Key.B, ModifierKeys.Control | ModifierKeys.Shift);
-        K(CmdGenerateExe, Key.E, ModifierKeys.Control | ModifierKeys.Shift);
+        K(CmdBuild, Key.B, cmd | KeyModifiers.Shift);
+        K(CmdGenerateExe, Key.E, cmd | KeyModifiers.Shift);
         K(CmdDebug, Key.F5);
-        K(CmdRun, Key.F5, ModifierKeys.Control);
-        K(CmdStop, Key.F5, ModifierKeys.Shift);
-        K(CmdRestart, Key.F5, ModifierKeys.Control | ModifierKeys.Shift);
-        K(CmdPause, Key.Pause, ModifierKeys.Control | ModifierKeys.Alt);
-        K(CmdPause, Key.Cancel, ModifierKeys.Control | ModifierKeys.Alt);
+        K(CmdRun, Key.F5, cmd);
+        K(CmdStop, Key.F5, KeyModifiers.Shift);
+        K(CmdRestart, Key.F5, cmd | KeyModifiers.Shift);
+        K(CmdPause, Key.Pause, KeyModifiers.Control | KeyModifiers.Alt);
+        K(CmdPause, Key.Cancel, KeyModifiers.Control | KeyModifiers.Alt);
         K(CmdStepInto, Key.F11);
-        K(CmdStepOut, Key.F11, ModifierKeys.Shift);
+        K(CmdStepOver, Key.F10);
+        K(CmdStepOut, Key.F11, KeyModifiers.Shift);
         K(CmdToggleBreakpoint, Key.F9);
-        K(CmdClearBreakpoints, Key.F9, ModifierKeys.Control | ModifierKeys.Shift);
+        K(CmdClearBreakpoints, Key.F9, cmd | KeyModifiers.Shift);
         K(CmdHelp, Key.F1);
-        K(CmdShowPanel, Key.O, ModifierKeys.Control | ModifierKeys.Alt, "output");
-        K(CmdShowPanel, Key.E, ModifierKeys.Control | ModifierKeys.Alt, "errors");
-        K(CmdShowPanel, Key.C, ModifierKeys.Control | ModifierKeys.Alt, "console");
-        K(CmdShowPanel, Key.P, ModifierKeys.Control | ModifierKeys.Alt, "stack");
-        K(CmdShowPanel, Key.V, ModifierKeys.Control | ModifierKeys.Alt, "variables");
+        K(CmdShowPanel, Key.O, cmd | KeyModifiers.Alt, "output");
+        K(CmdShowPanel, Key.E, cmd | KeyModifiers.Alt, "errors");
+        K(CmdShowPanel, Key.C, cmd | KeyModifiers.Alt, "console");
+        K(CmdShowPanel, Key.P, cmd | KeyModifiers.Alt, "stack");
+        K(CmdShowPanel, Key.V, cmd | KeyModifiers.Alt, "variables");
     }
 
-    void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
-        // F10 is a "system" key (it activates the menu): handled here.
-        if (e.Key == Key.System && e.SystemKey == Key.F10 && Keyboard.Modifiers == ModifierKeys.None)
-        {
-            if (CmdStepOver.CanExecute(null)) CmdStepOver.Execute(null);
-            e.Handled = true;
-            return;
-        }
         // Chord Ctrl+M, Ctrl+O / Ctrl+L / Ctrl+M (folding)
-        if (Keyboard.Modifiers == ModifierKeys.Control && ActiveDocument != null && IsInsideEditor((DependencyObject)e.OriginalSource))
+        if (e.KeyModifiers == Cmd && ActiveDocument != null && IsInsideEditor(e.Source as Visual))
         {
             if (_pendingChord == Key.M)
             {
@@ -651,26 +734,29 @@ public partial class MainWindow : Window
                 return;
             }
         }
-        if (e.Key is not (Key.LeftCtrl or Key.RightCtrl)) _pendingChord = Key.None;
+        if (e.Key is not (Key.LeftCtrl or Key.RightCtrl or Key.LWin or Key.RWin)) _pendingChord = Key.None;
     }
 
     // ------------------------------------------------------------------ drag and drop
 
-    void OnPreviewDragOver(object sender, DragEventArgs e)
+    void OnPreviewDragOver(object? sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        if (e.DataTransfer.Contains(DataFormat.File))
         {
-            e.Effects = DragDropEffects.Copy;
+            e.DragEffects = DragDropEffects.Copy;
             e.Handled = true;
         }
     }
 
-    void OnPreviewDrop(object sender, DragEventArgs e)
+    void OnPreviewDrop(object? sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+        var files = e.DataTransfer.TryGetFiles();
+        if (files == null) return;
         e.Handled = true;
-        foreach (var f in files)
+        foreach (var item in files)
         {
+            var f = item.TryGetLocalPath();
+            if (f == null) continue;
             if (System.IO.Directory.Exists(f)) SetExplorerRoot(f);
             else if (File.Exists(f)) OpenFile(f);
         }
@@ -684,15 +770,15 @@ public partial class MainWindow : Window
         var root = new FileNode(path, true);
         root.IsExpanded = true;
         ExplorerTree.ItemsSource = new[] { root };
-        ExplorerTitle.Text = "EXPLORER — " + Path.GetFileName(path.TrimEnd('\\'));
-        ExplorerTitle.ToolTip = path;
+        ExplorerTitle.Text = "EXPLORER — " + Path.GetFileName(path.TrimEnd('\\', '/'));
+        ToolTip.SetTip(ExplorerTitle, path);
         _settings.ExplorerRoot = path;
         if (remember) _settings.AddRecentFolder(path);
     }
 
     FileNode? SelectedFileNode => ExplorerTree.SelectedItem as FileNode;
 
-    void OnExplorerDoubleClick(object sender, MouseButtonEventArgs e)
+    void OnExplorerDoubleClick(object? sender, TappedEventArgs e)
     {
         if (SelectedFileNode is { IsDirectory: false } n && File.Exists(n.FullPath))
         {
@@ -701,13 +787,13 @@ public partial class MainWindow : Window
         }
     }
 
-    void OnExplorerKeyDown(object sender, KeyEventArgs e)
+    void OnExplorerKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter && SelectedFileNode is { IsDirectory: false } n && File.Exists(n.FullPath)) OpenFile(n.FullPath);
         else if (e.Key == Key.F5) OnExplorerRefresh(sender, e);
     }
 
-    void OnExplorerOpen(object sender, RoutedEventArgs e)
+    void OnExplorerOpen(object? sender, RoutedEventArgs e)
     {
         if (SelectedFileNode is { } n)
         {
@@ -716,32 +802,29 @@ public partial class MainWindow : Window
         }
     }
 
-    void OnExplorerReveal(object sender, RoutedEventArgs e)
+    void OnExplorerReveal(object? sender, RoutedEventArgs e)
     {
         var p = SelectedFileNode?.FullPath ?? _settings.ExplorerRoot;
         if (p != null) RevealInExplorer(p);
     }
 
-    void OnExplorerRefresh(object sender, RoutedEventArgs e)
+    void OnExplorerRefresh(object? sender, RoutedEventArgs e)
     {
         if (_settings.ExplorerRoot != null) SetExplorerRoot(_settings.ExplorerRoot, remember: false);
     }
 
-    void OnExplorerCollapse(object sender, RoutedEventArgs e)
+    void OnExplorerCollapse(object? sender, RoutedEventArgs e)
     {
         if (ExplorerTree.ItemsSource is FileNode[] { Length: 1 } roots)
             foreach (var c in roots[0].Children) Collapse(c);
         static void Collapse(FileNode n) { foreach (var c in n.Children) Collapse(c); n.IsExpanded = false; }
     }
 
+    /// <summary>Shows a file or a folder in the file manager of the platform.</summary>
     public static void RevealInExplorer(string path)
     {
-        try
-        {
-            if (File.Exists(path)) Process.Start("explorer.exe", $"/select,\"{path}\"");
-            else if (System.IO.Directory.Exists(path)) Process.Start("explorer.exe", $"\"{path}\"");
-        }
-        catch { }
+        try { App.Platform.RevealInFileManager(path); }
+        catch (Exception ex) { Log.Write("reveal: " + ex.Message); }
     }
 
     // ------------------------------------------------------------------ outline
@@ -764,19 +847,19 @@ public partial class MainWindow : Window
 
     void ApplyOutlineFilter()
     {
-        var f = OutlineFilter.Text.Trim();
+        var f = (OutlineFilter.Text ?? "").Trim();
         var list = f.Length == 0 ? _outlineAll : _outlineAll.Where(o => o.Name.Contains(f, StringComparison.OrdinalIgnoreCase)).ToList();
         OutlineList.ItemsSource = list.ToList();
-        OutlineEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        OutlineEmpty.IsVisible = list.Count == 0;
         OutlineEmpty.Text = ActiveDocument == null ? "No open file." : _outlineAll.Count == 0
             ? "No procedure, class, operator or mode." : "No item matches the filter.";
     }
 
-    void OnOutlineFilterChanged(object sender, TextChangedEventArgs e) => ApplyOutlineFilter();
+    void OnOutlineFilterChanged(object? sender, TextChangedEventArgs e) => ApplyOutlineFilter();
 
-    void OnOutlineClick(object sender, MouseButtonEventArgs e) => NavigateOutline();
+    void OnOutlineClick(object? sender, TappedEventArgs e) => NavigateOutline();
 
-    void OnOutlineKeyDown(object sender, KeyEventArgs e)
+    void OnOutlineKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) { NavigateOutline(); e.Handled = true; }
     }
@@ -826,11 +909,11 @@ public partial class MainWindow : Window
         if (f != null) f.IsFolded = !f.IsFolded;
     }
 
-    void GoToLineDialog()
+    async Task GoToLineDialogAsync()
     {
         var doc = ActiveDocument!;
-        var dlg = new Dialogs.GoToLineWindow(doc.Editor.TextArea.Caret.Line, doc.Editor.Document.LineCount) { Owner = this };
-        if (dlg.ShowDialog() == true) doc.GoTo(dlg.Line, 1);
+        var dlg = new Dialogs.GoToLineWindow(doc.Editor.TextArea.Caret.Line, doc.Editor.Document.LineCount);
+        if (await dlg.ShowDialog<bool>(this)) doc.GoTo(dlg.Line, 1);
         doc.Editor.TextArea.Focus();
     }
 
@@ -843,10 +926,11 @@ public partial class MainWindow : Window
         var doc = ActiveDocument!;
         var sel = doc.Editor.SelectedText;
         if (!string.IsNullOrEmpty(sel) && !sel.Contains('\n')) _search.Text = sel;
-        if (_findWindow == null || !_findWindow.IsLoaded)
+        if (_findWindow == null)
         {
-            _findWindow = new Dialogs.FindReplaceWindow(this, _search) { Owner = this };
-            _findWindow.Show();
+            _findWindow = new Dialogs.FindReplaceWindow(this, _search);
+            _findWindow.Closed += (_, _) => _findWindow = null;
+            _findWindow.Show(this);
         }
         _findWindow.ShowMode(replace);
         _findWindow.Activate();
@@ -902,9 +986,10 @@ public partial class MainWindow : Window
     void ShowHelp(string? topic)
     {
         topic ??= ActiveDocument?.Language.Id switch { "algol68" => "algol68", "algol60" => "algol60", "simula1" => "simula1", "pascal" => "pascal", _ => "simula" };
-        if (_helpWindow == null || !_helpWindow.IsLoaded)
+        if (_helpWindow == null)
         {
             _helpWindow = new Dialogs.HelpWindow();
+            _helpWindow.Closed += (_, _) => _helpWindow = null;
             _helpWindow.Show();
         }
         _helpWindow.ShowTopic(topic);
@@ -918,21 +1003,25 @@ public partial class MainWindow : Window
         if (App.Options.Automated) { Width = 1280; Height = 800; WindowStartupLocation = WindowStartupLocation.CenterScreen; return; }
         Width = Math.Max(MinWidth, _settings.WindowWidth);
         Height = Math.Max(MinHeight, _settings.WindowHeight);
-        if (!double.IsNaN(_settings.WindowLeft) && !double.IsNaN(_settings.WindowTop) &&
-            _settings.WindowLeft > SystemParameters.VirtualScreenLeft - 50 &&
-            _settings.WindowTop > SystemParameters.VirtualScreenTop - 50 &&
-            _settings.WindowLeft < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 100 &&
-            _settings.WindowTop < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 100)
+        _normalSize = new Size(Width, Height);
+        if (!double.IsNaN(_settings.WindowLeft) && !double.IsNaN(_settings.WindowTop))
         {
-            WindowStartupLocation = WindowStartupLocation.Manual;
-            Left = _settings.WindowLeft;
-            Top = _settings.WindowTop;
+            var pos = new PixelPoint((int)_settings.WindowLeft, (int)_settings.WindowTop);
+            // Only on a connected screen (title bar visible)
+            bool onScreen = Screens.All.Any(s => s.Bounds.Contains(new PixelPoint(pos.X + 50, pos.Y + 10)));
+            if (onScreen)
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Position = pos;
+                _normalPosition = pos;
+            }
+            else WindowStartupLocation = WindowStartupLocation.CenterScreen;
         }
         else WindowStartupLocation = WindowStartupLocation.CenterScreen;
         if (_settings.WindowMaximized) WindowState = WindowState.Maximized;
     }
 
-    void OnClosing(object? sender, CancelEventArgs e)
+    void OnClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_closingConfirmed) return;
         if (_state is IdeState.Running or IdeState.Debugging or IdeState.Paused or IdeState.External && !App.Options.Automated)
@@ -957,13 +1046,14 @@ public partial class MainWindow : Window
         foreach (var d in _documents.Where(d => d.FilePath != null))
             _settings.CaretOffsets[d.FilePath!] = d.Editor.CaretOffset;
         _settings.WindowMaximized = WindowState == WindowState.Maximized;
-        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
-        if (!bounds.IsEmpty)
+        var position = WindowState == WindowState.Normal ? Position : _normalPosition;
+        var size = WindowState == WindowState.Normal ? ClientSize : _normalSize;
+        if (size.Width > 0 && size.Height > 0)
         {
-            _settings.WindowLeft = bounds.Left;
-            _settings.WindowTop = bounds.Top;
-            _settings.WindowWidth = bounds.Width;
-            _settings.WindowHeight = bounds.Height;
+            _settings.WindowLeft = position.X;
+            _settings.WindowTop = position.Y;
+            _settings.WindowWidth = size.Width;
+            _settings.WindowHeight = size.Height;
         }
         _settings.Save();
     }
@@ -1002,19 +1092,20 @@ public partial class MainWindow : Window
 
     public void AppendOutput(string line)
     {
-        OutputBox.AppendText(line + Environment.NewLine);
-        if (OutputBox.Text.Length > 2_000_000) OutputBox.Text = OutputBox.Text[^1_000_000..];
+        var doc = OutputBox.Document;
+        doc.Insert(doc.TextLength, line + "\n");
+        if (doc.TextLength > 2_000_000) doc.Remove(0, doc.TextLength - 1_000_000);
         OutputBox.ScrollToEnd();
     }
 
-    void OnClearOutput(object sender, RoutedEventArgs e) => OutputBox.Clear();
+    void OnClearOutput(object? sender, RoutedEventArgs e) => OutputBox.Document.Text = "";
 
     /// <summary>Double-click on an output line "file(l,c): …" goes to that position.</summary>
-    void OnOutputDoubleClick(object sender, MouseButtonEventArgs e)
+    void OnOutputDoubleClick(object? sender, TappedEventArgs e)
     {
-        int idx = OutputBox.GetLineIndexFromCharacterIndex(OutputBox.CaretIndex);
-        if (idx < 0) return;
-        var line = OutputBox.GetLineText(idx);
+        int lineNumber = OutputBox.TextArea.Caret.Line;
+        if (lineNumber < 1 || lineNumber > OutputBox.Document.LineCount) return;
+        var line = OutputBox.Document.GetText(OutputBox.Document.GetLineByNumber(lineNumber));
         var m = System.Text.RegularExpressions.Regex.Match(line, @"^\s*(?<f>.+?)\((?<l>\d+),(?<c>\d+)\):");
         if (m.Success)
         {
@@ -1028,7 +1119,7 @@ public partial class MainWindow : Window
 public sealed class LanguageBadgeConverter : IValueConverter
 {
     public static readonly LanguageBadgeConverter Instance = new();
-    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture) =>
         value is LanguageDefinition l ? l.Id switch { "simula" => "SIM", "algol68" => "A68", "algol60" => "A60", "simula1" => "S1", "pascal" => "PAS", _ => "ECHO" } : "";
-    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => throw new NotSupportedException();
+    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture) => throw new NotSupportedException();
 }

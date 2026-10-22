@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows;
-using System.Windows.Media;
+using Avalonia;
+using Avalonia.Media;
 using Studio.Common;
 using Studio.Ide.Language;
 
@@ -31,18 +31,18 @@ public sealed class ErrorItem
     public string LineText => Line > 0 ? Line.ToString() : "";
     public string ColumnText => Column > 0 ? Column.ToString() : "";
     public string Origin => IsRuntime ? "Runtime" : "Compiler";
-    public Geometry Icon => (Geometry)Application.Current.Resources[Severity switch
+    public Geometry Icon => App.Resource<Geometry>(Severity switch
     {
         Severity.Error => "Icon.ErrorMark",
         Severity.Warning => "Icon.WarningMark",
         _ => "Icon.InfoMark",
-    }];
-    public Brush IconBrush => (Brush)Application.Current.Resources[Severity switch
+    });
+    public IBrush IconBrush => App.Resource<IBrush>(Severity switch
     {
         Severity.Error => "Brush.Error",
         Severity.Warning => "Brush.Warning",
         _ => "Brush.Info",
-    }];
+    });
 }
 
 /// <summary>Row of the call stack.</summary>
@@ -56,9 +56,8 @@ public sealed class StackItem : Observable
     public string FileName => string.IsNullOrEmpty(Frame.File) ? "" : System.IO.Path.GetFileName(Frame.File);
     public string LineText => Frame.Line > 0 ? Frame.Line.ToString() : "";
     public string ColumnText => Frame.Column > 0 ? Frame.Column.ToString() : "";
-    public bool IsSelectedFrame { get => _isSelectedFrame; set { _isSelectedFrame = value; Notify(); Notify(nameof(MarkerVisibility)); } }
-    public Visibility MarkerVisibility => IsSelectedFrame ? Visibility.Visible : Visibility.Hidden;
-    public Brush MarkerBrush => (Brush)Application.Current.Resources[Index == 0 ? "Brush.IconYellow" : "Brush.IconGreen"];
+    public bool IsSelectedFrame { get => _isSelectedFrame; set { _isSelectedFrame = value; Notify(); } }
+    public IBrush MarkerBrush => App.Resource<IBrush>(Index == 0 ? "Brush.IconYellow" : "Brush.IconGreen");
 }
 
 /// <summary>Node of the variables tree (children loaded on demand).</summary>
@@ -151,13 +150,13 @@ public sealed class OutlineEntry
         OutlineKind.Label => "L",
         _ => "P",
     };
-    public Brush Badge => (Brush)Application.Current.Resources[Item.Kind switch
+    public IBrush Badge => App.Resource<IBrush>(Item.Kind switch
     {
         OutlineKind.Class => "Brush.IconOrange",
         OutlineKind.Operator => "Brush.IconGreen",
         OutlineKind.Mode => "Brush.IconBlue",
         _ => "Brush.IconPurple",
-    }];
+    });
     public string ToolTipText => $"{Detail} {Name} — line {Line}";
 }
 
@@ -184,7 +183,7 @@ public sealed class FileNode : Observable
 
     public string Extension => IsDirectory ? "" : System.IO.Path.GetExtension(FullPath).ToLowerInvariant();
     public string Badge => IsDirectory ? "" : Extension switch { ".sim" => "S", ".a68" => "A", ".a60" or ".alg" => "A", ".s1" => "S", ".pas" or ".p" => "P", ".echo" => "E", ".md" => "M", _ => "" };
-    public Brush IconBrush => (Brush)Application.Current.Resources[IsDirectory ? "Brush.IconYellow" : Extension switch
+    public IBrush IconBrush => App.Resource<IBrush>(IsDirectory ? "Brush.IconYellow" : Extension switch
     {
         ".sim" => "Brush.IconBlue",
         ".a68" => "Brush.IconGreen",
@@ -193,8 +192,8 @@ public sealed class FileNode : Observable
         ".pas" or ".p" => "Brush.IconPurple",
         ".echo" => "Brush.IconPurple",
         _ => "Brush.IconGray",
-    }];
-    public Geometry Icon => (Geometry)Application.Current.Resources[IsDirectory ? "Icon.Folder" : "Icon.File"];
+    });
+    public Geometry Icon => App.Resource<Geometry>(IsDirectory ? "Icon.Folder" : "Icon.File");
 
     public bool IsExpanded
     {

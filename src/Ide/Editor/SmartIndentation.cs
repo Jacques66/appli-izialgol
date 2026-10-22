@@ -1,5 +1,5 @@
-using ICSharpCode.AvalonEdit.Document;
-using ICSharpCode.AvalonEdit.Indentation;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Indentation;
 
 namespace Studio.Ide.Editor;
 

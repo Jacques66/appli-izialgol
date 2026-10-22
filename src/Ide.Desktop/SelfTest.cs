@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Text;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 using Studio.Common;
 using Studio.Ide.Editor;
 using Studio.Ide.Language;
@@ -14,9 +16,9 @@ namespace Studio.Ide;
 
 /// <summary>
 /// Automated tests of the IDE running for real (window shown):
-///   --smoke-test [--screenshot file.png] : start-up, two files, screenshot, shutdown.
+///   --smoke-test [--screenshot file.png] : start-up, five files, screenshot, shutdown.
 ///   --self-test [--self-test-dir folder]  : full scenario with the "echo" test language
-///     (compilation, errors, console, debugger, standalone exe, editor, theme), screenshots.
+///     (compilation, errors, console, debugger, standalone executable, editor, theme), screenshots.
 /// Result: exit code 0/1 and a log file (self-test.log / smoke-test.log).
 /// </summary>
 public static class SelfTest
@@ -57,29 +59,46 @@ public static class SelfTest
         }
     }
 
+    /// <summary>Standalone executable name for the platform (test.exe on Windows, test elsewhere).</summary>
+    static string ExeName(string baseName) => baseName + App.Platform.ExecutableExtension;
+
+    /// <summary>Renders a window (client area) to a PNG file, with its open popups (menus) on top.</summary>
     public static void Capture(Window w, string path)
     {
         try
         {
             w.UpdateLayout();
-            var content = (FrameworkElement)w.Content;
-            var dpi = VisualTreeHelper.GetDpi(w);
-            int width = (int)Math.Ceiling(content.ActualWidth * dpi.DpiScaleX);
-            int height = (int)Math.Ceiling(content.ActualHeight * dpi.DpiScaleY);
-            var rect = new Rect(0, 0, content.ActualWidth, content.ActualHeight);
-            var dv = new DrawingVisual();
-            using (var dc = dv.RenderOpen())
+            double scale = w.RenderScaling;
+            var size = w.ClientSize;
+            var pixels = PixelSize.FromSize(size, scale);
+            var dpi = new Vector(96 * scale, 96 * scale);
+            using var bitmap = new RenderTargetBitmap(pixels, dpi);
+            bitmap.Render(w);
+            // Popups (menus) are separate windows: render them at their position over the window.
+            var popups = w.GetVisualDescendants().OfType<Popup>().Where(p => p.IsOpen && p.Child != null).ToList();
+            if (popups.Count > 0)
             {
-                dc.DrawRectangle(w.Background, null, rect);
-                dc.DrawRectangle(new VisualBrush(content) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, rect);
+                using var composite = new RenderTargetBitmap(pixels, dpi);
+                using (var ctx = composite.CreateDrawingContext())
+                {
+                    // The source rectangle of a RenderTargetBitmap is in pixels.
+                    ctx.DrawImage(bitmap, new Rect(0, 0, pixels.Width, pixels.Height), new Rect(size));
+                    foreach (var popup in popups)
+                    {
+                        if (TopLevel.GetTopLevel(popup.Child) is not { } root || root == w) continue;
+                        var origin = w.PointToScreen(new Point(0, 0));
+                        var at = root.PointToScreen(new Point(0, 0));
+                        var offset = new Point((at.X - origin.X) / scale, (at.Y - origin.Y) / scale);
+                        var rootSize = root.ClientSize;
+                        var popupPixels = PixelSize.FromSize(rootSize, scale);
+                        using var popupBitmap = new RenderTargetBitmap(popupPixels, dpi);
+                        popupBitmap.Render(root);
+                        ctx.DrawImage(popupBitmap, new Rect(0, 0, popupPixels.Width, popupPixels.Height), new Rect(offset, rootSize));
+                    }
+                }
+                Save(composite, path);
             }
-            var rtb = new RenderTargetBitmap(width, height, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-            rtb.Render(dv);
-            var enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(rtb));
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-            using var fs = File.Create(path);
-            enc.Save(fs);
+            else Save(bitmap, path);
             Info("capture: " + path);
         }
         catch (Exception ex)
@@ -88,77 +107,10 @@ public static class SelfTest
         }
     }
 
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern IntPtr CreateCompatibleDC(IntPtr hdc);
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int w, int h);
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern bool DeleteObject(IntPtr obj);
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern bool DeleteDC(IntPtr hdc);
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    static extern IntPtr GetDC(IntPtr hwnd);
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
-    struct RECT { public int Left, Top, Right, Bottom; }
-
-    [System.Runtime.InteropServices.DllImport("gdi32.dll")]
-    static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, int rop);
-
-    /// <summary>Captures the screen where the window is (includes drop-down menus).</summary>
-    public static void CaptureFromScreen(Window win, string path)
+    static void Save(RenderTargetBitmap bitmap, string path)
     {
-        try
-        {
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
-            GetWindowRect(hwnd, out var r);
-            int width = r.Right - r.Left, height = r.Bottom - r.Top;
-            var screen = GetDC(IntPtr.Zero);
-            var mem = CreateCompatibleDC(screen);
-            var bmp = CreateCompatibleBitmap(screen, width, height);
-            var old = SelectObject(mem, bmp);
-            BitBlt(mem, 0, 0, width, height, screen, r.Left, r.Top, 0x00CC0020 /* SRCCOPY */);
-            SelectObject(mem, old);
-            var source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            DeleteObject(bmp); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
-            var enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(source));
-            using var fs = File.Create(path);
-            enc.Save(fs);
-            Info("capture: " + path);
-        }
-        catch (Exception ex) { Info("capture failed: " + ex.Message); }
-    }
-
-    /// <summary>Captures a window with PrintWindow (includes Win32 controls such as WebBrowser).</summary>
-    public static void CaptureScreen(Window win, string path)
-    {
-        try
-        {
-            var hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
-            GetWindowRect(hwnd, out var r);
-            int width = r.Right - r.Left, height = r.Bottom - r.Top;
-            var screen = GetDC(IntPtr.Zero);
-            var mem = CreateCompatibleDC(screen);
-            var bmp = CreateCompatibleBitmap(screen, width, height);
-            var old = SelectObject(mem, bmp);
-            PrintWindow(hwnd, mem, 2 /* PW_RENDERFULLCONTENT */);
-            SelectObject(mem, old);
-            var source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(bmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            DeleteObject(bmp); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
-            var enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(source));
-            using var fs = File.Create(path);
-            enc.Save(fs);
-            Info("capture: " + path);
-        }
-        catch (Exception ex) { Info("capture failed: " + ex.Message); }
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        bitmap.Save(path);
     }
 
     static void Finish(MainWindow w, string name)
@@ -172,7 +124,7 @@ public static class SelfTest
         var log = Path.Combine(OutDir, name + ".log");
         File.WriteAllText(log, string.Join(Environment.NewLine, Lines) + Environment.NewLine, new UTF8Encoding(false));
         int code = _failures == 0 ? 0 : 1;
-        w.Dispatcher.BeginInvoke(new Action(() => Application.Current.Shutdown(code)));
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => App.Shutdown(code));
     }
 
     // ------------------------------------------------------------------ smoke test
@@ -380,6 +332,10 @@ public static class SelfTest
             await WaitFor(() => w.State == IdeState.Paused, "paused after step into");
             Check(doc.ExecutionLine == 9, $"step into → line 9 ({doc.ExecutionLine})");
             Check(w.StackItems.Count == 2 && w.StackItems[0].Name == "p", "call stack: p then main program");
+            w.ShowBottomPanel("stack");
+            await Task.Delay(200);
+            Capture(w, Path.Combine(dir, "3a-call-stack.png"));
+            w.ShowBottomPanel("variables");
             await w.StepAsync(StepKind.Over);
             await WaitFor(() => w.State == IdeState.Paused, "paused after step over");
             Check(doc.ExecutionLine == 10, $"step over → line 10 ({doc.ExecutionLine})");
@@ -438,9 +394,9 @@ public static class SelfTest
             // ---- 9. Standalone exe
             w.Activate(doc);
             await Task.Delay(50);
-            var exe = Path.Combine(dir, "test.exe");
+            var exe = Path.Combine(dir, ExeName("test"));
             var generated = await w.GenerateExeAsync(exe);
-            Check(generated != null && File.Exists(exe), "exe generated");
+            Check(generated != null && File.Exists(exe), "executable generated");
             if (generated != null)
             {
                 var psi = new ProcessStartInfo(exe)
@@ -539,15 +495,26 @@ public static class SelfTest
             // ---- 10b. Menus (drop-down menu rendering, screen capture)
             w.Topmost = true;
             w.Activate();
-            var debugMenu = w.DebugMenuItem.Parent as System.Windows.Controls.MenuItem;
+            var debugMenu = w.DebugMenuItem.Parent as MenuItem;
             if (debugMenu != null)
             {
-                debugMenu.IsSubmenuOpen = true;
+                debugMenu.Open();
                 await Task.Delay(600);
-                Check(debugMenu.IsSubmenuOpen, "Debug menu open");
-                CaptureFromScreen(w, Path.Combine(dir, "7-menu.png"));
-                debugMenu.IsSubmenuOpen = false;
+                Check(debugMenu.IsSubMenuOpen, "Debug menu open");
+                Capture(w, Path.Combine(dir, "7-menu.png"));
+                debugMenu.Close();
             }
+            // Menu filled when it opens (Examples: one submenu per language)
+            w.ExamplesMenu.Open();
+            await Task.Delay(600);
+            Check(w.ExamplesMenu.IsSubMenuOpen && w.ExamplesMenu.ItemCount >= 7, $"Examples menu filled ({w.ExamplesMenu.ItemCount} items)");
+            if (w.ExamplesMenu.Items.OfType<MenuItem>().FirstOrDefault() is { } simulaExamples)
+            {
+                simulaExamples.Open();
+                await Task.Delay(400);
+            }
+            Capture(w, Path.Combine(dir, "7b-examples-menu.png"));
+            w.ExamplesMenu.Close();
             w.Topmost = false;
 
             // ---- 11. Dark theme
@@ -577,17 +544,24 @@ public static class SelfTest
                 w.CloseDocument(d, force: true);
             }
 
-            // ---- 12c. Help (Markdown rendered in the embedded browser)
+            // ---- 12c. Help (Markdown rendered with Avalonia controls)
             w.CmdHelp.Execute("simula");
             await Task.Delay(2500);
-            var help = Application.Current.Windows.OfType<Dialogs.HelpWindow>().FirstOrDefault();
+            var help = App.Windows.OfType<Dialogs.HelpWindow>().FirstOrDefault();
             Check(help != null && help.IsVisible, "help window open");
             if (help != null)
             {
                 bool hasDoc = PathLocator.DocsDirectory != null && File.Exists(Path.Combine(PathLocator.DocsDirectory, "simula.md"));
                 Check(!hasDoc || help.TocList.Items.Count > 3, $"table of contents of docs/simula.md ({help.TocList.Items.Count} headings)");
-                Check(help.Browser.Document != null, "help page loaded");
-                CaptureScreen(help, Path.Combine(dir, "6-help.png"));
+                Check(help.Viewer.BlockCount > 3, "help page loaded");
+                Capture(help, Path.Combine(dir, "6-help.png"));
+                if (help.TocList.ItemCount > 3)
+                {
+                    help.TocList.SelectedIndex = 3;
+                    help.Viewer.ScrollTo(((Dialogs.HelpWindow.TocEntry)help.TocList.SelectedItem!).Id);
+                    await Task.Delay(500);
+                    Check(help.Viewer.Offset.Y > 100, $"table of contents: scrolled to a heading (offset {help.Viewer.Offset.Y:F0}, extent {help.Viewer.Extent.Height:F0}, viewport {help.Viewer.Viewport.Height:F0})");
+                }
                 help.ShowTopic("shortcuts");
                 await Task.Delay(800);
                 Check(help.TocList.Items.Count >= 5, "help: keyboard shortcuts");
@@ -739,7 +713,7 @@ public static class SelfTest
         if (w.State != IdeState.Idle) { w.StopExecution(); await RealWait(() => w.State == IdeState.Idle, "stop"); }
         if (doc.BreakpointLines.Count > 0) doc.SetBreakpoints(Array.Empty<int>());
         // Standalone exe
-        var exe = Path.Combine(OutDir, "real-" + lang.Id + ".exe");
+        var exe = Path.Combine(OutDir, ExeName("real-" + lang.Id));
         if (await w.GenerateExeAsync(exe) != null)
         {
             var psi = new ProcessStartInfo(exe) { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true, StandardOutputEncoding = Encoding.UTF8 };

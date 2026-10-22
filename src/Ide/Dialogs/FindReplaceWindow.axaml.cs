@@ -1,5 +1,7 @@
-using System.Windows;
-using System.Windows.Input;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Studio.Ide.Services;
 
 namespace Studio.Ide.Dialogs;
@@ -9,6 +11,9 @@ public partial class FindReplaceWindow : Window
 {
     readonly MainWindow _main;
     readonly SearchOptions _options;
+
+    // Constructor for the XAML previewer.
+    public FindReplaceWindow() : this(null!, new SearchOptions()) { }
 
     public FindReplaceWindow(MainWindow main, SearchOptions options)
     {
@@ -20,26 +25,26 @@ public partial class FindReplaceWindow : Window
         MatchCaseBox.IsChecked = options.MatchCase;
         WholeWordBox.IsChecked = options.WholeWord;
         RegexBox.IsChecked = options.UseRegex;
-        PreviewKeyDown += (_, e) =>
+        AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (e.Key == Key.F3) { Find(Keyboard.Modifiers == ModifierKeys.Shift); e.Handled = true; }
-        };
+            if (e.Key == Key.F3) { Find(e.KeyModifiers == KeyModifiers.Shift); e.Handled = true; }
+            else if (e.Key == Key.Escape) { OnClose(null, e); e.Handled = true; }
+        }, RoutingStrategies.Tunnel);
     }
 
     public void ShowMode(bool replace)
     {
         Title = replace ? "Replace" : "Find";
-        var v = replace ? Visibility.Visible : Visibility.Collapsed;
-        ReplaceLabel.Visibility = ReplaceBox.Visibility = ReplaceButton.Visibility = ReplaceAllButton.Visibility = v;
+        ReplaceLabel.IsVisible = ReplaceBox.IsVisible = ReplaceButton.IsVisible = ReplaceAllButton.IsVisible = replace;
         FindBox.Text = _options.Text;
         StatusText.Text = "";
-        Dispatcher.BeginInvoke(new Action(() => { FindBox.Focus(); FindBox.SelectAll(); }), System.Windows.Threading.DispatcherPriority.Input);
+        Dispatcher.UIThread.Post(() => { FindBox.Focus(); FindBox.SelectAll(); }, DispatcherPriority.Input);
     }
 
     void Sync()
     {
-        _options.Text = FindBox.Text;
-        _options.Replacement = ReplaceBox.Text;
+        _options.Text = FindBox.Text ?? "";
+        _options.Replacement = ReplaceBox.Text ?? "";
         _options.MatchCase = MatchCaseBox.IsChecked == true;
         _options.WholeWord = WholeWordBox.IsChecked == true;
         _options.UseRegex = RegexBox.IsChecked == true;
@@ -51,22 +56,22 @@ public partial class FindReplaceWindow : Window
         StatusText.Text = _main.FindNext(backwards);
     }
 
-    void OnNext(object sender, RoutedEventArgs e) => Find(false);
-    void OnPrevious(object sender, RoutedEventArgs e) => Find(true);
+    void OnNext(object? sender, RoutedEventArgs e) => Find(false);
+    void OnPrevious(object? sender, RoutedEventArgs e) => Find(true);
 
-    void OnReplace(object sender, RoutedEventArgs e)
+    void OnReplace(object? sender, RoutedEventArgs e)
     {
         Sync();
         StatusText.Text = _main.ReplaceCurrent();
     }
 
-    void OnReplaceAll(object sender, RoutedEventArgs e)
+    void OnReplaceAll(object? sender, RoutedEventArgs e)
     {
         Sync();
         StatusText.Text = _main.ReplaceAll();
     }
 
-    void OnClose(object sender, RoutedEventArgs e)
+    void OnClose(object? sender, RoutedEventArgs e)
     {
         Sync();
         Close();

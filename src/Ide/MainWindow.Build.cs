@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Threading;
-using Microsoft.Win32;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Studio.Common;
+using Studio.Ide.Dialogs;
 using Studio.Ide.Editor;
 using Studio.Ide.Panels;
 using Studio.Ide.Services;
@@ -214,11 +215,11 @@ public partial class MainWindow
 
     public IReadOnlyList<ErrorItem> ErrorItems => _allErrors;
 
-    void OnErrorFilterChanged(object sender, RoutedEventArgs e) => RefreshErrorList();
+    void OnErrorFilterChanged(object? sender, RoutedEventArgs e) => RefreshErrorList();
 
-    void OnErrorDoubleClick(object sender, MouseButtonEventArgs e) => NavigateToSelectedError();
+    void OnErrorDoubleClick(object? sender, TappedEventArgs e) => NavigateToSelectedError();
 
-    void OnErrorKeyDown(object sender, KeyEventArgs e)
+    void OnErrorKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) { NavigateToSelectedError(); e.Handled = true; }
     }
@@ -235,32 +236,36 @@ public partial class MainWindow
     {
         var doc = ActiveDocument;
         if (doc == null) return null;
-        var runner = RunnerLocator.Find();
+        var platform = App.Platform;
+        var runner = platform.FindRunner();
         if (runner == null)
         {
-            ShowError(RunnerLocator.NotFoundMessage, "Generate .exe");
+            ShowError(RunnerLocator.NotFoundMessage, "Generate executable");
             return null;
         }
         if (targetPath == null)
         {
             var baseName = System.IO.Path.GetFileNameWithoutExtension(doc.DisplayName);
-            var dlg = new SaveFileDialog
+            var ext = platform.ExecutableExtension;
+            var file = await SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Generate a standalone executable",
-                Filter = "Windows executable (*.exe)|*.exe",
-                FileName = baseName + ".exe",
-                DefaultExt = ".exe",
-                InitialDirectory = doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            };
-            if (dlg.ShowDialog(this) != true) return null;
-            targetPath = dlg.FileName;
+                FileTypeChoices = ext.Length > 0
+                    ? new[] { new FilePickerFileType($"{platform.ExecutableDescription} (*{ext})") { Patterns = new[] { "*" + ext } } }
+                    : null,
+                SuggestedFileName = baseName + ext,
+                DefaultExtension = ext.Length > 0 ? ext : null,
+                ShowOverwritePrompt = true,
+            }, doc.Directory ?? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            targetPath = file?.TryGetLocalPath();
+            if (targetPath == null) return null;
         }
         var outcome = await BuildAsync(debug: _settings.GenerateDebugInfo, showSuccess: false);
         if (outcome?.Result.Program == null) return null;
         try
         {
             var payload = outcome.Result.Program.Serialize();
-            ExePackage.Write(runner, targetPath, outcome.Service.Id, payload);
+            platform.WriteExecutable(runner, targetPath, outcome.Service.Id, payload);
             var size = new System.IO.FileInfo(targetPath).Length;
             AppendOutput($"Standalone executable generated: {targetPath} ({size / 1024.0:F0} KB, program {payload.Length} bytes)");
             AppendOutput("It needs the .NET 8 runtime (installed with this environment) and can be copied on its own.");

@@ -1,6 +1,6 @@
 # AlgolStudio
 
-A complete Windows development environment for five historic languages:
+A complete development environment (Windows, macOS, Linux) for five historic languages:
 
 * **Simula 67** (Dahl and Nygaard, 1967) — the first object-oriented language: classes, subclasses,
   virtual procedures, coroutines, discrete-event simulation (`Simulation`, `SimSet`);
@@ -31,11 +31,18 @@ executable" is a copy of `Runner.exe` with the compiled program appended to it.
 
 ## Requirements
 
-* Windows 10 or 11 (x64).
-* **.NET 8 Desktop Runtime** to use the IDE and the tools
-  (<https://dotnet.microsoft.com/download/dotnet/8.0>, ".NET Desktop Runtime 8").
-  Generated executables only need the **.NET 8 Runtime**.
-* To build: **.NET 8 SDK**.
+* Windows 10 or 11 (x64); the IDE (Avalonia user interface) also runs on macOS and Linux.
+* **.NET 8 Runtime** to use the IDE, the tools and the generated executables
+  (<https://dotnet.microsoft.com/download/dotnet/8.0>); the Desktop Runtime is no longer needed.
+* To build: **.NET 8 SDK**. `build.ps1` produces the Windows distribution; for macOS or Linux, publish
+  the desktop head and the launcher for the target, for example:
+
+  ```
+  dotnet publish src/Ide.Desktop -c Release -r osx-arm64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out/mac
+  dotnet publish src/Runner -c Release -r osx-arm64 --self-contained false -p:PublishSingleFile=true -o out/mac
+  ```
+
+  (`linux-x64`, `linux-arm64` and `osx-x64` work the same way; the launcher is then called `Runner`, without extension).
 
 ## Building
 
@@ -56,9 +63,10 @@ dist\docs\simula.md       dist\docs\algol68.md       dist\docs\algol60.md   dist
 ```
 
 For development, `dotnet build AlgolStudio.sln` is enough: every build of `src\Runner` also
-publishes `src\Runner\bin\<Configuration>\single\Runner.exe` (single file), which the IDE and the
-compilers find automatically by walking up the folder tree. The `ALGOLSTUDIO_RUNNER` environment
-variable forces another `Runner.exe`.
+publishes `src\Runner\bin\<Configuration>\single\Runner.exe` (single file; `Runner` for the
+development machine on macOS and Linux), which the IDE and the compilers find automatically by
+walking up the folder tree. The `ALGOLSTUDIO_RUNNER` environment variable forces another launcher.
+The IDE is started with `dotnet run --project src/Ide.Desktop`.
 
 ## Using the IDE
 
@@ -94,8 +102,9 @@ Start `AlgolStudio.exe` (optionally with files or a folder as arguments).
 * Drag and drop of files or folders; recent files and folders; **Examples** menu (`samples`
   folder); **light** and **dark** themes.
 * The session (tabs, caret position, breakpoints, layout, options) is restored at start-up.
-  Settings: `%APPDATA%\AlgolStudio\settings.json` (theme `light` or `dark`; technical log:
-  `ide.log` in the same folder).
+  Settings: `%APPDATA%\AlgolStudio\settings.json` on Windows, `~/.config/AlgolStudio/settings.json`
+  on macOS and Linux (theme `light` or `dark`; technical log: `ide.log` in the same folder).
+* On macOS the command shortcuts use **Cmd** instead of **Ctrl** (Ctrl+Space stays the completion key).
 
 ### Build and run
 
@@ -116,10 +125,12 @@ Start `AlgolStudio.exe` (optionally with files or a folder as arguments).
   ignored). After a cursor move, text overwrites the characters in place (lines are extended with
   spaces when needed); `\n` goes to the next line, `\r` back to column 1. Other sequences are
   ignored. Simula 67 example: `outchar(char(27)); outtext("[H"); outtext("frame 1"); outimage;`
-* **Run in external Windows console** option (toolbar button or Debug menu): the executable
-  is generated in a temporary folder and started in a real console.
-* **Generate a standalone .exe** (Ctrl+Shift+E): a single Windows executable that can be copied
-  and run on its own.
+* **Run in external console** option (toolbar button or Debug menu): the executable is generated
+  in a temporary folder and started in a real console — a Windows console, a Terminal window on
+  macOS, a terminal emulator on Linux (`x-terminal-emulator`, `gnome-terminal`, `konsole` or `xterm`).
+* **Generate a standalone executable** (Ctrl+Shift+E): a single executable that can be copied and
+  run on its own — `.exe` on Windows; on macOS and Linux a file without extension, made executable
+  (and re-signed ad hoc on macOS when its signature is reported invalid).
 
 ### Debugging
 
@@ -195,7 +206,7 @@ AlgolStudio.exe --self-test --self-test-dir folder      # full IDE scenario
 
 `tests\IdeTests` uses a small test language ("echo") to check the IDE, the debugger and the
 standalone executables independently of the real compilers. The IDE self-test (`--self-test`)
-drives the real window: compilation, errors, console, debugger, exe, editor, theme; it then
+drives the real window (`src\Ide.Desktop`): compilation, errors, console, debugger, executable, editor, theme, help; it then
 exercises the real compilers (Simula 67, Algol 68, Algol 60, Simula I, Pascal). The result is written to `self-test.log`
 (exit code 0 when everything passes) together with screenshots.
 
@@ -215,7 +226,10 @@ src\A68C        a68c
 src\A60C        a60c
 src\S1C         s1c
 src\PasC        pasc
-src\Ide         WPF IDE (AvalonEdit, Markdig)
+src\Ide         cross-platform IDE library (Avalonia 11, AvaloniaEdit, Markdig): views, editor,
+                panels, dialogs, services; IPlatformServices = operations provided by each head
+src\Ide.Desktop desktop head (Windows, macOS, Linux): AlgolStudio(.exe), Program.cs, DesktopPlatform
+                (external console, executables, file manager), SelfTest.cs (--smoke-test, --self-test)
 tests\          tests of the compilers and of the tooling
 samples\        samples; docs\ language documentation
 ```

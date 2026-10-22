@@ -1,25 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!--
+    Cross-platform IDE user interface (Avalonia): views, view models, editor, panels, dialogs, services.
+    The platform heads (src/Ide.Desktop today, a browser head later) start it and provide IPlatformServices.
+  -->
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <AssemblyName>AlgolStudio</AssemblyName>
+    <AssemblyName>AlgolStudio.Ide</AssemblyName>
     <RootNamespace>Studio.Ide</RootNamespace>
     <Product>AlgolStudio</Product>
     <AssemblyTitle>AlgolStudio</AssemblyTitle>
     <Version>1.0.0</Version>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <!-- Runner is referenced only for the build order (no assembly reference). -->
-    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.13" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.4.1" />
     <PackageReference Include="Markdig" Version="0.38.0" />
   </ItemGroup>
 
@@ -30,8 +32,6 @@
     <ProjectReference Include="..\Algol60\Algol60.csproj" />
     <ProjectReference Include="..\SimulaI\SimulaI.csproj" />
     <ProjectReference Include="..\Pascal\Pascal.csproj" />
-    <!-- Single-file Runner.exe (bin\...\single) for "Generate .exe" and the external console. -->
-    <ProjectReference Include="..\Runner\Runner.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,8 +39,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\app.ico" />
-    <Resource Include="Assets\app256.png" />
+    <AvaloniaResource Include="Assets\app.ico" />
+    <AvaloniaResource Include="Assets\app256.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The desktop head (assembly AlgolStudio) runs the self-test, which inspects the main window. -->
+    <InternalsVisibleTo Include="AlgolStudio" />
   </ItemGroup>
 
 </Project>
